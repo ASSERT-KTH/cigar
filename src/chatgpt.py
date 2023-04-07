@@ -14,12 +14,11 @@ class ChatGPT(object):
 
         response = None
         call_params = self.get_call_params(prompt)
-        call_hash = self.get_call_hash(prompt)
-        hash_file_path = self.get_hash_file_path(prompt)
+        cache_file_path = self.get_cache_file_path(prompt)
 
         if self.load_from_cache and self.cache_folder is not None:
-            if Path(hash_file_path).is_file():
-                with open(hash_file_path, "r") as file:
+            if Path(cache_file_path).is_file():
+                with open(cache_file_path, "r") as file:
                     json_to_load = json.load(file)
                     response = json_to_load['response']
 
@@ -27,7 +26,7 @@ class ChatGPT(object):
             response = openai.ChatCompletion.create(**call_params)
 
         if self.save_to_cache and self.cache_folder is not None:
-            with open(hash_file_path, "w") as file:
+            with open(cache_file_path, "w") as file:
                 json_to_save = self.get_json_to_save(call_params, response)
                 file.write(json.dumps(json_to_save, indent=4, sort_keys=True))
             
@@ -45,13 +44,12 @@ class ChatGPT(object):
         call_params = self.get_call_params(prompt)
         return hashlib.md5(str(call_params).encode('utf-8')).hexdigest()
     
+    def get_cache_file_path(self, prompt):
+        call_hash = self.get_call_hash(prompt)
+        return f"{self.cache_folder}/{call_hash}.json"
+    
     def get_json_to_save(self, call_params, response):
         return {
             "call": call_params,
             "response": response
         }
-    
-    def get_hash_file_path(self, prompt):
-        call_hash = self.get_call_hash(prompt)
-        return f"{self.cache_folder}/{call_hash}.json"
-
