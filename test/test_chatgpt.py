@@ -7,6 +7,7 @@ from pathlib import Path
 class TestChatGPT(unittest.TestCase):
     def __init__(self, methodName: str = "runTest") -> None:
         super().__init__(methodName)
+        self.api_key_path = Path(__file__).parent.parent / 'openai_api_key.env'
         self.test_cache_path = Path(__file__).parent / 'test_chatgpt_cache'
         self.mocked_prompt = [
             {"role": "system", "content": "You are a helpful assistant."},
@@ -89,8 +90,10 @@ class TestChatGPT(unittest.TestCase):
 
     @unittest.skip("Skipping test_openai_call because it requires an OpenAI API key")
     def test_openai_call(self):
-        chatgpt = ChatGPT(api_key_path=Path(__file__).parent.parent / 'openai_api_key.env',
-                          cache_folder=self.test_cache_path, load_from_cache=False, save_to_cache=True)
+        chatgpt = ChatGPT(api_key_path=self.api_key_path, 
+                          cache_folder=self.test_cache_path, 
+                          load_from_cache=False, 
+                          save_to_cache=True)
         prompt = self.live_prompt
         response_message, response_token_usage = chatgpt.call(prompt)
         self.assertIsInstance(response_message, str)

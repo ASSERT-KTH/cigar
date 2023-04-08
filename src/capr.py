@@ -5,6 +5,6 @@ class Capr(object):
                  alt_instruct):
         pass
 
-    def attempt_to_repair(self, chat):
+    def attempt_to_repair(self, initial_prompt, original_failing_test_info, test_suite):
         pass
         # return plasuable_patches and cost_of_repair_attempt
