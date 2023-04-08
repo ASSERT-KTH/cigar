@@ -4,8 +4,10 @@ import hashlib
 from pathlib import Path
 
 class ChatGPT(object):
-    def __init__(self, model="gpt-3.5-turbo", cache_folder=None, load_from_cache=True, save_to_cache=True):
+    def __init__(self, model="gpt-3.5-turbo", api_key_path=None,
+                 cache_folder=None, load_from_cache=True, save_to_cache=True):
         self.model = model
+        openai.api_key_path = api_key_path
         self.cache_folder = cache_folder
         self.load_from_cache = load_from_cache
         self.save_to_cache = save_to_cache
