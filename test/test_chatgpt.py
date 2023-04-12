@@ -1,5 +1,4 @@
 import unittest
-import hashlib
 from unittest.mock import patch
 from src.chatgpt import ChatGPT
 from pathlib import Path
