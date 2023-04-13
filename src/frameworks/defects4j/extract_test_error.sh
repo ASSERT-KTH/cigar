@@ -6,8 +6,6 @@ version_id=${2}b
 work_dir=$3
 d4j_path=$4
 
-export PATH=$PATH:$d4j_path
-
 cd $work_dir
 
 # Extract test error

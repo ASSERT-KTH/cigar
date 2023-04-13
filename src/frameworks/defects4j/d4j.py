@@ -20,21 +20,33 @@ class Defects4J(object):
         self._reproduce_buggy_folder(work_dir, project, bug_id)
 
         test_suite = self._extract_test_suite(work_dir, project, bug_id)
-        print(f"test_suite: {test_suite}")
         test_name = self._extract_test_name(work_dir, project, bug_id)
-        print(f"test_name: {test_name}")
         test_error = self._extract_test_error(work_dir, project, bug_id)
-        print(f"test_error: {test_error}")
         test_line = self._extract_test_line(work_dir, project, bug_id)
-        print(f"test_line: {test_line}")
         code = self._extract_code(work_dir, project, bug_id)
-        print(f"code: \n{code}")
         buggy_line = self._extract_buggy_line(work_dir, project, bug_id)
-        print(f"buggy_line: \n{buggy_line}")
         fixed_line = self._extract_fixed_line(work_dir, project, bug_id)
-        print(f"fixed_line: \n{fixed_line}")
         masked_code = self._extract_masked_code(work_dir, project, bug_id)
-        print(f"masked_code: \n{masked_code}")
+
+        # Return Bug object
+
+    def validate_patch(self, bug_data, proposed_line_fix):
+
+        project = bug_data["project"]
+        bug_id = bug_data["bug_id"]
+        work_dir = f"{self.tmp_dir}/{project}-{bug_id}"
+
+        command = ['sh', f'{self.shell_scripts_folder}/validate_patch.sh', f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}", f"{proposed_line_fix}"]
+        result = run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True)
+        print(result.returncode)
+        print(result.stdout)
+        
+        if result.returncode == 1:
+            # Compile error, return explanation based on result.stderr
+            print(result.stderr)
+            return 
+        else:
+            pass
 
 
     def _reproduce_buggy_folder(self, work_dir, project, bug_id):
@@ -91,6 +103,9 @@ class Defects4J(object):
         return result.stdout[:-1]
 
 d4j = Defects4J()
-for bug_data in d4j.bug_dataset:
-    print(f"\nReproducing bug {bug_data['bug_id']} of project {bug_data['project']}")
-    d4j.reproduce_bug(bug_data)
+bug_data = d4j.bug_dataset[0]
+
+# patch_code = "    if (Double.isInfinite(value)) {"
+patch_code = "    if (!lenient && (Double.isNaN(value) || Double.isInfinite(value))) {"
+
+d4j.validate_patch(bug_data, patch_code)
