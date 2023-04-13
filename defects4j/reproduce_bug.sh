@@ -3,10 +3,9 @@
 project_id=$1
 bug_id=$2
 version_id=${2}b
-tmp_dir=$3
+work_dir=$3
 d4j_path=$4
 
-work_dir=$tmp_dir/$project_id-$bug_id
 export PATH=$PATH:$d4j_path
 
 defects4j info -p $project_id -b $bug_id

@@ -45,13 +45,7 @@ INFILL
         self.test_line = """assertEquals("NO_OBJECT_TYPE", errUnion.getGreatestSubtype(STRING_OBJECT_TYPE));"""
         self.test_error_message = """expected:<[NoObject]> but was:<None>"""
 
-class TestResults(object):
-    def __init__(self):
-        pass
-
 class Framework(object):
-    def __init__(self):
-        pass
 
     def reproduce_bug(self, bug_id):
         # Initialize and reproduce a bug using bug_id

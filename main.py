@@ -1,7 +1,7 @@
 from pathlib import Path
 from src.capr import CAPR
 from src.chatgpt import ChatGPT
-from src.d4j import Defects4J
+from defects4j.d4j import Defects4J
 
 framework = Defects4J()
 chatgpt = ChatGPT(model="gpt-3.5-turbo", 
