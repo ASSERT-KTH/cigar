@@ -43,18 +43,18 @@ class Defects4J(object):
         result_reason = None
         
         if result.returncode == 1:
-            test_result = result.stderr
-            test_result = test_result[test_result.find("error: "):]
-            test_result = test_result[:test_result.find("\n")]
+            result_reason = result.stderr
+            result_reason = result_reason[result_reason.find("error: "):]
+            result_reason = result_reason[:result_reason.find("\n")]
 
-            test_result, result_reason = "FAIL", "error: cannot find symbol"
+            test_result, result_reason = "ERROR", result_reason # compilation error
         else:
             all_tests_passed = result.stdout.find("Failing tests: 0") != -1
 
             if all_tests_passed:
-                test_result, result_reason = "PASS", "all tests passed"
+                test_result, result_reason = "PASS", "all tests passed" # test pass
             else:
-                test_result = "FAIL"
+                test_result = "FAIL" # test fail
                 result_reason = self._extract_test_error(work_dir, project, bug_id)
             
         return test_result, result_reason
@@ -116,11 +116,11 @@ class Defects4J(object):
 d4j = Defects4J()
 bug_data = d4j.bug_dataset[0]
 
-code_causes_compilation_error = "    if (Double.isInfinite(value))) {"
+code_causes_compilation_error = "    if (Double.isInfini(value)) {"
 code_buggy_fails_test =         "    if (Double.isNaN(value) || Double.isInfinite(value)) {"
 code_fixed_should_pass =        "    if (!lenient && (Double.isNaN(value) || Double.isInfinite(value))) {"
 
-patch_code = code_buggy_fails_test
+patch_code = code_causes_compilation_error
 
 test_result, result_reason = d4j.validate_patch(bug_data, patch_code)
 print(test_result)
