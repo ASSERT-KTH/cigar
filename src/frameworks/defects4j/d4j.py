@@ -38,15 +38,26 @@ class Defects4J(object):
 
         command = ['sh', f'{self.shell_scripts_folder}/validate_patch.sh', f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}", f"{proposed_line_fix}"]
         result = run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True)
-        print(result.returncode)
-        print(result.stdout)
+
+        test_result = None
+        result_reason = None
         
         if result.returncode == 1:
-            # Compile error, return explanation based on result.stderr
-            print(result.stderr)
-            return 
+            test_result = result.stderr
+            test_result = test_result[test_result.find("error: "):]
+            test_result = test_result[:test_result.find("\n")]
+
+            test_result, result_reason = "FAIL", "error: cannot find symbol"
         else:
-            pass
+            all_tests_passed = result.stdout.find("Failing tests: 0") != -1
+
+            if all_tests_passed:
+                test_result, result_reason = "PASS", "all tests passed"
+            else:
+                test_result = "FAIL"
+                result_reason = self._extract_test_error(work_dir, project, bug_id)
+            
+        return test_result, result_reason
 
 
     def _reproduce_buggy_folder(self, work_dir, project, bug_id):
@@ -105,7 +116,12 @@ class Defects4J(object):
 d4j = Defects4J()
 bug_data = d4j.bug_dataset[0]
 
-# patch_code = "    if (Double.isInfinite(value)) {"
-patch_code = "    if (!lenient && (Double.isNaN(value) || Double.isInfinite(value))) {"
+code_causes_compilation_error = "    if (Double.isInfinite(value))) {"
+code_buggy_fails_test =         "    if (Double.isNaN(value) || Double.isInfinite(value)) {"
+code_fixed_should_pass =        "    if (!lenient && (Double.isNaN(value) || Double.isInfinite(value))) {"
 
-d4j.validate_patch(bug_data, patch_code)
+patch_code = code_buggy_fails_test
+
+test_result, result_reason = d4j.validate_patch(bug_data, patch_code)
+print(test_result)
+print(result_reason)
