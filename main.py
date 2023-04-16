@@ -21,14 +21,17 @@ results_file = Path(__file__).parent / 'data' / 'results.json'
 def print_conversation(json_path):
     with open(json_path, 'r') as file:
         cached_conversation = json.load(file)
-        messages = [message['content'] for message in cached_conversation['call']['messages']]
-        messages.append(cached_conversation['response']['choices'][0]['message']['content'])
-    for message in messages:
-        print(message)        
+        messages = [(message['role'],message['content']) for message in cached_conversation['call']['messages']]
+        messages.append(("assistant",cached_conversation['response']['choices'][0]['message']['content']))
+    for role, message in messages:
+        if role == "assistant":
+            print(f'\x1b[32m\'{message}\'\x1b[0m\n')
+        else:
+            print(message)        
         
 
 def main():
-    print_conversation(Path(__file__).parent / 'test' / 'test_capr_cache' / 'attempt_11' / '2_3669e20d3bd1ccbe99a28d2af36b5e55.json')
+    print_conversation(Path(__file__).parent / 'test' / 'test_capr_cache' / 'attempt_12' / '0_49c54fa710e8327973341a770e7e1620.json')
     # for bug_id in list_of_bugs:
     #     bug = framework.reproduce_bug(bug_id)
         

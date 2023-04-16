@@ -25,7 +25,7 @@ class TestCAPR(unittest.TestCase):
     def test_repair(self):
         chatgpt = ChatGPT(model=self.chatgpt_model, 
                           api_key_path=self.chatgpt_api_key_path,
-                          cache_folder=self.cache_folder / 'attempt_11',
+                          cache_folder=self.cache_folder / 'attempt_12',
                           load_from_cache=True,
                           save_to_cache=True)
         framework = Framework("defects4j")

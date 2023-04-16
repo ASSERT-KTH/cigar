@@ -43,11 +43,13 @@ class CAPR(object):
             while (current_tries < self.max_tries):
                 prompt = self.construct_plausable_path_prompt(bug, plausable_patches)
 
-                patch, cost = self.chatgpt.call(prompt)
+                response, cost = self.chatgpt.call(prompt, num_of_samples=sample_per_try, call_id=current_tries)
                 total_cost += cost
 
-                patch_test_results = self.framework.run_test(patch)
-                if patch_test_results == "PASS" and patch not in plausable_patches:
+                patch = self.extract_patch_from_response(response)
+
+                test_result, result_reason = self.framework.validate_patch(bug.bug_info, patch)
+                if test_result == "PASS" and patch not in plausable_patches:
                     plausable_patches.append(patch)
                 
                 current_tries += 1
@@ -55,8 +57,10 @@ class CAPR(object):
         return plausable_patches, total_cost
     
     def extract_patch_from_response(self, response):
+
         if "```java" in response:
-            patch = response[response.find("```java")+len("```java")+1:response.find("```")-len("```")-1]
+            patch = response[response.find("```java")+len("```java")+1:]
+            patch = patch[:patch.find("```")-len("```")-1]
             if "\n" in patch:
                 patch = patch.split("\n")[0]
         elif "\n\n" in response:
@@ -103,6 +107,13 @@ Please provide the correct line at the INFILL location.
 Please provide the correct patch line at the infill location."""}
 
     def construct_plausable_path_prompt(self, bug: Bug, plausable_patches):
+        plausable_patches_text = ""
+        for i, patch in enumerate(plausable_patches):
+            plausable_patches_text += f"""{i+1}. ```java
+{patch}
+```
+"""
+
         return [{"role": "system", "content": "You are an automated repair tool. Only answer with the code that fixes the bug. Avoid comments before and after the code."},
         {"role": "user", "content": f"""{bug.previous_bug_fixes}
 
@@ -126,7 +137,8 @@ with this error message:
 {bug.test_error_message}
 ```
         
-It can be fixed by the following lines:""" + (f"""```java
-{i+1}. {patch}
-```""" for i, patch in range(plausable_patches)) + "Please generate an alternative fix line."}]
+It can be fixed by the following lines:
+{plausable_patches_text}
+
+Please generate an alternative fix line."""}]
     
