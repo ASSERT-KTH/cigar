@@ -1,9 +1,10 @@
+import json
 from pathlib import Path
 from src.capr import CAPR
 from src.chatgpt import ChatGPT
-from defects4j.d4j import Defects4J
+from src.framework import Framework
 
-framework = Defects4J()
+framework = Framework("defects4j")
 chatgpt = ChatGPT(model="gpt-3.5-turbo", 
                   api_key_path=Path(__file__).parent.parent / 'openai_api_key.env',
                   cache_folder=Path(__file__).parent / 'data' / 'chatgpt_cache',
@@ -17,15 +18,25 @@ repair_cost = {}
 
 results_file = Path(__file__).parent / 'data' / 'results.json'
 
-def main():
-    for bug_id in list_of_bugs:
-        bug = framework.reproduce_bug(bug_id)
+def print_conversation(json_path):
+    with open(json_path, 'r') as file:
+        cached_conversation = json.load(file)
+        messages = [message['content'] for message in cached_conversation['call']['messages']]
+        messages.append(cached_conversation['response']['choices'][0]['message']['content'])
+    for message in messages:
+        print(message)        
         
-        plausible_patches[bug_id], repair_cost[bug_id] = capr.repair(bug=bug)
 
-    results = [(plausible_patches[bug_id], repair_cost[bug_id]) for bug_id in list_of_bugs]
-    with open(results_file, "w") as file:
-        file.write(results)
+def main():
+    print_conversation(Path(__file__).parent / 'test' / 'test_capr_cache' / 'attempt_11' / '2_3669e20d3bd1ccbe99a28d2af36b5e55.json')
+    # for bug_id in list_of_bugs:
+    #     bug = framework.reproduce_bug(bug_id)
+        
+    #     plausible_patches[bug_id], repair_cost[bug_id] = capr.repair(bug=bug)
+
+    # results = [(plausible_patches[bug_id], repair_cost[bug_id]) for bug_id in list_of_bugs]
+    # with open(results_file, "w") as file:
+    #     file.write(results)
 
 if __name__ == "__main__":
     main()

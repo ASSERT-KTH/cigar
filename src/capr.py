@@ -1,5 +1,6 @@
 from src.chatgpt import ChatGPT
-from src.framework import Framework, Bug
+from src.framework import Framework
+from src.bug import Bug
 
 class CAPR(object):
     def __init__(self, chatgpt: ChatGPT, framework: Framework,  max_conv_length, max_tries):
@@ -18,19 +19,21 @@ class CAPR(object):
             prompt = self.construct_initial_prompt(bug)
 
             while (current_conversation_length < self.max_conversation_length and current_tries < self.max_tries):
-                patch, cost = self.chatgpt.call(prompt, num_of_samples=sample_per_try, call_id=current_tries)
+                response, cost = self.chatgpt.call(prompt, num_of_samples=sample_per_try, call_id=current_tries)
                 total_cost += cost
+
+                patch = self.extract_patch_from_response(response)
                 
-                patch_test_results = self.framework.run_test(patch)
-                if patch_test_results == "PASS":
+                test_result, result_reason = self.framework.validate_patch(bug.bug_info, patch)
+                if test_result == "PASS":
                     plausable_patches.append(patch)
                     break
-                elif patch_test_results == bug.test_error_message:
-                    feedback = {"role": "user", "content": "The proposed line still does not fix the original test failure. Please provide the correct line in place of INFILL to fix the bug without any comments before or after the code."}
+                elif test_result == bug.test_error_message:
+                    feedback = {"role": "user", "content": "The fixed version is still not correct.\nPlease fix the correct line at the infill location."}
                 else:
-                    feedback = self.construct_feedback_message(patch_test_results)
+                    feedback = self.construct_feedback_message(test_result, result_reason)
                 
-                prompt.append({"role": "assistant", "content": f"""{patch}"""})
+                prompt.append({"role": "assistant", "content": f"""{response}"""})
                 prompt.append(feedback)
                 
                 current_tries += 1
@@ -50,52 +53,80 @@ class CAPR(object):
                 current_tries += 1
         
         return plausable_patches, total_cost
+    
+    def extract_patch_from_response(self, response):
+        if "```java" in response:
+            patch = response[response.find("```java")+len("```java")+1:response.find("```")-len("```")-1]
+            if "\n" in patch:
+                patch = patch.split("\n")[0]
+        elif "\n\n" in response:
+            patch = response.split("\n\n")[1].split("\n")[0]
+        else:
+            patch = response
 
+        return patch
 
     def construct_initial_prompt(self, bug: Bug):
-        return [{"role": "system", "content": "You are an automated program repair tool. Only answer with the code that fixes the bug. Avoid comments before and after the code."},
-        {"role": "user", "content": f"""Here are some examples of previous bug fixes
-{bug.previous_bug_fixes}
-
-The following Java code contains a buggy line that has been replaced with INFILL:
+        return [{"role": "system", "content": "You are an automated program repair tool. Please answer with the correct line in a code block."},
+        {"role": "user", "content": f"""The following Java code contains a buggy line that has been replaced with INFILL:
+```java
 {bug.masked_buggy_code}
+```
 
 This was the original buggy line which was at the INFILL location:
+```java
 {bug.buggy_line}
+```
 
 The code fails on this test:
+```java
 {bug.test_name}
+```
 
 on this test line:
+```java
 {bug.test_line}
+```
 
 with this error message:
+```java
 {bug.test_error_message}
+```
 
-Please provide the correct line in place of INFILL to fix the bug without any comments before or after the code.        
+Please provide the correct line at the INFILL location.
 """}]
     
-    def construct_feedback_message(self, patch_test_results):
-        return {"role": "user", "content": f"""The proposed line is incorrect. It has now the following error message:
-        {patch_test_results}
-        Please provide the correct line in place of INFILL to fix the bug without any comments before or after the code."""}
+    def construct_feedback_message(self, test_result, result_reason):
+        error_type = "test error" if test_result == "FAIL" else "compilation error"
+        return {"role": "user", "content": f"""The fixed version is still incorrect, it contains the {error_type}:
+{result_reason}
+Please provide the correct patch line at the infill location."""}
 
     def construct_plausable_path_prompt(self, bug: Bug, plausable_patches):
         return [{"role": "system", "content": "You are an automated repair tool. Only answer with the code that fixes the bug. Avoid comments before and after the code."},
         {"role": "user", "content": f"""{bug.previous_bug_fixes}
 
-        The following code contains a buggy line that has been removed:
-        {bug.masked_buggy_code}
+The following code contains a buggy line that has been removed:
+```java
+{bug.masked_buggy_code}
+```
 
-        The code fails on this test:
-        {bug.test_name}
+The code fails on this test:
+```java
+{bug.test_name}
+```
 
-        on this test line:
-        {bug.test_line}
+on this test line:
+```java
+{bug.test_line}
+```
 
-        with this error message:
-        {bug.test_error_message}
+with this error message:
+```java
+{bug.test_error_message}
+```
         
-        It can be fixed by the following lines:""" + (f"""{i+1}. {patch}
-""" for i, patch in range(plausable_patches)) + "Please generate more alternative lines in place of INFILL that fixes the bug."}]
+It can be fixed by the following lines:""" + (f"""```java
+{i+1}. {patch}
+```""" for i, patch in range(plausable_patches)) + "Please generate an alternative fix line."}]
     

@@ -8,6 +8,8 @@ d4j_path=$4
 
 export PATH=$PATH:$d4j_path
 
+rm -rf $work_dir
+
 defects4j info -p $project_id -b $bug_id
 
 defects4j checkout -p $project_id -v $version_id -w $work_dir
