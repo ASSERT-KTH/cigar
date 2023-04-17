@@ -60,7 +60,7 @@ class CAPR(object):
 
         if "```java" in response:
             patch = response[response.find("```java")+len("```java")+1:]
-            patch = patch[:patch.find("```")-len("```")-1]
+            patch = patch[:patch.find("```")]
             if "\n" in patch:
                 patch = patch.split("\n")[0]
         elif "\n\n" in response:
