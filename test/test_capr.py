@@ -21,11 +21,11 @@ class TestCAPR(unittest.TestCase):
         capr = CAPR(chatgpt=chatgpt, framework=framework, max_conv_length=3, max_tries=10)
         self.assertIsInstance(capr, CAPR)
 
-    # @unittest.skip("End-to-end test, takes long to run, resolves Gson-15 bug.")
+    @unittest.skip("End-to-end test, takes long to run, resolves Gson-15 bug.")
     def test_repair_gson_15(self):
         chatgpt = ChatGPT(model=self.chatgpt_model, 
                           api_key_path=self.chatgpt_api_key_path,
-                          cache_folder=self.cache_folder / 'attempt_12',
+                          cache_folder=self.cache_folder / 'attempt_14',
                           load_from_cache=True,
                           save_to_cache=True)
         framework = Framework("defects4j")
@@ -43,11 +43,11 @@ class TestCAPR(unittest.TestCase):
     def test_repair_lang_16(self):
         chatgpt = ChatGPT(model=self.chatgpt_model, 
                           api_key_path=self.chatgpt_api_key_path,
-                          cache_folder=self.cache_folder / 'attempt_13',
+                          cache_folder=self.cache_folder / 'attempt_16',
                           load_from_cache=True,
                           save_to_cache=True)
         framework = Framework("defects4j")
-        capr = CAPR(chatgpt=chatgpt, framework=framework, max_conv_length=3, max_tries=6)
+        capr = CAPR(chatgpt=chatgpt, framework=framework, max_conv_length=3, max_tries=12)
 
         d4j_bug = {"project": "Lang", "bug_id": 16}
 

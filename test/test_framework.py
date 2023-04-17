@@ -31,6 +31,7 @@ class TestFramework(unittest.TestCase):
         code_causes_compilation_error = '        if (str.startsWith("0x") || str.startsWith("-0x")))))) {'
         code_buggy_fails_test =         '        if (str.startsWith("0x") || str.startsWith("-0x")) {'
         code_fixed_should_pass =        '        if (str.startsWith("0x") || str.startsWith("-0x") || str.startsWith("0X") || str.startsWith("-0X")) {'
+        code_fixed_should_pass_2 =       '        if (str.regionMatches(true, 0, \"0x\", 0, 2) || str.regionMatches(true, 0, \"-0x\", 0, 3)) {'
 
         test_result, _ = framework.validate_patch(bug_data, code_causes_compilation_error)
         self.assertEqual(test_result, "ERROR")
@@ -39,4 +40,7 @@ class TestFramework(unittest.TestCase):
         self.assertEqual(test_result, "FAIL")
 
         test_result, _ = framework.validate_patch(bug_data, code_fixed_should_pass)
+        self.assertEqual(test_result, "PASS")
+
+        test_result, _ = framework.validate_patch(bug_data, code_fixed_should_pass_2)
         self.assertEqual(test_result, "PASS")

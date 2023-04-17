@@ -31,7 +31,7 @@ def print_conversation(json_path):
         
 
 def main():
-    print_conversation(Path(__file__).parent / 'test' / 'test_capr_cache' / 'attempt_13' / '5_2c6347584959d4fd41e191d2fc459d23.json')
+    print_conversation(Path(__file__).parent / 'test' / 'test_capr_cache' / 'attempt_13' / '3_e33a40c9f3fc611edca1c53b5196af5c.json')
     # for bug_id in list_of_bugs:
     #     bug = framework.reproduce_bug(bug_id)
         
