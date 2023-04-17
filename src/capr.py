@@ -27,8 +27,9 @@ class CAPR(object):
                 test_result, result_reason = self.framework.validate_patch(bug.bug_info, patch)
                 if test_result == "PASS":
                     plausable_patches.append(patch)
+                    current_tries += 1
                     break
-                elif test_result == bug.test_error_message:
+                elif result_reason == bug.test_error_message:
                     feedback = {"role": "user", "content": "The fixed version is still not correct.\nPlease fix the correct line at the infill location."}
                 else:
                     feedback = self.construct_feedback_message(test_result, result_reason)
@@ -114,12 +115,15 @@ Please provide the correct patch line at the infill location."""}
 ```
 """
 
-        return [{"role": "system", "content": "You are an automated repair tool. Only answer with the code that fixes the bug. Avoid comments before and after the code."},
-        {"role": "user", "content": f"""{bug.previous_bug_fixes}
-
-The following code contains a buggy line that has been removed:
+        return [{"role": "system", "content": "You are an automated program repair tool. Please answer with the correct line in a code block."},
+        {"role": "user", "content": f"""The following Java code contains a buggy line that has been replaced with INFILL:
 ```java
 {bug.masked_buggy_code}
+```
+
+This was the original buggy line which was at the INFILL location:
+```java
+{bug.buggy_line}
 ```
 
 The code fails on this test:

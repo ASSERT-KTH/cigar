@@ -11,7 +11,7 @@ class Framework(object):
         self.tmp_dir = f"/tmp/{test_framework}"
         self.bug_dataset = [
             # {"project": "Lang", "bug_id": 16}, # Based on paper ChatRepair can fix this bug
-            {"project": "Gson", "bug_id": 15}, # Based on paper ChatRepair can fix this bug
+            # {"project": "Gson", "bug_id": 15}, # Based on paper ChatRepair can fix this bug
         ]
         self.shell_scripts_folder = Path(__file__).parent.parent / "frameworks" / self.test_framework
 

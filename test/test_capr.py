@@ -21,8 +21,8 @@ class TestCAPR(unittest.TestCase):
         capr = CAPR(chatgpt=chatgpt, framework=framework, max_conv_length=3, max_tries=10)
         self.assertIsInstance(capr, CAPR)
 
-    # @unittest.skip("Skipping until construct_initial_prompt and validate_patch are working")
-    def test_repair(self):
+    # @unittest.skip("End-to-end test, takes long to run, resolves Gson-15 bug.")
+    def test_repair_gson_15(self):
         chatgpt = ChatGPT(model=self.chatgpt_model, 
                           api_key_path=self.chatgpt_api_key_path,
                           cache_folder=self.cache_folder / 'attempt_12',
@@ -32,6 +32,24 @@ class TestCAPR(unittest.TestCase):
         capr = CAPR(chatgpt=chatgpt, framework=framework, max_conv_length=3, max_tries=6)
 
         d4j_bug = {"project": "Gson", "bug_id": 15}
+
+        bug = framework.reproduce_bug(d4j_bug)
+
+        plausable_patches, cost_of_repair_attempt = capr.repair(bug)
+        self.assertIsInstance(plausable_patches, list)
+        self.assertIsInstance(cost_of_repair_attempt, int)
+
+    @unittest.skip("End-to-end test, takes long to run, resolves Lang-16 bug.")
+    def test_repair_lang_16(self):
+        chatgpt = ChatGPT(model=self.chatgpt_model, 
+                          api_key_path=self.chatgpt_api_key_path,
+                          cache_folder=self.cache_folder / 'attempt_13',
+                          load_from_cache=True,
+                          save_to_cache=True)
+        framework = Framework("defects4j")
+        capr = CAPR(chatgpt=chatgpt, framework=framework, max_conv_length=3, max_tries=6)
+
+        d4j_bug = {"project": "Lang", "bug_id": 16}
 
         bug = framework.reproduce_bug(d4j_bug)
 
