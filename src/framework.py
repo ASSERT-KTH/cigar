@@ -45,7 +45,7 @@ class Framework(object):
         bug_id = bug.bug_id
         work_dir = f"{self.tmp_dir}/{project}-{bug_id}"
 
-        command = ['sh', f'{self.shell_scripts_folder}/validate_patch.sh', f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}", f"{proposed_line_fix}"]
+        command = ['bash', f'{self.shell_scripts_folder}/validate_patch.sh', f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}", f"{proposed_line_fix}"]
         result = run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True)
 
         test_result = None
@@ -69,37 +69,37 @@ class Framework(object):
         return test_result, result_reason
 
     def _reproduce_buggy_folder(self, work_dir, project, bug_id):
-        command = ['sh', f'{self.shell_scripts_folder}/reproduce_bug.sh', f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}"]
+        command = ['bash', f'{self.shell_scripts_folder}/reproduce_bug.sh', f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}"]
         result = run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True)
         assert result.returncode == 0
 
     def _extract_file_and_line_change_count(self, work_dir, project, bug_id):
-        command = ['sh', f'{self.shell_scripts_folder}/extract_file_and_line_change_count.sh', f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}"]
+        command = ['bash', f'{self.shell_scripts_folder}/extract_file_and_line_change_count.sh', f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}"]
         result = run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True)
         assert result.returncode == 0 and len(result.stdout) > 1
         result = result.stdout.split('|')
         return int(result[0]), int(result[1])
 
     def _extract_test_suite(self, work_dir, project, bug_id):
-        command = ['sh', f'{self.shell_scripts_folder}/extract_test_suite.sh', f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}"]
+        command = ['bash', f'{self.shell_scripts_folder}/extract_test_suite.sh', f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}"]
         result = run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True)
         assert result.returncode == 0 and len(result.stdout) > 1
         return result.stdout[:-1] # remove new line at the end of result.stdout
         
     def _extract_test_name(self, work_dir, project, bug_id):
-        command = ['sh', f'{self.shell_scripts_folder}/extract_test_name.sh', f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}"]
+        command = ['bash', f'{self.shell_scripts_folder}/extract_test_name.sh', f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}"]
         result = run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True)
         assert result.returncode == 0 and len(result.stdout) > 1
         return result.stdout[:-1] # remove new line at the end of result.stdout
     
     def _extract_test_error(self, work_dir, project, bug_id):
-        command = ['sh', f'{self.shell_scripts_folder}/extract_test_error.sh', f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}"]
+        command = ['bash', f'{self.shell_scripts_folder}/extract_test_error.sh', f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}"]
         result = run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True)
         assert result.returncode == 0 and len(result.stdout) > 1
         return result.stdout[:-1] # remove new line at the end of result.stdout
     
     def _extract_test_line(self, work_dir, project, bug_id):
-        command = ['sh', f'{self.shell_scripts_folder}/extract_test_line.sh', f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}"]
+        command = ['bash', f'{self.shell_scripts_folder}/extract_test_line.sh', f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}"]
         result = run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True)
         assert result.returncode == 0
         if len(result.stdout) < 2:
@@ -108,7 +108,7 @@ class Framework(object):
         return result.stdout[:-1] # remove new line at the end of result.stdout
 
     def _extract_buggy_line(self, work_dir, project, bug_id):
-        command = ['sh', f'{self.shell_scripts_folder}/extract_buggy_line.sh', f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}"]
+        command = ['bash', f'{self.shell_scripts_folder}/extract_buggy_line.sh', f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}"]
         result = run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True)
         assert result.returncode == 0 
         if len(result.stdout) < 2:
@@ -116,7 +116,7 @@ class Framework(object):
         return result.stdout[:-1]
 
     def _extract_fixed_line(self, work_dir, project, bug_id):
-        command = ['sh', f'{self.shell_scripts_folder}/extract_fixed_line.sh', f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}"]
+        command = ['bash', f'{self.shell_scripts_folder}/extract_fixed_line.sh', f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}"]
         result = run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True)
         assert result.returncode == 0
         if len(result.stdout) < 2:
@@ -124,7 +124,7 @@ class Framework(object):
         return result.stdout[:-1]
     
     def _extract_masked_code(self, work_dir, project, bug_id):
-        command = ['sh', f'{self.shell_scripts_folder}/extract_masked_code.sh', f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}"]
+        command = ['bash', f'{self.shell_scripts_folder}/extract_masked_code.sh', f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}"]
         result = run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True)
         assert result.returncode == 0 and len(result.stdout) > 1
         return result.stdout[:-1]
