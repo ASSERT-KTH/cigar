@@ -37,6 +37,12 @@ test_file_path=$(echo $test_file_path | sed 's/ //g') # remove space from test_f
 
 if [ $project_id = "Gson" ]; then
     test_file_path=$work_dir/gson/src/test/java/${test_file_path}.java
+elif [ $project_id = "Chart" ]; then
+    test_file_path=$work_dir/tests/${test_file_path}.java
+elif [ $project_id = "Closure" ]; then
+    test_file_path=$work_dir/test/${test_file_path}.java
+elif [ $project_id = "Mockito" ]; then
+    test_file_path=$work_dir/test/${test_file_path}.java
 else
     test_file_path=$work_dir/src/test/java/${test_file_path}.java
 fi

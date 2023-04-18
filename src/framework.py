@@ -103,6 +103,7 @@ class Framework(object):
         result = run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True)
         assert result.returncode == 0
         if len(result.stdout) < 2:
+            print("No test line found")
             return ""
         return result.stdout[:-1] # remove new line at the end of result.stdout
 
