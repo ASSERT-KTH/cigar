@@ -101,19 +101,25 @@ class Framework(object):
     def _extract_test_line(self, work_dir, project, bug_id):
         command = ['sh', f'{self.shell_scripts_folder}/extract_test_line.sh', f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}"]
         result = run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True)
-        assert result.returncode == 0 and len(result.stdout) > 1
+        assert result.returncode == 0
+        if len(result.stdout) < 2:
+            return ""
         return result.stdout[:-1] # remove new line at the end of result.stdout
 
     def _extract_buggy_line(self, work_dir, project, bug_id):
         command = ['sh', f'{self.shell_scripts_folder}/extract_buggy_line.sh', f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}"]
         result = run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True)
-        assert result.returncode == 0 and len(result.stdout) > 1
+        assert result.returncode == 0 
+        if len(result.stdout) < 2:
+            return ""
         return result.stdout[:-1]
 
     def _extract_fixed_line(self, work_dir, project, bug_id):
         command = ['sh', f'{self.shell_scripts_folder}/extract_fixed_line.sh', f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}"]
         result = run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True)
-        assert result.returncode == 0 and len(result.stdout) > 1
+        assert result.returncode == 0
+        if len(result.stdout) < 2:
+            return ""
         return result.stdout[:-1]
     
     def _extract_masked_code(self, work_dir, project, bug_id):

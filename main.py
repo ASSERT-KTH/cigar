@@ -23,7 +23,7 @@ time_bug_ids = [i for i in range(1, 27) if i != 21]
 list_of_bugs = [
     # ("Chart", chart_bug_ids),
     # ("Closure", closure_bug_ids),
-    ("Lang", lang_bug_ids),
+    # ("Lang", lang_bug_ids), # passed smokes tests
     # ("Math", math_bug_ids),
     # ("Mockito", mockito_bug_ids),
     # ("Time", time_bug_ids)

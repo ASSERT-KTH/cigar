@@ -10,12 +10,22 @@ cd $work_dir
 
 # Extract test suite and test name
 test_suite_and_name=$(exec sed '1!d' $work_dir/failing_tests | grep "\---") # Grep first line of failing_tests
-test_suite_and_name=${test_suite_and_name/\---//} # Remove "---"
-test_suite_and_name=${test_suite_and_name///} # Remove "empty spaces"
-test_suite=${test_suite_and_name%%::*} # Test suite is the part of test_suite_and_name before :: 
+test_suite_and_name=${test_suite_and_name/\---/} # Remove "---"
+test_suite_and_name=${test_suite_and_name// /} # Remove "empty spaces"
+test_suite=${test_suite_and_name%%::*} # Test suite is the part of test_suite_and_name before ::
 
 # Extract test line
-log_line_at_test_suite=$(exec less $work_dir/failing_tests | grep $test_suite | sed '2!d') # grep line number of test suite
+grep_test_suite=$test_suite
+test_suite_count=$(exec less $work_dir/failing_tests | grep -c $grep_test_suite) # count the number of occurences of test_suite in failing_tests
+
+if [ $test_suite_count -lt 2 ]; then # if test_suite_count occurs less than 2 times
+    while [ $test_suite_count -lt 2 ]; do # while test_suite_count occurs less than 2 times
+        grep_test_suite=${grep_test_suite%?} # remove the last character of grep_test_suite
+        test_suite_count=$(exec less $work_dir/failing_tests | grep -c $grep_test_suite) # count the number of occurences of grep_test_suite in failing_tests
+    done
+fi
+
+log_line_at_test_suite=$(exec less $work_dir/failing_tests | grep $grep_test_suite | sed '2!d') # grep line number of test suite
 test_line_count=${log_line_at_test_suite##*:} # trim test_line_count to remove everything before :
 test_line_count=${test_line_count%%)*} # trim test_line_count to remove everything after )
 
