@@ -12,34 +12,38 @@ chatgpt = ChatGPT(model="gpt-3.5-turbo",
                   save_to_cache=True)
 capr = CAPR(chatgpt=chatgpt, framework=framework, max_conv_length=3, max_tries=10)
 
-list_of_bugs = ["Lang_1", "Lang_2"]
+# based on https://github.com/rjust/defects4j#the-projects
+chart_bug_ids = [i for i in range(1, 27)]
+closure_bug_ids = [i for i in range(1, 177) if i != 63 and i != 93]
+lang_bug_ids = [i for i in range(1, 65) if i != 2]
+math_bug_ids = [i for i in range(1, 107)]
+mockito_bug_ids = [i for i in range(1, 39)]
+time_bug_ids = [i for i in range(1, 27) if i != 21]
+
+list_of_bugs = [
+    # ("Chart", chart_bug_ids),
+    # ("Closure", closure_bug_ids),
+    ("Lang", lang_bug_ids),
+    # ("Math", math_bug_ids),
+    # ("Mockito", mockito_bug_ids),
+    # ("Time", time_bug_ids)
+]
+
 plausible_patches = {}
 repair_cost = {}
-
-results_file = Path(__file__).parent / 'data' / 'results.json'
-
-def print_conversation(json_path):
-    with open(json_path, 'r') as file:
-        cached_conversation = json.load(file)
-        messages = [(message['role'],message['content']) for message in cached_conversation['call']['messages']]
-        messages.append(("assistant",cached_conversation['response']['choices'][0]['message']['content']))
-    for role, message in messages:
-        if role == "assistant":
-            print(f'\x1b[32m\'{message}\'\x1b[0m\n')
-        else:
-            print(message)        
         
 
 def main():
-    print_conversation(Path(__file__).parent / 'test' / 'test_capr_cache' / 'attempt_13' / '3_e33a40c9f3fc611edca1c53b5196af5c.json')
-    # for bug_id in list_of_bugs:
-    #     bug = framework.reproduce_bug(bug_id)
-        
-    #     plausible_patches[bug_id], repair_cost[bug_id] = capr.repair(bug=bug)
+    for project, ids in list_of_bugs:
+        for bug_id in ids:
+            print(f"Reproducing {project}-{bug_id}")
+            bug = framework.reproduce_bug(project, bug_id)
 
-    # results = [(plausible_patches[bug_id], repair_cost[bug_id]) for bug_id in list_of_bugs]
-    # with open(results_file, "w") as file:
-    #     file.write(results)
+            if bug.line_change_count > 2:
+                print(f"Skipping {project}-{bug_id} because it has more than 2 line changes")
+            else:
+                print(f"Repairing {project}-{bug_id}")
+                # plausible_patches[bug_id], repair_cost[bug_id] = capr.repair(bug=bug)
 
 if __name__ == "__main__":
     main()
