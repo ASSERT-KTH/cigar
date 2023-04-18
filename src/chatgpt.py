@@ -13,11 +13,11 @@ class ChatGPT(object):
         self.load_from_cache = load_from_cache
         self.save_to_cache = save_to_cache
 
-    def call(self, prompt, num_of_samples=1, call_id=None):
+    def call(self, prompt, num_of_samples=1, prefix=None):
 
         response = None
         call_params = self.get_call_params(prompt, num_of_samples)
-        cache_file_path = self.get_cache_file_path(prompt, num_of_samples, call_id)
+        cache_file_path = self.get_cache_file_path(prompt, num_of_samples, prefix)
 
         if self.load_from_cache and self.cache_folder is not None:
             if Path(cache_file_path).is_file():
@@ -48,10 +48,10 @@ class ChatGPT(object):
         call_params = self.get_call_params(prompt, num_of_samples=num_of_samples)
         return hashlib.md5(str(call_params).encode('utf-8')).hexdigest()
     
-    def get_cache_file_path(self, prompt, num_of_samples=1, call_id=None):
+    def get_cache_file_path(self, prompt, num_of_samples=1, prefix=None):
         call_hash = self.get_call_hash(prompt, num_of_samples)
-        if call_id is not None:
-            return f"{self.cache_folder}/{call_id}_{call_hash}.json"
+        if prefix is not None:
+            return f"{self.cache_folder}/{prefix}_{call_hash}.json"
         return f"{self.cache_folder}/{call_hash}.json"
     
     def get_json_to_save(self, call_params, response):

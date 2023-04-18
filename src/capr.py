@@ -11,22 +11,25 @@ class CAPR(object):
 
     def repair(self, bug: Bug, sample_per_try=1):
         plausable_patches = []
+        first_plausible_patch_try = -1
         current_tries = 0
         total_cost = 0
+        prefix = f"{self.framework.test_framework}_{bug.project}_{bug.bug_id}"
 
         while (current_tries < self.max_tries and len(plausable_patches) == 0):
             current_conversation_length = 0
             prompt = self.construct_initial_prompt(bug)
 
             while (current_conversation_length < self.max_conversation_length and current_tries < self.max_tries):
-                response, cost = self.chatgpt.call(prompt, num_of_samples=sample_per_try, call_id=current_tries)
+                response, cost = self.chatgpt.call(prompt, num_of_samples=sample_per_try, prefix=f"{prefix}_{current_tries}")
                 total_cost += cost
 
                 patch = self.extract_patch_from_response(response)
                 
-                test_result, result_reason = self.framework.validate_patch(bug.bug_info, patch)
+                test_result, result_reason = self.framework.validate_patch(bug, patch)
                 if test_result == "PASS":
                     plausable_patches.append(patch)
+                    first_plausible_patch_try = current_tries
                     current_tries += 1
                     break
                 elif result_reason == bug.test_error_message:
@@ -44,18 +47,18 @@ class CAPR(object):
             while (current_tries < self.max_tries):
                 prompt = self.construct_plausable_path_prompt(bug, plausable_patches)
 
-                response, cost = self.chatgpt.call(prompt, num_of_samples=sample_per_try, call_id=current_tries)
+                response, cost = self.chatgpt.call(prompt, num_of_samples=sample_per_try, prefix=prefix)
                 total_cost += cost
 
                 patch = self.extract_patch_from_response(response)
 
-                test_result, result_reason = self.framework.validate_patch(bug.bug_info, patch)
+                test_result, result_reason = self.framework.validate_patch(bug, patch)
                 if test_result == "PASS" and patch not in plausable_patches:
                     plausable_patches.append(patch)
                 
                 current_tries += 1
         
-        return plausable_patches, total_cost
+        return first_plausible_patch_try, plausable_patches, total_cost
     
     def extract_patch_from_response(self, response):
 

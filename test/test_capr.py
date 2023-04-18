@@ -35,7 +35,7 @@ class TestCAPR(unittest.TestCase):
 
         bug = framework.reproduce_bug(d4j_bug)
 
-        plausable_patches, cost_of_repair_attempt = capr.repair(bug)
+        _, plausable_patches, cost_of_repair_attempt = capr.repair(bug)
         self.assertIsInstance(plausable_patches, list)
         self.assertIsInstance(cost_of_repair_attempt, int)
 
@@ -53,7 +53,7 @@ class TestCAPR(unittest.TestCase):
 
         bug = framework.reproduce_bug(d4j_bug)
 
-        plausable_patches, cost_of_repair_attempt = capr.repair(bug)
+        _, plausable_patches, cost_of_repair_attempt = capr.repair(bug)
         self.assertIsInstance(plausable_patches, list)
         self.assertIsInstance(cost_of_repair_attempt, int)
 
