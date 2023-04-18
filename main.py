@@ -21,12 +21,12 @@ mockito_bug_ids = [i for i in range(1, 39)]
 time_bug_ids = [i for i in range(1, 27) if i != 21]
 
 list_of_bugs = [
-    # ("Chart", chart_bug_ids), # passed smokes tests
-    # ("Closure", closure_bug_ids), # passed smokes tests
-    # ("Lang", lang_bug_ids), # passed smokes tests
-    # ("Math", math_bug_ids), # passed smokes tests
-    ("Mockito", mockito_bug_ids),
-    # ("Time", time_bug_ids) # passed smokes tests
+    ("Chart", chart_bug_ids),
+    ("Closure", closure_bug_ids),
+    ("Lang", lang_bug_ids),
+    ("Math", math_bug_ids),
+    # ("Mockito", mockito_bug_ids), # Failed to reproduce bugs on macOS and Ubuntu
+    ("Time", time_bug_ids)
 ]
 
 plausible_patches = {}

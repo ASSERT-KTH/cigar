@@ -1,11 +1,14 @@
+import hashlib
+import json
 from pathlib import Path
 from subprocess import PIPE, run
 from src.bug import Bug
 
 class Framework(object):
-    def __init__(self, test_framework):
+    def __init__(self, test_framework, cache_folder=None):
         assert test_framework in ["defects4j", "quixbugs"]
         self.test_framework = test_framework
+        self.cache_folder = cache_folder
 
         self.d4j_path = "/Users/davidhidvegi/Desktop/defects4j/framework/bin"
         self.tmp_dir = f"/tmp/{test_framework}"
@@ -41,30 +44,46 @@ class Framework(object):
 
     def validate_patch(self, bug: Bug, proposed_line_fix):
 
-        project = bug.project
-        bug_id = bug.bug_id
-        work_dir = f"{self.tmp_dir}/{project}-{bug_id}"
-
-        command = ['bash', f'{self.shell_scripts_folder}/validate_patch.sh', f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}", f"{proposed_line_fix}"]
-        result = run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True)
-
         test_result = None
         result_reason = None
-        
-        if result.returncode == 1:
-            result_reason = result.stderr
-            result_reason = result_reason[result_reason.find("error: "):]
-            result_reason = result_reason[:result_reason.find("\n")]
+        patch_hash = hashlib.md5(str(proposed_line_fix).encode('utf-8')).hexdigest()
 
-            test_result, result_reason = "ERROR", result_reason # compilation error
-        else:
-            all_tests_passed = result.stdout.find("Failing tests: 0") != -1
+        if self.cache_folder is not None:
+            cache_file_path = f"{self.cache_folder}/{self.test_framework}-{bug.project}-{bug.bug_id}-{patch_hash}.json"
+            if Path(cache_file_path).is_file():
+                with open(cache_file_path, "r") as file:
+                    json_to_load = json.load(file)
+                    test_result = json_to_load['test_result']
+                    result_reason = json_to_load['result_reason']
 
-            if all_tests_passed:
-                test_result, result_reason = "PASS", "all tests passed" # test pass
+        if test_result is None and result_reason is None:
+
+            project = bug.project
+            bug_id = bug.bug_id
+            work_dir = f"{self.tmp_dir}/{project}-{bug_id}"
+
+            command = ['bash', f'{self.shell_scripts_folder}/validate_patch.sh', f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}", f"{proposed_line_fix}"]
+            result = run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True)
+            
+            if result.returncode == 1:
+                result_reason = result.stderr
+                result_reason = result_reason[result_reason.find("error: "):]
+                result_reason = result_reason[:result_reason.find("\n")]
+
+                test_result, result_reason = "ERROR", result_reason # compilation error
             else:
-                test_result = "FAIL" # test fail
-                result_reason = self._extract_test_error(work_dir, project, bug_id)
+                all_tests_passed = result.stdout.find("Failing tests: 0") != -1
+
+                if all_tests_passed:
+                    test_result, result_reason = "PASS", "all tests passed" # test pass
+                else:
+                    test_result = "FAIL" # test fail
+                    result_reason = self._extract_test_error(work_dir, project, bug_id)
+
+        if self.cache_folder is not None:
+            with open(cache_file_path, "w") as file:
+                json.dump({'patch': proposed_line_fix, 'test_result': test_result, 'result_reason': result_reason}, file,  indent=4, sort_keys=True)
+
             
         return test_result, result_reason
 
