@@ -49,7 +49,7 @@ class Framework(object):
         patch_hash = hashlib.md5(str(proposed_line_fix).encode('utf-8')).hexdigest()
 
         if self.cache_folder is not None:
-            cache_file_path = f"{self.cache_folder}/{self.test_framework}-{bug.project}-{bug.bug_id}-{patch_hash}.json"
+            cache_file_path = f"{self.cache_folder}/{self.test_framework}_{bug.project}_{bug.bug_id}_{patch_hash}.json"
             if Path(cache_file_path).is_file():
                 with open(cache_file_path, "r") as file:
                     json_to_load = json.load(file)

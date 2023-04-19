@@ -47,7 +47,7 @@ class CAPR(object):
             while (current_tries < self.max_tries):
                 prompt = self.construct_plausable_path_prompt(bug, plausable_patches)
 
-                response, cost = self.chatgpt.call(prompt, num_of_samples=sample_per_try, prefix=prefix)
+                response, cost = self.chatgpt.call(prompt, num_of_samples=sample_per_try, prefix=f"{prefix}_{current_tries}")
                 total_cost += cost
 
                 patch = self.extract_patch_from_response(response)

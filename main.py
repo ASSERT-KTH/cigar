@@ -28,6 +28,8 @@ def main():
     max_conv_length = 3
     max_tries = 10
     framework_name = "defects4j"
+    # temperature defaults to 1
+    # sample count defaults to 1
 
     framework = Framework(test_framework=framework_name,
                           cache_folder=Path(__file__).parent / 'data' / 'validate_patch_cache')
@@ -41,11 +43,12 @@ def main():
                 max_conv_length=max_conv_length, 
                 max_tries=max_tries)
     
-    output_folder = Path(__file__).parent / 'data' / 'output'
-    output_file_path = output_folder / 'output.csv'
+    summary_file_path = Path(__file__).parent / 'data' / 'output' / 'summary.csv'
+    plausible_patches_folder = Path(__file__).parent / 'data' / 'output' / 'plausible_patches'
 
-    fieldnames = ['first_plausible_patch_try', 'plausible_patch_count', 'repair_cost', 'conversation_length', 'max_tries', 'comment']
-    with open(output_file_path, 'w', newline='') as csvfile:
+    fieldnames = ['framework', 'project', 'bug_id',
+        'first_plausible_patch_try', 'plausible_patch_count', 'repair_cost', 'conversation_length', 'max_tries', 'comment']
+    with open(summary_file_path, 'w', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
 
@@ -56,9 +59,12 @@ def main():
 
             if bug.line_change_count > 2:
                 print(f"Skipping {project}-{bug_id} because it has more than 2 line changes")
-                with open(output_file_path, 'a', newline='') as csvfile:
+                with open(summary_file_path, 'a', newline='') as csvfile:
                     writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-                    writer.writerow({'first_plausible_patch_try': -1, 
+                    writer.writerow({'framework': framework_name,
+                                     'project': project,
+                                     'bug_id': bug_id,
+                                     'first_plausible_patch_try': -1, 
                                      'plausible_patch_count': 0,
                                      'repair_cost': 0,
                                      'conversation_length': max_conv_length,
@@ -69,19 +75,20 @@ def main():
                 first_plausible_path_try, plausible_patches, repair_cost = capr.repair(bug=bug)
 
                 if len(plausible_patches) > 0:
-                    with open(f'{output_folder}/{framework_name}_{project}_{bug_id}_pp.txt', 'w') as f:
+                    with open(f'{plausible_patches_folder}/{framework_name}_{project}_{bug_id}_pp.txt', 'w') as f:
                         f.writelines('\n'.join(plausible_patches))
                 
-                with open(output_file_path, 'a', newline='') as csvfile:
+                with open(summary_file_path, 'a', newline='') as csvfile:
                     writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-                    writer.writerow({'first_plausible_patch_try': first_plausible_path_try, 
+                    writer.writerow({'framework': framework_name,
+                                     'project': project,
+                                     'bug_id': bug_id,
+                                     'first_plausible_patch_try': first_plausible_path_try, 
                                      'plausible_patch_count': len(plausible_patches),
                                      'repair_cost': repair_cost,
                                      'conversation_length': max_conv_length,
                                      'max_tries': max_tries,
                                      'comment': ""})
-
-                return
 
 
 if __name__ == "__main__":
