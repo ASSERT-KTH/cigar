@@ -42,6 +42,8 @@ class ChatGPT(object):
             "model": self.model,
             "messages": prompt,
             "n": num_of_samples,
+            "temperature": 1,
+            "top_p": 1,
         }
 
     def get_call_hash(self, prompt, num_of_samples=1):

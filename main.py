@@ -4,9 +4,8 @@ from pathlib import Path
 from src.capr import CAPR
 from src.chatgpt import ChatGPT
 from src.framework import Framework
-from pprint import pprint
 
-# based on https://github.com/rjust/defects4j#the-projects
+# active bugs, based on https://github.com/rjust/defects4j#the-projects
 list_of_bugs = [
     ("Chart", [i for i in range(1, 27)]),
     ("Closure", [i for i in range(1, 177) if i != 63 and i != 93]),
@@ -16,25 +15,30 @@ list_of_bugs = [
     ("Time", [i for i in range(1, 28) if i != 21])
 ]
 
-# temporary
+# [TEMPORARY] list of single line bugs
 list_of_bugs = [
-    ("Lang", [16, # normal bug with all details
-              38, # bug without buggy line
-            #   43, # bug without buggy line
-            #   51, # bug without buggy line
-            #   57, # bug without test line found
-            #   59, # bug without test line found
-            #   61, # bug without test line found
-              ])
+    ("Lang", [
+        6,
+        16,
+        21,
+        24,
+        26,
+        29,
+        33, 
+        38, 
+        43, 
+        51, 
+        57, 
+        59, 
+        61, 
+        ])
 ]
 
 def main():
 
     max_conv_length = 3
-    max_tries = 10
+    max_tries = 3
     framework_name = "defects4j"
-    # temperature defaults to 1
-    # sample count defaults to 1
 
     framework = Framework(test_framework=framework_name,
                           cache_folder=Path(__file__).parent / 'data' / 'validate_patch_cache')
@@ -71,14 +75,13 @@ def main():
 
             if bug.line_change_count > 2:
                 print(f"Skipping {project}-{bug_id} because it has more than 2 line changes")
-                comment += ", multiple line changes"
+                comment += "Multiple line change. "
                 blocker = True
             if len(bug.test_line) < 2 :
                 print(f"Skipping {project}-{bug_id} because test line could not be found")
-                comment += ", test line not found"
+                comment += "Test line not found. "
                 blocker = True
             if "INFILL" not in bug.masked_buggy_code or len(bug.buggy_line) < 2:
-                print(f"In {project}-{bug_id} buggy line is empty or could not be found")
                 comment += "Buggy line is empty. "
             
             if not blocker:

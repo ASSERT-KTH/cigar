@@ -92,7 +92,7 @@ The code fails on this test:
 ```
 
 on this test line:
-```
+```java
 {bug.test_line}
 ```
 
@@ -130,7 +130,7 @@ This was the original buggy line which was at the INFILL location:
 ```
 
 The code fails on this test:
-```java
+```
 {bug.test_name}
 ```
 
@@ -140,7 +140,7 @@ on this test line:
 ```
 
 with this error message:
-```java
+```
 {bug.test_error_message}
 ```
         

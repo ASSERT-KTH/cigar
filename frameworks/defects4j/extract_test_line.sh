@@ -34,7 +34,7 @@ test_file_name=${test_file_name%%(*} # trim log_line_at_test_suite to remove eve
 test_file_name=${test_file_name%.*} # trim log_line_at_test_suite to remove everything after the last .
 test_file_name=${test_file_name##*.} # trim log_line_at_test_suite to remove everything before last .
 
-test_file_path=$(exec find $work_dir | grep "${test_file_name}.java" | sed '1!d') # find test_file_path
+test_file_path=$(exec find $work_dir | grep "/${test_file_name}.java" | sed '1!d') # find test_file_path
 
 test_line=$test_file_path
 
