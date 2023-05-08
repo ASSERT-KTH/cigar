@@ -29,23 +29,14 @@ log_line_at_test_suite=$(exec less $work_dir/failing_tests | grep $grep_test_sui
 test_line_count=${log_line_at_test_suite##*:} # trim test_line_count to remove everything before :
 test_line_count=${test_line_count%%)*} # trim test_line_count to remove everything after )
 
-test_file_path=${log_line_at_test_suite#*at} # trim log_line_at_test_suite to remove everything before at
-test_file_path=${test_file_path%%(*} # trim log_line_at_test_suite to remove everything after (
-test_file_path=${test_file_path%.*} # trim log_line_at_test_suite to remove everything after the last .
-test_file_path=${test_file_path//./\/} # change each . to / in test_file_path
-test_file_path=$(echo $test_file_path | sed 's/ //g') # remove space from test_file_path
+test_file_name=${log_line_at_test_suite#*at} # trim log_line_at_test_suite to remove everything before at
+test_file_name=${test_file_name%%(*} # trim log_line_at_test_suite to remove everything after (
+test_file_name=${test_file_name%.*} # trim log_line_at_test_suite to remove everything after the last .
+test_file_name=${test_file_name##*.} # trim log_line_at_test_suite to remove everything before last .
 
-if [ $project_id = "Gson" ]; then
-    test_file_path=$work_dir/gson/src/test/java/${test_file_path}.java
-elif [ $project_id = "Chart" ]; then
-    test_file_path=$work_dir/tests/${test_file_path}.java
-elif [ $project_id = "Closure" ]; then
-    test_file_path=$work_dir/test/${test_file_path}.java
-elif [ $project_id = "Mockito" ]; then
-    test_file_path=$work_dir/test/${test_file_path}.java
-else
-    test_file_path=$work_dir/src/test/java/${test_file_path}.java
-fi
+test_file_path=$(exec find $work_dir | grep "${test_file_name}.java" | sed '1!d') # find test_file_path
+
+test_line=$test_file_path
 
 test_line=$(exec sed "${test_line_count}!d" $test_file_path)
 
