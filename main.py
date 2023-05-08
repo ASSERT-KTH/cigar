@@ -73,13 +73,13 @@ def main():
                 print(f"Skipping {project}-{bug_id} because it has more than 2 line changes")
                 comment += ", multiple line changes"
                 blocker = True
-            if "INFILL" not in bug.masked_buggy_code or len(bug.buggy_line) < 2:
-                print(f"In {project}-{bug_id} buggy line is empty or could not be found")
-                comment += ", buggy line not found"
             if len(bug.test_line) < 2 :
                 print(f"Skipping {project}-{bug_id} because test line could not be found")
                 comment += ", test line not found"
-                blocker = True # TODO: remove, as this is not real blocker
+                blocker = True
+            if "INFILL" not in bug.masked_buggy_code or len(bug.buggy_line) < 2:
+                print(f"In {project}-{bug_id} buggy line is empty or could not be found")
+                comment += "Buggy line is empty. "
             
             if not blocker:
                 print(f"Repairing {project}-{bug_id}")
