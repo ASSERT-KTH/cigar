@@ -33,7 +33,7 @@ class CAPR(object):
                     current_tries += 1
                     break
                 elif result_reason == bug.test_error_message:
-                    feedback = {"role": "user", "content": "The fixed version is still not correct.\nPlease fix the correct line at the infill location."}
+                    feedback = {"role": "user", "content": "The fixed version is still not correct.\nPlease fix the correct line at the INFILL location."}
                 else:
                     feedback = self.construct_feedback_message(test_result, result_reason)
                 
@@ -87,17 +87,17 @@ This was the original buggy line which was at the INFILL location:
 ```
 
 The code fails on this test:
-```java
+```
 {bug.test_name}
 ```
 
 on this test line:
-```java
+```
 {bug.test_line}
 ```
 
 with this error message:
-```java
+```
 {bug.test_error_message}
 ```
 
@@ -108,7 +108,7 @@ Please provide the correct line at the INFILL location.
         error_type = "test error" if test_result == "FAIL" else "compilation error"
         return {"role": "user", "content": f"""The fixed version is still incorrect, it contains the {error_type}:
 {result_reason}
-Please provide the correct patch line at the infill location."""}
+Please provide the correct patch line at the INFILL location."""}
 
     def construct_plausable_path_prompt(self, bug: Bug, plausable_patches):
         plausable_patches_text = ""

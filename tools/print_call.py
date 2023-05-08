@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 
-def print_conversation(json_path):
+def print_call(json_path):
     with open(json_path, 'r') as file:
         cached_conversation = json.load(file)
         messages = [(message['role'],message['content']) for message in cached_conversation['call']['messages']]
@@ -19,4 +19,4 @@ def print_conversation(json_path):
 if __name__ == "__main__":
     import sys
     json_path = Path(sys.argv[1])
-    print_conversation(json_path)
+    print_call(json_path)
