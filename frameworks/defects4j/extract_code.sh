@@ -12,19 +12,20 @@ IFS='%' # preserve white spaces in code
 
 git_diff_code=$(git show)
 
-code_middle_line_count=$(echo "$git_diff_code" | grep -n "@@" | head -n 2 | tail -n 1 | cut -d: -f2-) # take the second line that starts with @@
-code_middle_line_count=$(echo "$code_middle_line_count" | cut -d- -f2-) # remove everything before the - sign in code_middle_line_count
-code_middle_line_count=$(echo "$code_middle_line_count" | cut -d, -f1)
+code_change_line_count=$(echo "$git_diff_code" | grep -n "@@" | head -n 2 | tail -n 1 | cut -d: -f2-) # take the second line that starts with @@
+code_change_line_count=$(echo "$code_change_line_count" | cut -d- -f2-) # remove everything before the - sign in code_change_line_count
+code_change_line_count=$(echo "$code_change_line_count" | cut -d, -f1)
+code_change_line_count=$((code_change_line_count + 3))
 
 file_path=$(echo "$git_diff_code" | grep -n "diff" | head -n 2 | tail -n 1 | cut -d: -f2-) # take second line in code that starts with diff
 file_path=$(echo "$file_path" | rev | cut -d/ -f1 | rev) # remove everything before the last / symbol in file_path
 file_path=$(find $work_dir | grep "$file_path" | head -n 1) # take the first results of the grep search on file_path in work_dir
 
 # Find code_start_line_count
-for ((i=code_middle_line_count;i>=0;i--)); do # for loop that goes from code_middle_line_count down to 0
+for ((i=code_change_line_count;i>=0;i--)); do # for loop that goes from code_change_line_count down to 0
     line=$(sed -n "${i}p" $file_path) # take the line i in file_path
     if [[ $line == *"private"* ]] || [[ $line == *"protected"* ]] || [[ $line == *"public"* ]] || [[ $line == *"static"* ]] || [[ $line == *"void"* ]] || ([[ $line == *"JSType"* ]] && [[ $line == *"{"* ]]); then
-        code_start_line_count=$i # set code_middle_line_count to i
+        code_start_line_count=$i # set code_change_line_count to i
         break # break the loop
     fi
 done
@@ -40,7 +41,7 @@ done
 end_symbol=$(echo "${start_line:0:$start_line_index}}") # take the substring of start_line from 0 to start_line_index and append }
 
 # Find code_end_line_count
-for ((i=code_middle_line_count;i<=1000;i++)); do # for loop that goes from code_middle_line_count up to the end of the file
+for ((i=code_change_line_count;i<=((code_change_line_count + 1000));i++)); do # for loop that goes from code_change_line_count up to the end of the file
     line=$(sed -n "${i}p" $file_path) # take the line i in file_path
     if [[ $line == "${end_symbol}"* ]]; then # if line contains end_symbol
         code_end_line_count=$i # set code_end_line_count to i
