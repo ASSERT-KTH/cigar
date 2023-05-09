@@ -2,27 +2,51 @@
 
 project_id=$1
 bug_id=$2
-version_id=${2}b
 work_dir=$3
 d4j_path=$4
 
+framework_dir=$(exec pwd)
 cd $work_dir
 
 IFS='%' # preserve white spaces in code
-code=$(git show)
-code=${code##*@@} # take the code from the last @@ sign until the end of file using
 
-code=$(echo "$code" | sed 's/^\+.*$/ INFILL/g') # replace the line starting with + with the text INFILL
-code=$(echo "$code" | sed 's/^-.*$/ INFILL/g') # replace the line starting with - with the text INFILL
+# Read Code
+code=$(bash ${framework_dir}/extract_code.sh $project_id $bug_id $work_dir $d4j_path)
 
-count=$(echo "$code" | grep -c INFILL) # count number of lines that start with INFILL
+git_diff=$(git show)
+git_diff_code=${git_diff##*@@} # take the code from the last @@ sign until the end of file using
 
-# remove all lines that start with INFILL except the first one
-for ((i=2;i<=count;i++)); do 
-    line=$(echo "$code" | grep -n INFILL | head -n 1 | cut -d: -f1)
-    code=$(echo "$code" | sed "${line}d")
+# Find line count of git diff
+git_diff_start_line_count=$(echo "$git_diff" | grep -n "@@" | head -n 2 | tail -n 1 | cut -d: -f2-) # take the second line that starts with @@
+git_diff_start_line_count=$(echo "$git_diff_start_line_count" | cut -d- -f2-) # remove everything before the - sign in git_diff_start_line_count
+git_diff_start_line_count=$(echo "$git_diff_start_line_count" | cut -d, -f1)
+
+# Find source code file patch
+file_path=$(echo "$git_diff" | grep -n "diff" | head -n 2 | tail -n 1 | cut -d: -f2-) # take second line in code that starts with diff
+file_path=$(echo "$file_path" | rev | cut -d/ -f1 | rev) # remove everything before the last / symbol in file_path
+file_path=$(find $work_dir | grep "$file_path" | head -n 1) # take the first results of the grep search on file_path in work_dir
+
+# Find code_start_line_count
+for ((i=git_diff_start_line_count;i>=0;i--)); do # for loop that goes from git_diff_start_line_count down to 0
+    line=$(sed -n "${i}p" $file_path) # take the line i in file_path
+    if [[ $line == *"private"* ]] || [[ $line == *"protected"* ]] || [[ $line == *"public"* ]] || [[ $line == *"static"* ]] || [[ $line == *"void"* ]] || ([[ $line == *"JSType"* ]] && [[ $line == *"{"* ]]); then
+        code_start_line_count=$i # set git_diff_start_line_count to i
+        break # break the loop
+    fi
 done
 
-code=$(echo "$code" | sed 's/^[ ]//') # remove one white space from each line
+# Remove buggy lines
+buggy_lines=$(echo "$git_diff_code" | grep "^+" | sed 's/^+//g') # grep lines that start with + symbol
+masked_code=$code
+for buggy_line in $buggy_lines # for each buggy_line in buggy_lines remove the buggy_line from code
+do
+    buggy_line=$(echo "$buggy_line" | sed 's/^+//g') # remove the starting + symbol
+    masked_code=$(echo "$masked_code" | sed "/^${buggy_line}$/d") # using sed delete the line that starts with buggy_line
+done
 
-echo $code
+# Create masked_code
+git_diff_offset=4 # offset from the start of git diff to the start of the changed code (in SL SH or SF case)
+local_buggy_line_count=$((git_diff_start_line_count - code_start_line_count + git_diff_offset))
+masked_code=$(echo "$masked_code" | sed "${local_buggy_line_count}s/^/INFILL\n&/") 
+
+echo $masked_code
