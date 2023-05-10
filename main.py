@@ -34,6 +34,11 @@ list_of_bugs = [
         ])
 ]
 
+# [TEMPORARY] 
+list_of_bugs = [
+    ("Lang", [i for i in range(1, 66) if i != 2]),
+]
+
 def main():
 
     max_conv_length = 3
@@ -67,30 +72,34 @@ def main():
             print(f"Reproducing {project}-{bug_id}")
             bug = framework.reproduce_bug(project, bug_id)
 
-            first_plausible_path_try = -1
+            first_plausible_path_try = ""
             plausible_patches = []
-            repair_cost = 0
+            repair_cost = ""
             comment = ""
             blocker = False
 
-            if bug.line_change_count > 2:
-                print(f"Skipping {project}-{bug_id} because it has more than 2 line changes")
-                comment += "Multiple line change. "
-                blocker = True
-            if len(bug.test_line) < 2 :
-                print(f"Skipping {project}-{bug_id} because test line could not be found")
-                comment += "Test line not found. "
-                blocker = True
-            if "INFILL" not in bug.masked_buggy_code or len(bug.buggy_line) < 2:
-                comment += "Buggy line is empty. "
-            
-            if not blocker:
-                print(f"Repairing {project}-{bug_id}")
-                first_plausible_path_try, plausible_patches, repair_cost = capr.repair(bug=bug)
+            if bug:
+                if len(bug.test_line) < 2 :
+                    print(f"Skipping {project}-{bug_id} because test line could not be found")
+                    comment += "Test line not found. "
+                    blocker = True
+                if "INFILL" not in bug.masked_code or len(bug.buggy_line) < 2:
+                    comment += "Buggy line is empty. "
+                
+                if not blocker:
+                    print(f"Repairing {project}-{bug_id}")
+                    first_plausible_path_try, plausible_patches, repair_cost = capr.repair(bug=bug)
 
-            if len(plausible_patches) > 0:
-                with open(f'{plausible_patches_folder}/{framework_name}_{project}_{bug_id}_pp.txt', 'w') as f:
-                    f.writelines('\n'.join(plausible_patches))
+                if len(plausible_patches) > 0:
+                    with open(f'{plausible_patches_folder}/{framework_name}_{project}_{bug_id}_pp.txt', 'w') as f:
+                        f.writelines('\n'.join(plausible_patches))
+
+                with open(f'{bug_details_folder}/{framework_name}_{project}_{bug_id}.txt', 'w') as f:
+                    vars_object = vars(bug)
+                    f.write(json.dumps(vars_object, indent=4, sort_keys=True))
+            else:
+                print(f"Skipping {project}-{bug_id} because it is not SL, SH or SF bug")
+                comment += "Not SL, SH or SF bug. "
                 
             with open(summary_file_path, 'a', newline='') as csvfile:
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -103,10 +112,6 @@ def main():
                                  'conversation_length': max_conv_length,
                                  'max_tries': max_tries,
                                  'comment': comment})
-                
-            with open(f'{bug_details_folder}/{framework_name}_{project}_{bug_id}.txt', 'w') as f:
-                vars_object = vars(bug)
-                f.write(json.dumps(vars_object, indent=4, sort_keys=True))
 
 if __name__ == "__main__":
     main()

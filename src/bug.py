@@ -4,9 +4,11 @@ class Bug(object):
                  test_framework,
                  project,
                  bug_id,
+                 bug_type,
                  file_change_count,
                  line_change_count,
-                 masked_buggy_code, 
+                 code,
+                 masked_code, 
                  buggy_line, 
                  fixed_line, 
                  test_suite, 
@@ -16,9 +18,12 @@ class Bug(object):
         self.test_framework = test_framework
         self.project = project
         self.bug_id = bug_id
+        assert bug_type in ["SL", "SH", "SF", "OT"]
+        self.bug_type = bug_type
         self.file_change_count = file_change_count
         self.line_change_count = line_change_count
-        self.masked_buggy_code = masked_buggy_code
+        self.code = code
+        self.masked_code = masked_code
         self.buggy_line = buggy_line
         self.fixed_line = fixed_line
         self.test_suite = test_suite

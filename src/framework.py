@@ -20,21 +20,28 @@ class Framework(object):
 
         self._reproduce_buggy_folder(work_dir, project, bug_id)
 
+        bug_type = self._extract_bug_type(work_dir, project, bug_id)
+        if bug_type == "OT":
+            return None
+        
         test_suite = self._extract_test_suite(work_dir, project, bug_id)
         test_name = self._extract_test_name(work_dir, project, bug_id)
         test_error = self._extract_test_error(work_dir, project, bug_id)
         test_line = self._extract_test_line(work_dir, project, bug_id)
         buggy_line = self._extract_buggy_line(work_dir, project, bug_id)
         fixed_line = self._extract_fixed_line(work_dir, project, bug_id)
+        code = self._extract_code(work_dir, project, bug_id)
         masked_code = self._extract_masked_code(work_dir, project, bug_id)
         file_change_count, line_change_count = self._extract_file_and_line_change_count(work_dir, project, bug_id)
 
         return Bug(test_framework=self.test_framework,
                    project=project,
                    bug_id=bug_id,
+                   bug_type=bug_type,
                    file_change_count=file_change_count,
                    line_change_count=line_change_count,
-                   masked_buggy_code=masked_code,
+                   code=code,
+                   masked_code=masked_code,
                    buggy_line=buggy_line,
                    fixed_line=fixed_line,
                    test_suite=test_suite,
@@ -86,6 +93,12 @@ class Framework(object):
 
             
         return test_result, result_reason
+
+    def _extract_bug_type(self, work_dir, project, bug_id):
+        command = ['bash', f'{self.shell_scripts_folder}/extract_bug_type.sh', f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}"]
+        result = run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True)
+        assert result.returncode == 0 and len(result.stdout) > 1
+        return result.stdout[:-1] # remove new line at the end of result.stdout
 
     def _reproduce_buggy_folder(self, work_dir, project, bug_id):
         command = ['bash', f'{self.shell_scripts_folder}/reproduce_bug.sh', f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}"]
@@ -143,6 +156,12 @@ class Framework(object):
     
     def _extract_masked_code(self, work_dir, project, bug_id):
         command = ['bash', f'{self.shell_scripts_folder}/extract_masked_code.sh', f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}"]
+        result = run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True)
+        assert result.returncode == 0 and len(result.stdout) > 1
+        return result.stdout[:-1]
+    
+    def _extract_code(self, work_dir, project, bug_id):
+        command = ['bash', f'{self.shell_scripts_folder}/extract_code.sh', f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}"]
         result = run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True)
         assert result.returncode == 0 and len(result.stdout) > 1
         return result.stdout[:-1]
