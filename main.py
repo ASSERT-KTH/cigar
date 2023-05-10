@@ -15,28 +15,13 @@ list_of_bugs = [
     ("Time", [i for i in range(1, 28) if i != 21])
 ]
 
-# [TEMPORARY] list of single line bugs
+# [TEMPORARY] test SL, SH and SF bugs
 list_of_bugs = [
     ("Lang", [
-        6,
-        16,
-        21,
-        24,
-        26,
-        29,
-        33, 
-        38, 
-        43, 
-        51, 
-        57, 
-        59, 
-        61, 
-        ])
-]
-
-# [TEMPORARY] 
-list_of_bugs = [
-    ("Lang", [i for i in range(1, 66) if i != 2]),
+        16, # SL
+        28, # SH
+        55 # SF
+    ])
 ]
 
 def main():
@@ -86,7 +71,7 @@ def main():
                 if "INFILL" not in bug.masked_code or len(bug.buggy_line) < 2:
                     comment += "Buggy line is empty. "
                 
-                if not blocker:
+                if not blocker and "SL" in bug.bug_type:
                     print(f"Repairing {project}-{bug_id}")
                     first_plausible_path_try, plausible_patches, repair_cost = capr.repair(bug=bug)
 

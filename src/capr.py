@@ -78,7 +78,7 @@ class CAPR(object):
         return [{"role": "system", "content": "You are an automated program repair tool. Please answer with the correct line in a code block."},
         {"role": "user", "content": f"""The following Java code contains a buggy line that has been replaced with INFILL:
 ```java
-{bug.masked_buggy_code}
+{bug.masked_code}
 ```
 
 This was the original buggy line which was at the INFILL location:
@@ -121,7 +121,7 @@ Please provide the correct patch line at the INFILL location."""}
         return [{"role": "system", "content": "You are an automated program repair tool. Please answer with the correct line in a code block."},
         {"role": "user", "content": f"""The following Java code contains a buggy line that has been replaced with INFILL:
 ```java
-{bug.masked_buggy_code}
+{bug.masked_code}
 ```
 
 This was the original buggy line which was at the INFILL location:
