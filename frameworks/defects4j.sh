@@ -43,34 +43,84 @@ function get_bug_type {
     second_line=${second_line#*|} # remove everything before the | character
     line_change_count=$(echo "$second_line" | awk '{print $1}') # Get the first column of the second line
 
-    # Get the code changes
-    # TODO: The way I get the code below might not be correct, it may skip changes in one file in different locations
-    code=${git_show##*@@ } # take the code from the last @@ sign until the end of file using
-    numbered_list_of_changes=$(echo "$code" | grep -n -E '^\+|^-') # get a numbered list of lines that start with + and - 
-
     if [ $file_change_count -gt 2 ]; then
         bug_type=$OTHER # if file_change_count > 2, then it is OT
     elif [ $line_change_count -lt 2 ]; then
         bug_type=$SINGLE_LINE # else if line_change_count < 2, then it is SL
-    elif [ $line_change_count -lt 3 ]; then
-        first_line_count=$(echo "$numbered_list_of_changes" | head -n 1 | awk -F: '{print $1}')
-        second_line_count=$(echo "$numbered_list_of_changes" | head -n 2 | tail -n 1 | awk -F: '{print $1}')
-        diff=$((second_line_count - first_line_count))
-        if [ $diff -eq 1 ]; then
-            bug_type=$SINGLE_LINE
+    else
+        continuous=1
+        same_function=1
+        addition_count=0
+        removal_count=0
+
+        change_blocks_start_lines=$(echo "$git_show" | grep -n -E '^@@' | sed '1d') # get a list of numbered lines that start with @@
+        change_blocks_start_lines=$(echo "$change_blocks_start_lines" | sed 's/:.*//') # remove everything after the : character
+        
+        change_block_last_start_line=$(echo "$change_blocks_start_lines" | tail -n 1) # get the last line of change_blocks_start_lines
+        end_of_git_show_line_count=$(echo "$git_show" | wc -l | sed 's/^[ \t]*//;s/[ \t]*$//') # get the number of lines in git_show
+
+        change_block_end_lines=$(echo "$change_blocks_start_lines" | sed '1d') # remove the first line of change_blocks_start_lines
+        change_block_end_lines=$(echo "$change_block_end_lines" | sed "s/$change_block_last_start_line/${change_block_last_start_line}\n${end_of_git_show_line_count}/") # replace the change_block_last_start_line in change_block_end_lines with the number of the last line of git_show
+
+        change_block_count=$(echo "$change_blocks_start_lines" | wc -l | sed 's/^[ \t]*//;s/[ \t]*$//') # get the number of lines in change_blocks_start_lines
+
+        if [ $change_block_count -gt 1 ]; then
+            continuous=0
+        fi
+
+        for (( i=1; i<=$change_block_count; i++ )); do
+            # Get block
+            block_start_line_count=$(echo "$change_blocks_start_lines" | sed -n "${i}p") # get the ith line of change_blocks_start_lines
+            block_end_line_count=$(echo "$change_block_end_lines" | sed -n "${i}p") # get the ith line of change_blocks_end_lines
+
+            block_end_line_count=$(($block_end_line_count - 1)) # remove 1 to get end of previous block
+
+            block=$(echo "$git_show" | sed -n "${block_start_line_count},${block_end_line_count}p") # get the block of code from git_show
+
+            # Count Changes            
+            additions_in_block=$(echo "$block" | grep -c -E '^\+') # get the number of lines that start with +
+            removals_in_block=$(echo "$block" | grep -c -E '^-') # get the number of lines that start with -
+
+            addition_count=$(($addition_count + $additions_in_block)) # add the number of additions in the block to the total addition count
+            removal_count=$(($removal_count + $removals_in_block)) # add the number of removals in the block to the total removal count
+            
+            # Check if block is continuous
+            numbered_changes_in_block=$(echo "$block" | grep -n -E '^\+|^-') # get a numbered list of lines that start with + and - 
+            change_line_counts_in_block=$(echo "$numbered_changes_in_block" | sed 's/:.*//') # remove everything after the : character
+            is_block_continuous=$(is_list_continuous "$change_line_counts_in_block")
+
+            if [ $is_block_continuous -eq 0 ]; then
+                continuous=0
+            fi
+
+            # Check if changes in all blocks belongs to the same function
+
+            # TODO Iterate through all the lines that start with + or -
+            # Check the corresponding function name of the line number, if it's different from previous same_function=0
+
+            # Use "git show --no-prefix -U1000" 
+            # to get full full context of the change, so I don't have to read the original source code
+
+            echo
+            echo "--------------------------- ---------------------------"
+            echo
+
+        done
+
+        if [ $same_function -eq 1 ]; then
+            if [ $continuous -eq 1 ]; then
+                if [[ $addition_change_count -lt 2 ]] && [[ $removal_change_count -lt 2 ]]; then
+                    bug_type=$SINGLE_LINE
+                else
+                    bug_type=$SINGLE_HUNK
+                fi
+            else
+                bug_type=$SINGLE_FUNCTION
+            fi
         else
-            # TODO: Check if changes are in the same function -> SF, else OT
             bug_type=$OTHER
         fi
-    else
-        # TODO check if the bug is SH or SF
-
-        bug_type=$OTHER
     fi
-
-    # echo $code
-    # echo ""
-    echo $bug_type
 }
 
 function get_test_error {
@@ -312,6 +362,21 @@ function get_test_suite_and_name {
     test_suite_and_name=${test_suite_and_name///} # Remove "empty spaces"
 
     echo $test_suite_and_name
+}
+
+function is_list_continuous {
+    list=$1
+    list_len=$(echo "$list" | wc -l | sed 's/^[ \t]*//;s/[ \t]*$//')
+    is_continuous=1
+    for ((i=1;i<$list_len;i++)); do
+        list_i=$(echo ${list} | head -n ${i} | tail -n 1)
+        list_i_p1=$(echo ${list} | head -n $((i + 1)) | tail -n 1)
+        if [[ $((list_i + 1)) != $((list_i_p1)) ]]; then
+            is_continuous=0
+            break
+        fi
+    done
+    echo $is_continuous
 }
 
 # ------------------------------
