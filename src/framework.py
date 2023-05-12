@@ -92,4 +92,5 @@ class Framework(object):
         command = ['bash', f'{self.shell_scripts_folder}/{self.test_framework}.sh', function, f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}", f"{extra_arg}"]
         result = run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True)
         assert result.returncode == 0
+        result.stdout = result.stdout[:-1]
         return result
