@@ -22,28 +22,24 @@ class Framework(object):
         self.run_bash("reproduce_bug", work_dir, project, bug_id)
 
         bug_type = self.run_bash("get_bug_type", work_dir, project, bug_id).stdout
-        if bug_type == "OT":
-            return Bug(test_framework=self.test_framework,
-                   project=project,
-                   bug_id=bug_id,
-                   bug_type=bug_type,
-                   code=None,
-                   masked_code=None,
-                   buggy_lines=None,
-                   fixed_lines=None,
-                   test_suite=None,
-                   test_name=None,
-                   test_line=None,
-                   test_error_message=None)
-        
-        test_suite = self.run_bash("get_test_suite", work_dir, project, bug_id).stdout
-        test_name = self.run_bash("get_test_name", work_dir, project, bug_id).stdout
-        test_error = self.run_bash("get_test_error", work_dir, project, bug_id).stdout
-        test_line = self.run_bash("get_test_line", work_dir, project, bug_id).stdout
-        buggy_lines = self.run_bash("get_buggy_lines", work_dir, project, bug_id).stdout
-        fixed_lines = self.run_bash("get_fixed_lines", work_dir, project, bug_id).stdout
-        code = self.run_bash("get_code", work_dir, project, bug_id).stdout
-        masked_code = self.run_bash("get_masked_code", work_dir, project, bug_id).stdout
+        if bug_type != "OT":
+            test_suite = self.run_bash("get_test_suite", work_dir, project, bug_id).stdout
+            test_name = self.run_bash("get_test_name", work_dir, project, bug_id).stdout
+            test_error = self.run_bash("get_test_error", work_dir, project, bug_id).stdout
+            test_line = self.run_bash("get_test_line", work_dir, project, bug_id).stdout
+            buggy_lines = self.run_bash("get_buggy_lines", work_dir, project, bug_id).stdout
+            fixed_lines = self.run_bash("get_fixed_lines", work_dir, project, bug_id).stdout
+            code = self.run_bash("get_code", work_dir, project, bug_id).stdout
+            masked_code = self.run_bash("get_masked_code", work_dir, project, bug_id).stdout
+        else:
+            test_suite = None
+            test_name = None
+            test_error = None
+            test_line = None
+            buggy_lines = None
+            fixed_lines = None
+            code = None
+            masked_code = None
 
         return Bug(test_framework=self.test_framework,
                    project=project,
