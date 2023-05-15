@@ -208,14 +208,24 @@ function get_code {
 
     file_path=$(echo "$git_diff_code" | grep -n "diff" | head -n 2 | tail -n 1 | cut -d: -f2-) # take second line in code that starts with diff
     file_path=$(echo "$file_path" | rev | cut -d/ -f1 | rev) # remove everything before the last / symbol in file_path
-    file_path=$(find $work_dir | grep "$file_path" | head -n 1) # take the first results of the grep search on file_path in work_dir
+    file_path=$(find $work_dir | grep "/$file_path" | head -n 1) # take the first results of the grep search on file_path in work_dir
 
     # Find code_start_line_count
     for ((i=code_change_line_count;i>=0;i--)); do # for loop that goes from code_change_line_count down to 0
         line=$(sed -n "${i}p" $file_path) # take the line i in file_path
-        if [[ $line == *"private"* ]] || [[ $line == *"protected"* ]] || [[ $line == *"public"* ]] || [[ $line == *"static"* ]] || [[ $line == *"void"* ]] || ([[ $line == *"JSType"* ]] && [[ $line == *"{"* ]]); then
-            code_start_line_count=$i # set code_change_line_count to i
-            break # break the loop
+        trimmed_line=$(echo "$line" | sed 's/^[ \t]*//') # remove empty white spaces from beginning of line
+
+        if [[ $trimmed_line != "//"* ]]; then
+            if [[ $trimmed_line == *"("* ]] && ([[ $trimmed_line == *"private"* ]] || [[ $trimmed_line == *"protected"* ]] || [[ $trimmed_line == *"public"* ]] || [[ $trimmed_line == *"static"* ]] || [[ $trimmed_line == *"void"* ]]); then
+                code_start_line_count=$i # set code_change_line_count to i
+                break # break the loop
+            elif  [[ $trimmed_line == *"JSType"* ]] && [[ $trimmed_line == *"{"* ]]; then
+                code_start_line_count=$i # set code_change_line_count to i
+                break # break the loop
+            elif  [[ $trimmed_line == *"class"* ]] && [[ $trimmed_line == *"{"* ]]; then
+                code_start_line_count=$i # set code_change_line_count to i
+                break # break the loop
+            fi
         fi
     done
 
@@ -369,12 +379,16 @@ function get_function_line_from_line_in_code_block {
 
     for ((i=$from_line;i>=0;i--)); do # for loop that goes from from_line down to 0
         line=$(echo "$code_block" | sed -n "${i}p") # take the line i in text
-        if [[ $line == *"("* ]] && ([[ $line == *"private"* ]] || [[ $line == *"protected"* ]] || [[ $line == *"public"* ]] || [[ $line == *"static"* ]] || [[ $line == *"void"* ]]); then
-            break # break the loop
-        elif  [[ $line == *"JSType"* ]] && [[ $line == *"{"* ]]; then
-            break # break the loop
-        elif  [[ $line == *"class"* ]] && [[ $line == *"{"* ]]; then
-            break # break the loop
+        trimmed_line=$(echo "$line" | sed 's/^[ \t]*//') # remove empty white spaces from beginning of line
+
+        if [[ $trimmed_line != "//"* ]]; then
+            if [[ $trimmed_line == *"("* ]] && ([[ $trimmed_line == *"private"* ]] || [[ $trimmed_line == *"protected"* ]] || [[ $trimmed_line == *"public"* ]] || [[ $trimmed_line == *"static"* ]] || [[ $trimmed_line == *"void"* ]]); then
+                break # break the loop
+            elif  [[ $trimmed_line == *"JSType"* ]] && [[ $trimmed_line == *"{"* ]]; then
+                break # break the loop
+            elif  [[ $trimmed_line == *"class"* ]] && [[ $trimmed_line == *"{"* ]]; then
+                break # break the loop
+            fi
         fi
     done
 
