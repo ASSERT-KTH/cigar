@@ -59,9 +59,9 @@ class TestFramework(unittest.TestCase):
         framework = Framework(test_framework="defects4j",
                               list_of_bugs=[("Time", [i for i in range(1, 28) if i != 21])])
         
-        bug = framework.reproduce_bug("Time", 1)
+        bug = framework.reproduce_bug("Time", 4)
 
-        expected_n_shot_bug_ids = [4, 19, 16]
+        expected_n_shot_bug_ids = [16, 19, 4]
 
         n_shot_examples = framework.get_n_shot_bugs(n=3, bug=bug, mode="SL")
         n_shot_bug_ids = [bug.bug_id for bug in n_shot_examples]
