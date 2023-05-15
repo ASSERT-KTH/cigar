@@ -5,25 +5,6 @@ from src.capr import CAPR
 from src.chatgpt import ChatGPT
 from src.framework import Framework
 
-# active bugs, based on https://github.com/rjust/defects4j#the-projects
-list_of_bugs = [
-    ("Chart", [i for i in range(1, 27)]),
-    ("Closure", [i for i in range(1, 177) if i != 63 and i != 93]),
-    ("Lang", [i for i in range(1, 66) if i != 2]),
-    ("Math", [i for i in range(1, 107)]),
-    ("Mockito", [i for i in range(1, 39)]), # Failed to reproduce bugs on macOS and Ubuntu
-    ("Time", [i for i in range(1, 28) if i != 21])
-]
-
-# [TEMPORARY] test SL, SH and SF bugs
-list_of_bugs = [
-    ("Lang", [
-        16, # SL
-        28, # SH
-        55 # SF
-    ])
-]
-
 def main():
 
     max_conv_length = 3
@@ -31,7 +12,13 @@ def main():
     framework_name = "defects4j"
 
     framework = Framework(test_framework=framework_name,
-                          cache_folder=Path(__file__).parent / 'data' / 'validate_patch_cache')
+                          list_of_bugs= [("Chart", [i for i in range(1, 27)]),
+                                         ("Closure", [i for i in range(1, 177) if i != 63 and i != 93]),
+                                         ("Lang", [i for i in range(1, 66) if i != 2]),
+                                         ("Math", [i for i in range(1, 107)]),
+                                         ("Mockito", [i for i in range(1, 39)]), # Failed to reproduce bugs on macOS and Ubuntu
+                                         ("Time", [i for i in range(1, 28) if i != 21])],
+                          validate_patch_cache_folder=Path(__file__).parent / 'data' / 'validate_patch_cache')
     chatgpt = ChatGPT(model="gpt-3.5-turbo", 
                     api_key_path=Path(__file__).parent / 'openai_api_key.env',
                     cache_folder=Path(__file__).parent / 'data' / 'chatgpt_cache',
@@ -52,7 +39,7 @@ def main():
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
 
-    for project, ids in list_of_bugs:
+    for project, ids in framework.list_of_bugs:
         for bug_id in ids:
             print(f"Reproducing {project}-{bug_id}")
             bug = framework.reproduce_bug(project, bug_id)

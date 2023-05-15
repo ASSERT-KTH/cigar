@@ -6,7 +6,8 @@ class TestFramework(unittest.TestCase):
 
     def test_validate_patch_gson_15(self):
         framework = Framework(test_framework="defects4j",
-                              cache_folder=Path(__file__).parent.parent / 'data' / 'validate_patch_cache')
+                              list_of_bugs=[("Gson", [15])],
+                              validate_patch_cache_folder=Path(__file__).parent.parent / 'data' / 'validate_patch_cache')
 
         bug = framework.reproduce_bug("Gson", 15)
 
@@ -25,7 +26,8 @@ class TestFramework(unittest.TestCase):
 
     def test_validate_patch_lang_16(self):
         framework = Framework(test_framework="defects4j",
-                              cache_folder=Path(__file__).parent.parent / 'data' / 'validate_patch_cache')
+                              list_of_bugs=[("Lang", [16])],
+                              validate_patch_cache_folder=Path(__file__).parent.parent / 'data' / 'validate_patch_cache')
 
         bug = framework.reproduce_bug("Lang", 16)
 
@@ -45,3 +47,19 @@ class TestFramework(unittest.TestCase):
 
         test_result, _ = framework.validate_patch(bug, code_fixed_should_pass_2)
         self.assertEqual(test_result, "PASS")
+
+    def test_n_shot_examples(self):
+        framework = Framework(test_framework="defects4j",
+                              list_of_bugs=[("Time", [i for i in range(1, 28) if i != 21])],
+                              validate_patch_cache_folder=Path(__file__).parent.parent / 'data' / 'validate_patch_cache',
+                              n_shot_cache_folder=Path(__file__).parent.parent / 'data' / 'n_shot_cache')
+        
+        bug = framework.reproduce_bug("Time", 1)
+
+        expected_n_shot_bug_ids = [4, 19, 16]
+
+        n_shot_examples = framework.get_n_shot_bugs(n=3, bug=bug, mode="SL")
+        n_shot_bug_ids = [bug.bug_id for bug in n_shot_examples]
+
+        self.assertEqual(n_shot_bug_ids, expected_n_shot_bug_ids)
+

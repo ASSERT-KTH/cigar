@@ -5,10 +5,12 @@ from subprocess import PIPE, run
 from src.bug import Bug
 
 class Framework(object):
-    def __init__(self, test_framework, cache_folder=None):
+    def __init__(self, test_framework, list_of_bugs, validate_patch_cache_folder=None, n_shot_cache_folder=None):
         assert test_framework in ["defects4j", "quixbugs"]
         self.test_framework = test_framework
-        self.cache_folder = cache_folder
+        self.list_of_bugs = list_of_bugs
+        self.validate_patch_cache_folder = validate_patch_cache_folder
+        self.n_shot_cache_folder = n_shot_cache_folder
 
         self.d4j_path = "/Users/davidhidvegi/Desktop/defects4j/framework/bin"
         self.tmp_dir = f"/tmp/{test_framework}"
@@ -21,7 +23,18 @@ class Framework(object):
 
         bug_type = self.run_bash("get_bug_type", work_dir, project, bug_id).stdout
         if bug_type == "OT":
-            return None
+            return Bug(test_framework=self.test_framework,
+                   project=project,
+                   bug_id=bug_id,
+                   bug_type=bug_type,
+                   code=None,
+                   masked_code=None,
+                   buggy_line=None,
+                   fixed_line=None,
+                   test_suite=None,
+                   test_name=None,
+                   test_line=None,
+                   test_error_message=None)
         
         test_suite = self.run_bash("get_test_suite", work_dir, project, bug_id).stdout
         test_name = self.run_bash("get_test_name", work_dir, project, bug_id).stdout
@@ -44,6 +57,46 @@ class Framework(object):
                    test_name=test_name,
                    test_line=test_line,
                    test_error_message=test_error)
+    
+    def get_n_shot_bugs(self, n: int, bug: Bug, mode: str):
+        assert mode in ["SL", "SH", "SF"]
+
+        n_shot_list = []
+
+        if self.n_shot_cache_folder is not None:
+            cache_file_path = f"{self.n_shot_cache_folder}/{bug.project}_{mode}.json"
+            if Path(cache_file_path).is_file():
+                with open(cache_file_path, "r") as file:
+                    json_to_load = json.load(file)
+                    n_shot_list = json_to_load['n_shot_list']
+
+        if len(n_shot_list) == 0:         
+            list_of_project_bugs = [bug_list for bug_list in self.list_of_bugs if bug_list[0] == bug.project]
+
+            for bug_id in list_of_project_bugs[0][1]:
+
+                work_dir = f"{self.tmp_dir}/{bug.project}-{bug_id}"
+                bug_type = self.run_bash("get_bug_type", work_dir, bug.project, bug_id).stdout
+
+                if mode in bug_type:
+                    code_len = len(self.run_bash("get_code", work_dir, bug.project, bug_id).stdout)
+
+                    n_shot_list.append({"bug_id": bug_id, "code_len": code_len})
+            
+            n_shot_list = sorted(n_shot_list, key=lambda k: k['code_len'])
+
+            if self.n_shot_cache_folder is not None:
+                with open(cache_file_path, "w") as file:
+                    json.dump({"n_shot_list": n_shot_list}, file, indent=4, sort_keys=True)
+
+        n_shot_list = n_shot_list[:n]
+        n_shot_bugs = []
+
+        for n_shot in n_shot_list:
+            n_shot_bug = self.reproduce_bug(bug.project, n_shot['bug_id'])
+            n_shot_bugs.append(n_shot_bug)
+
+        return n_shot_bugs
 
     def validate_patch(self, bug: Bug, proposed_line_fix):
 
@@ -51,8 +104,8 @@ class Framework(object):
         result_reason = None
         patch_hash = hashlib.md5(str(proposed_line_fix).encode('utf-8')).hexdigest()
 
-        if self.cache_folder is not None:
-            cache_file_path = f"{self.cache_folder}/{self.test_framework}_{bug.project}_{bug.bug_id}_{patch_hash}.json"
+        if self.validate_patch_cache_folder is not None:
+            cache_file_path = f"{self.validate_patch_cache_folder}/{self.test_framework}_{bug.project}_{bug.bug_id}_{patch_hash}.json"
             if Path(cache_file_path).is_file():
                 with open(cache_file_path, "r") as file:
                     json_to_load = json.load(file)
@@ -82,7 +135,7 @@ class Framework(object):
                     test_result = "FAIL" # test fail
                     result_reason = self.run_bash("get_test_error", work_dir, project, bug_id).stdout
 
-        if self.cache_folder is not None:
+        if self.validate_patch_cache_folder is not None:
             with open(cache_file_path, "w") as file:
                 json.dump({'patch': proposed_line_fix, 'test_result': test_result, 'result_reason': result_reason}, file,  indent=4, sort_keys=True)
             
@@ -91,6 +144,5 @@ class Framework(object):
     def run_bash(self, function, work_dir, project, bug_id, extra_arg=None):
         command = ['bash', f'{self.shell_scripts_folder}/{self.test_framework}.sh', function, f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}", f"{extra_arg}"]
         result = run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True)
-        assert result.returncode == 0
         result.stdout = result.stdout[:-1]
         return result
