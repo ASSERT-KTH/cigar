@@ -207,7 +207,8 @@ function get_code {
     code_change_line_count=$((code_change_line_count + 3))
 
     file_path=$(echo "$git_diff_code" | grep -n "diff" | head -n 2 | tail -n 1 | cut -d: -f2-) # take second line in code that starts with diff
-    file_path=$(echo "$file_path" | rev | cut -d/ -f1 | rev) # remove everything before the last / symbol in file_path
+    file_path=$(echo "$file_path" | rev | cut -d' ' -f1 | rev) # remove everything before the last space in file_path
+    file_path=$(echo "$file_path" | cut -d/ -f2-) # remove everything before the first / in file_path
     file_path=$(find $work_dir | grep "/$file_path" | head -n 1) # take the first results of the grep search on file_path in work_dir
 
     # Find code_start_line_count

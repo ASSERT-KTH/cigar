@@ -9,8 +9,11 @@ class TestFramework(unittest.TestCase):
                               list_of_bugs=None)
         
         bug_time_4 = framework.reproduce_bug("Time", 4) # Edge case containing keywords in comments
+        bug_time_24 = framework.reproduce_bug("Time", 24) # Edge case, selects 2 functions
 
         self.assertGreater(len(bug_time_4.code), 0)
+        self.assertGreater(len(bug_time_24.code), 0)
+        self.assertEqual(bug_time_24.code.count("public") + bug_time_24.code.count("private"), 1)
 
 
     def test_validate_patch_gson_15(self):
