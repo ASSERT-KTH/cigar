@@ -4,6 +4,29 @@ from src.framework import Framework
 
 class TestFramework(unittest.TestCase):
 
+    def test_get_buggy_lines(self):
+        framework = Framework(test_framework="defects4j",
+                              list_of_bugs=None)
+
+        bug_time_58 = framework.reproduce_bug("Lang", 58) # Edge case, multiple buggy lines
+
+        expected_buggy_lines = """                        && isDigits(numeric.substring(1))
+                        && (numeric.charAt(0) == '-' || Character.isDigit(numeric.charAt(0)))) {"""
+        
+        self.assertEqual(bug_time_58.buggy_lines, expected_buggy_lines)
+
+    def test_get_fixed_lines(self):
+        framework = Framework(test_framework="defects4j",
+                              list_of_bugs=None)
+
+        bug_time_54 = framework.reproduce_bug("Lang", 54) # Edge case, multiple fixed lines
+
+        expected_fixed_lines = """            if (ch3 == '_') {
+                return new Locale(str.substring(0, 2), "", str.substring(4));
+            }"""
+        
+        self.assertEqual(bug_time_54.fixed_lines, expected_fixed_lines)
+
     def test_get_code(self):
         framework = Framework(test_framework="defects4j",
                               list_of_bugs=None)
@@ -15,6 +38,15 @@ class TestFramework(unittest.TestCase):
         self.assertGreater(len(bug_time_24.code), 0)
         self.assertEqual(bug_time_24.code.count("public") + bug_time_24.code.count("private"), 1)
 
+    def test_get_masked_code(self):
+        framework = Framework(test_framework="defects4j",
+                              list_of_bugs=None)
+        
+        bug_time_24 = framework.reproduce_bug("Time", 24) # Single Hunk Bug
+        bug_lang_58 = framework.reproduce_bug("Lang", 58) # SH Bug, 2 line addition, 2 line deletion
+
+        self.assertEqual(bug_time_24.masked_code.count("INFILL"), 1)
+        self.assertEqual(bug_lang_58.masked_code.count("INFILL"), 1)
 
     def test_validate_patch_gson_15(self):
         framework = Framework(test_framework="defects4j",

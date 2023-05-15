@@ -7,8 +7,8 @@ class Bug(object):
                  bug_type,
                  code,
                  masked_code, 
-                 buggy_line, 
-                 fixed_line, 
+                 buggy_lines, 
+                 fixed_lines, 
                  test_suite, 
                  test_name, 
                  test_line, 
@@ -19,8 +19,8 @@ class Bug(object):
         self.bug_type = bug_type
         self.code = code
         self.masked_code = masked_code
-        self.buggy_line = buggy_line
-        self.fixed_line = fixed_line
+        self.buggy_lines = buggy_lines
+        self.fixed_lines = fixed_lines
         self.test_suite = test_suite
         self.test_name = test_name
         self.test_line = test_line

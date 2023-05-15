@@ -29,8 +29,8 @@ class Framework(object):
                    bug_type=bug_type,
                    code=None,
                    masked_code=None,
-                   buggy_line=None,
-                   fixed_line=None,
+                   buggy_lines=None,
+                   fixed_lines=None,
                    test_suite=None,
                    test_name=None,
                    test_line=None,
@@ -40,8 +40,8 @@ class Framework(object):
         test_name = self.run_bash("get_test_name", work_dir, project, bug_id).stdout
         test_error = self.run_bash("get_test_error", work_dir, project, bug_id).stdout
         test_line = self.run_bash("get_test_line", work_dir, project, bug_id).stdout
-        buggy_line = self.run_bash("get_buggy_line", work_dir, project, bug_id).stdout
-        fixed_line = self.run_bash("get_fixed_line", work_dir, project, bug_id).stdout
+        buggy_lines = self.run_bash("get_buggy_lines", work_dir, project, bug_id).stdout
+        fixed_lines = self.run_bash("get_fixed_lines", work_dir, project, bug_id).stdout
         code = self.run_bash("get_code", work_dir, project, bug_id).stdout
         masked_code = self.run_bash("get_masked_code", work_dir, project, bug_id).stdout
 
@@ -51,8 +51,8 @@ class Framework(object):
                    bug_type=bug_type,
                    code=code,
                    masked_code=masked_code,
-                   buggy_line=buggy_line,
-                   fixed_line=fixed_line,
+                   buggy_lines=buggy_lines,
+                   fixed_lines=fixed_lines,
                    test_suite=test_suite,
                    test_name=test_name,
                    test_line=test_line,

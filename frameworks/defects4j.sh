@@ -120,7 +120,7 @@ function get_test_error {
     echo $test_error
 }
 
-function get_buggy_line {
+function get_buggy_lines {
     work_dir=$3
     cd $work_dir
 
@@ -133,7 +133,7 @@ function get_buggy_line {
     echo $code
 }
 
-function get_fixed_line {
+function get_fixed_lines {
     work_dir=$3
     cd $work_dir
 
@@ -206,29 +206,11 @@ function get_code {
     code_change_line_count=$(echo "$code_change_line_count" | cut -d, -f1)
     code_change_line_count=$((code_change_line_count + 3))
 
-    file_path=$(echo "$git_diff_code" | grep -n "diff" | head -n 2 | tail -n 1 | cut -d: -f2-) # take second line in code that starts with diff
-    file_path=$(echo "$file_path" | rev | cut -d' ' -f1 | rev) # remove everything before the last space in file_path
-    file_path=$(echo "$file_path" | cut -d/ -f2-) # remove everything before the first / in file_path
-    file_path=$(find $work_dir | grep "/$file_path" | head -n 1) # take the first results of the grep search on file_path in work_dir
+    file_path=$(get_source_code_file_path $@)
 
     # Find code_start_line_count
-    for ((i=code_change_line_count;i>=0;i--)); do # for loop that goes from code_change_line_count down to 0
-        line=$(sed -n "${i}p" $file_path) # take the line i in file_path
-        trimmed_line=$(echo "$line" | sed 's/^[ \t]*//') # remove empty white spaces from beginning of line
-
-        if [[ $trimmed_line != "//"* ]]; then
-            if [[ $trimmed_line == *"("* ]] && ([[ $trimmed_line == *"private"* ]] || [[ $trimmed_line == *"protected"* ]] || [[ $trimmed_line == *"public"* ]] || [[ $trimmed_line == *"static"* ]] || [[ $trimmed_line == *"void"* ]]); then
-                code_start_line_count=$i # set code_change_line_count to i
-                break # break the loop
-            elif  [[ $trimmed_line == *"JSType"* ]] && [[ $trimmed_line == *"{"* ]]; then
-                code_start_line_count=$i # set code_change_line_count to i
-                break # break the loop
-            elif  [[ $trimmed_line == *"class"* ]] && [[ $trimmed_line == *"{"* ]]; then
-                code_start_line_count=$i # set code_change_line_count to i
-                break # break the loop
-            fi
-        fi
-    done
+    code_block=$(less $file_path)
+    code_start_line_count=$(get_function_line_count_from_line_in_code_block $code_change_line_count)
 
     # Construct end_symbol
     start_line=$(sed -n "${code_start_line_count}p" $file_path) # read line code_start_line_count in file_path
@@ -274,29 +256,25 @@ function get_masked_code {
     code_change_line_count=$((code_change_line_count + 3))
 
     # Find source code file patch
-    file_path=$(echo "$git_diff" | grep -n "diff" | head -n 2 | tail -n 1 | cut -d: -f2-) # take second line in code that starts with diff
-    file_path=$(echo "$file_path" | rev | cut -d/ -f1 | rev) # remove everything before the last / symbol in file_path
-    file_path=$(find $work_dir | grep "$file_path" | head -n 1) # take the first results of the grep search on file_path in work_dir
+    file_path=$(get_source_code_file_path $@)
 
     # Find code_start_line_count
-    for ((i=code_change_line_count;i>=0;i--)); do # for loop that goes from code_change_line_count down to 0
-        line=$(sed -n "${i}p" $file_path) # take the line i in file_path
-        if [[ $line == *"private"* ]] || [[ $line == *"protected"* ]] || [[ $line == *"public"* ]] || [[ $line == *"static"* ]] || [[ $line == *"void"* ]] || ([[ $line == *"JSType"* ]] && [[ $line == *"{"* ]]); then
-            code_start_line_count=$i # set code_start_line_count to i
-            break # break the loop
-        fi
-    done
+    code_block=$(less $file_path)
+    code_start_line_count=$(get_function_line_count_from_line_in_code_block $code_change_line_count)
 
     # Remove buggy lines
     buggy_lines=$(echo "$git_diff_code" | grep "^+" | sed 's/^+//g') # grep lines that start with + symbol
     masked_code=$code
-    for buggy_line in $buggy_lines # for each buggy_line in buggy_lines remove the buggy_line from code
-    do
+
+    len_buggy_lines=$(echo "$buggy_lines" | wc -l | sed 's/^[ \t]*//;s/[ \t]*$//')
+
+    for ((i=1;i<=len_buggy_lines;i++)); do
+        buggy_line=$(echo "$buggy_lines" | sed "${i}!d") # take the ith line in buggy_lines
         buggy_line=$(echo "$buggy_line" | sed 's/^+//g') # remove the starting + symbol
         masked_code=$(echo "$masked_code" | sed "/^${buggy_line}$/d") # using sed delete the line that starts with buggy_line
     done
 
-    # Create masked_code
+    # # Create masked_code
     local_buggy_line_count=$((code_change_line_count - code_start_line_count + 1)) # line after the change
     masked_code=$(echo "$masked_code" | sed "${local_buggy_line_count}s/^/INFILL\n&/") 
 
@@ -324,10 +302,7 @@ function validate_patch {
     buggy_line=$(echo "$buggy_line" | sed 's/^[+]//') # replace the + sign with nothing
 
     # Extract buggy code path
-    code_file_path=$(git show | grep "+++" | sed '2!d')
-    code_file_path=${code_file_path#*+++} # trim code_file_path to remove everything before +++
-    code_file_path=${code_file_path#*/} # remove everything before the first / in code_file_path
-    code_file_path=$work_dir/$code_file_path
+    code_file_path=$(get_source_code_file_path $@)
 
     # Get the line number of the buggy line
     line_number=$(grep -n "$buggy_line" $code_file_path | cut -d: -f1)
@@ -360,6 +335,20 @@ function get_test_suite_and_name {
     echo $test_suite_and_name
 }
 
+function get_source_code_file_path {
+    work_dir=$3
+    cd $work_dir
+
+    git_diff_code=$(git show)
+
+    file_path=$(echo "$git_diff_code" | grep -n "diff" | head -n 2 | tail -n 1 | cut -d: -f2-) # take second line in code that starts with diff
+    file_path=$(echo "$file_path" | rev | cut -d' ' -f1 | rev) # remove everything before the last space in file_path
+    file_path=$(echo "$file_path" | cut -d/ -f2-) # remove everything before the first / in file_path
+    file_path=$(find $work_dir | grep "/$file_path" | head -n 1) # take the first results of the grep search on file_path in work_dir
+
+    echo $file_path
+}
+
 function is_list_continuous {
     list=$1
     list_len=$(echo "$list" | wc -l | sed 's/^[ \t]*//;s/[ \t]*$//')
@@ -375,25 +364,49 @@ function is_list_continuous {
     echo $is_continuous
 }
 
+function is_function_line {
+    line=$1
+    trimmed_line=$(echo "${line}" | sed 's/^[ \t]*//') # remove empty white spaces from beginning of line
+    is_function=0
+
+    if [[ $trimmed_line != "//"* ]]; then
+        if [[ $trimmed_line == *"("* ]] && ([[ $trimmed_line == *"private"* ]] || [[ $trimmed_line == *"protected"* ]] || [[ $trimmed_line == *"public"* ]] || [[ $trimmed_line == *"static"* ]] || [[ $trimmed_line == *"void"* ]]); then
+            is_function=1
+        elif  [[ $trimmed_line == *"JSType"* ]] && [[ $trimmed_line == *"{"* ]]; then
+            is_function=1
+        elif  [[ $trimmed_line == *"class"* ]] && [[ $trimmed_line == *"{"* ]]; then
+            is_function=1
+        fi
+    fi
+
+    echo ${is_function}
+}
+
 function get_function_line_from_line_in_code_block {
     from_line=$1
 
     for ((i=$from_line;i>=0;i--)); do # for loop that goes from from_line down to 0
         line=$(echo "$code_block" | sed -n "${i}p") # take the line i in text
-        trimmed_line=$(echo "$line" | sed 's/^[ \t]*//') # remove empty white spaces from beginning of line
-
-        if [[ $trimmed_line != "//"* ]]; then
-            if [[ $trimmed_line == *"("* ]] && ([[ $trimmed_line == *"private"* ]] || [[ $trimmed_line == *"protected"* ]] || [[ $trimmed_line == *"public"* ]] || [[ $trimmed_line == *"static"* ]] || [[ $trimmed_line == *"void"* ]]); then
-                break # break the loop
-            elif  [[ $trimmed_line == *"JSType"* ]] && [[ $trimmed_line == *"{"* ]]; then
-                break # break the loop
-            elif  [[ $trimmed_line == *"class"* ]] && [[ $trimmed_line == *"{"* ]]; then
-                break # break the loop
-            fi
+        if [[ $(is_function_line $line) == 1 ]]; then
+            break
         fi
     done
 
     echo ${line}
+}
+
+function get_function_line_count_from_line_in_code_block {
+    from_line=$1
+
+    for ((i=$from_line;i>=0;i--)); do # for loop that goes from from_line down to 0
+        line=$(echo "$code_block" | sed -n "${i}p") # take the line i in text
+        if [[ $(is_function_line $line) == 1 ]]; then
+            line_count=${i}
+            break
+        fi
+    done
+    
+    echo ${line_count}
 }
 
 # ------------------------------
