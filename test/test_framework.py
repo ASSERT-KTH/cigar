@@ -129,3 +129,16 @@ INFILL
         n_shot_bug_ids = [bug.bug_id for bug in n_shot_examples]
 
         self.assertEqual(n_shot_bug_ids, expected_n_shot_bug_ids)
+
+    def test_n_shot_examples_excludes_target_bug(self):
+        framework = Framework(test_framework="defects4j",
+                              list_of_bugs=[("Time", [1, 4, 16, 19])])
+        
+        bug = framework.reproduce_bug("Time", 16)
+
+        expected_n_shot_bug_ids = [19, 4]
+
+        n_shot_examples = framework.get_n_shot_bugs(n=3, bug=bug, mode="SL")
+        n_shot_bug_ids = [bug.bug_id for bug in n_shot_examples]
+
+        self.assertEqual(n_shot_bug_ids, expected_n_shot_bug_ids)

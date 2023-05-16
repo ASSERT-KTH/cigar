@@ -87,6 +87,7 @@ class Framework(object):
                 with open(cache_file_path, "w") as file:
                     json.dump({"n_shot_list": n_shot_list}, file, indent=4, sort_keys=True)
 
+        n_shot_list = [n_shot for n_shot in n_shot_list if n_shot['bug_id'] != bug.bug_id]
         n_shot_list = n_shot_list[:n]
         n_shot_bugs = []
 
