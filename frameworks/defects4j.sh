@@ -1,19 +1,23 @@
 #!/usr/bin/expect -f
 
-function reproduce_bug {
+function checkout_bug {
     project_id=$1
     bug_id=$2
     work_dir=$3
     d4j_path=$4
 
-    echo "Reproducing bug $project_id $bug_id $work_dir $d4j_path"
+    export PATH=$PATH:$d4j_path
+    defects4j checkout -p $project_id -v "${bug_id}b" -w $work_dir
+}
+
+function compile_and_run_tests {
+    project_id=$1
+    bug_id=$2
+    work_dir=$3
+    d4j_path=$4
 
     export PATH=$PATH:$d4j_path
-    rm -rf $work_dir
-    defects4j info -p $project_id -b $bug_id
-    defects4j checkout -p $project_id -v "${bug_id}b" -w $work_dir
 
-    cd $work_dir
     defects4j compile
     defects4j test -r
 }
@@ -272,9 +276,8 @@ function validate_patch {
     patched_full_code="${patched_full_code//FUNCTION_HERE/${patch_function}}"
     echo "$patched_full_code" > ${code_file_path}
 
-    # Compile and test
-    defects4j compile
-    defects4j test -r
+    # Compile and run test
+    compile_and_run_tests $@
 }
 
 # ---------- UTILS -------------
@@ -366,7 +369,7 @@ function get_function_line_count_from_line_in_code_block {
 }
 
 function get_git_show_function_code {
-    git_show=$(git show --no-prefix -U1000)
+    git_show=$(git show --no-prefix -U150)
     git_diff_code=${git_show##*@@} # take the code from the last @@ sign until the end of file using
     code_block=$(less $git_diff_code)
 

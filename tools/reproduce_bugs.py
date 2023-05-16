@@ -26,7 +26,8 @@ def reproduce_bugs(project=None):
             work_dir = f"{tmp_dir}/{project}-{bug_id}"
 
             print(f"Reproducing {project}-{bug_id}")
-            run_bash("reproduce_bug", work_dir, project, bug_id)
+            run_bash("checkout_bug", work_dir, project, bug_id)
+            run_bash("compile_and_run_tests", work_dir, project, bug_id)
 
 def run_bash(function, work_dir, project, bug_id, extra_arg=None):
     command = ['bash', f'{shell_scripts_folder}/{test_framework}.sh', function, f"{project}", f"{bug_id}", f"{work_dir}", f"{d4j_path}", f"{extra_arg}"]
