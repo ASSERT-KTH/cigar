@@ -72,6 +72,8 @@ class Framework(object):
             for bug_id in list_of_project_bugs[0][1]:
 
                 work_dir = f"{self.tmp_dir}/{bug.project}-{bug_id}"
+                if not Path(work_dir).is_dir():
+                    self.run_bash("reproduce_bug", work_dir, bug.project, bug_id)
                 bug_type = self.run_bash("get_bug_type", work_dir, bug.project, bug_id).stdout
 
                 if mode in bug_type:
