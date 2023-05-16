@@ -199,40 +199,11 @@ function get_code {
 
     IFS='%' # preserve white spaces in code
 
-    git_diff_code=$(git show)
+    code_block=$(get_git_show_function_code $@) # Get function code from git show that contains the changes
 
-    code_change_line_count=$(echo "$git_diff_code" | grep -n "@@" | head -n 2 | tail -n 1 | cut -d: -f2-) # take the second line that starts with @@
-    code_change_line_count=$(echo "$code_change_line_count" | cut -d- -f2-) # remove everything before the - sign in code_change_line_count
-    code_change_line_count=$(echo "$code_change_line_count" | cut -d, -f1)
-    code_change_line_count=$((code_change_line_count + 3))
-
-    file_path=$(get_source_code_file_path $@)
-
-    # Find code_start_line_count
-    code_block=$(less $file_path)
-    code_start_line_count=$(get_function_line_count_from_line_in_code_block $code_change_line_count)
-
-    # Construct end_symbol
-    start_line=$(sed -n "${code_start_line_count}p" $file_path) # read line code_start_line_count in file_path
-    for ((i=0;i<${#start_line};i++)); do # get the index of the first non-whie space character in start_line
-        if [[ ${start_line:$i:1} != " " ]]; then
-            start_line_index=$i
-            break
-        fi
-    done
-    end_symbol=$(echo "${start_line:0:$start_line_index}}") # take the substring of start_line from 0 to start_line_index and append }
-
-    # Find code_end_line_count
-    for ((i=code_change_line_count;i<=((code_change_line_count + 1000));i++)); do # for loop that goes from code_change_line_count up to the end of the file
-        line=$(sed -n "${i}p" $file_path) # take the line i in file_path
-        if [[ $line == "${end_symbol}"* ]]; then # if line contains end_symbol
-            code_end_line_count=$i # set code_end_line_count to i
-            break # break the loop
-        fi
-    done
-
-    # Read code
-    code=$(sed -n "${code_start_line_count},${code_end_line_count}p" $file_path) # read file_path from code_start_line_count to code_end_line_count
+    code=$(echo "$code_block" | sed '/^[-]/d') # Remove lines that start with -
+    code=$(echo "$code" | sed '/^[+]/s/+/ /') # Replace + with space in lines that start with +
+    code=$(echo "$code" | sed 's/^[[:space:]]//') # Remove first leading white spaces
 
     echo $code
 }
@@ -243,40 +214,19 @@ function get_masked_code {
 
     IFS='%' # preserve white spaces in code
 
-    # Read Code
-    code=$(get_code $@)
+    code_block=$(get_git_show_function_code $@) # Get function code from git show that contains the changes
 
-    git_diff=$(git show)
-    git_diff_code=${git_diff##*@@} # take the code from the last @@ sign until the end of file using
-
-    # Find line count of git diff
-    code_change_line_count=$(echo "$git_diff" | grep -n "@@" | head -n 2 | tail -n 1 | cut -d: -f2-) # take the second line that starts with @@
-    code_change_line_count=$(echo "$code_change_line_count" | cut -d- -f2-) # remove everything before the - sign in code_change_line_count
-    code_change_line_count=$(echo "$code_change_line_count" | cut -d, -f1)
-    code_change_line_count=$((code_change_line_count + 3))
-
-    # Find source code file patch
-    file_path=$(get_source_code_file_path $@)
-
-    # Find code_start_line_count
-    code_block=$(less $file_path)
-    code_start_line_count=$(get_function_line_count_from_line_in_code_block $code_change_line_count)
-
-    # Remove buggy lines
-    buggy_lines=$(echo "$git_diff_code" | grep "^+" | sed 's/^+//g') # grep lines that start with + symbol
-    masked_code=$code
-
-    len_buggy_lines=$(echo "$buggy_lines" | wc -l | sed 's/^[ \t]*//;s/[ \t]*$//')
-
-    for ((i=1;i<=len_buggy_lines;i++)); do
-        buggy_line=$(echo "$buggy_lines" | sed "${i}!d") # take the ith line in buggy_lines
-        buggy_line=$(echo "$buggy_line" | sed 's/^+//g') # remove the starting + symbol
-        masked_code=$(echo "$masked_code" | sed "/^${buggy_line}$/d") # using sed delete the line that starts with buggy_line
+    # Replace the every line staring with - with INFILL
+    masked_code=$(echo "$code_block" | sed '/^[+-]/s/[+-].*/INFILL/')
+    
+    # Keep only the lines that start with INFILL
+    number_of_lines_starting_with_infill=$(echo "$masked_code" | grep -c INFILL) # Count the number of lines starting with INFILL
+    for (( i=2; i<=$number_of_lines_starting_with_infill; i++ )); do
+        first_infill_line_count=$(echo "$masked_code" | grep -n INFILL | sed '1!d' | cut -d: -f1) # Get the line number of the first line starting with INFILL
+        masked_code=$(echo "$masked_code" | sed "${first_infill_line_count}d") # remove the line at first_infill_line_count
     done
 
-    # # Create masked_code
-    local_buggy_line_count=$((code_change_line_count - code_start_line_count + 1)) # line after the change
-    masked_code=$(echo "$masked_code" | sed "${local_buggy_line_count}s/^/INFILL\n&/") 
+    masked_code=$(echo "$masked_code" | sed 's/^[[:space:]]//') # Remove first leading white spaces
 
     echo $masked_code
 }
@@ -287,6 +237,7 @@ function validate_patch {
     work_dir=$3
     d4j_path=$4
     patch=$5
+    mode=$6
 
     IFS='%' # preserve white spaces in code
     export PATH=$PATH:$d4j_path
@@ -295,29 +246,34 @@ function validate_patch {
     # Restore original git state
     git restore .
 
-    # Export buggy line
-    buggy_line=$(git show)
-    buggy_line=${buggy_line##*@@} # take the code from the last @@ sign until the end of file using
-    buggy_line=$(echo "$buggy_line" | sed '/^[^+]/d') # remove all lines that doesn't start with +
-    buggy_line=$(echo "$buggy_line" | sed 's/^[+]//') # replace the + sign with nothing
+    # Construct patch_function
+    if [[ $mode == "SF" ]]; then
+        patch_function=$patch
+    else
+        masked_code=$(get_masked_code $@)
+        patch_function="${masked_code//INFILL/${patch}}"
+    fi
 
     # Extract buggy code path
     code_file_path=$(get_source_code_file_path $@)
 
-    # Get the line number of the buggy line
-    line_number=$(grep -n "$buggy_line" $code_file_path | cut -d: -f1)
+    # Put patch_function in place of the buggy function in code_file_path
+    full_code=$(less $code_file_path)    
+    code_function=$(get_code $@)
+    code_function_length=$(echo "$code_function" | wc -l | sed 's/^[ \t]*//;s/[ \t]*$//')
+    code_function_first_line=$(echo "$code_function" | head -n 1)
 
-    # Remove line at line_number (buggy line)
-    cp $code_file_path ${code_file_path}.tmp &&
-    sed "${line_number}d" <${code_file_path}.tmp >$code_file_path &&
-    rm -f ${code_file_path}.tmp
-    # Remove patch at line_number
-    cp $code_file_path ${code_file_path}.tmp
-    awk -v line_number="$line_number" -v patch="$patch" 'NR==line_number{print patch}1' ${code_file_path}.tmp > $code_file_path
-    rm -f ${code_file_path}.tmp
+    code_function_first_line_number=$(grep -n "$code_function_first_line" $code_file_path | cut -d: -f1)
+    code_function_last_line_number=$((code_function_first_line_number + code_function_length - 1))
 
+    patched_full_code=$(echo "$full_code" | sed "${code_function_first_line_number},${code_function_last_line_number}d")
+    patched_full_code=$(echo "$patched_full_code" | sed "${code_function_first_line_number}s/^/FUNCTION_HERE\n&/")
+
+    patched_full_code="${patched_full_code//FUNCTION_HERE/${patch_function}}"
+    echo "$patched_full_code" > ${code_file_path}
+
+    # Compile and test
     defects4j compile
-
     defects4j test -r
 }
 
@@ -407,6 +363,42 @@ function get_function_line_count_from_line_in_code_block {
     done
     
     echo ${line_count}
+}
+
+function get_git_show_function_code {
+    git_show=$(git show --no-prefix -U1000)
+    git_diff_code=${git_show##*@@} # take the code from the last @@ sign until the end of file using
+    code_block=$(less $git_diff_code)
+
+    # get first line that starts with + or -
+    code_change_line_count=$(echo "$code_block" | grep -n -m 1 "^[+-]" | cut -d: -f1)
+
+    # Find code_start_line_count
+    code_start_line=$(get_function_line_from_line_in_code_block $code_change_line_count)
+    code_start_line_count=$(get_function_line_count_from_line_in_code_block $code_change_line_count)
+
+    # Construct end_symbol
+    start_line=${code_start_line}
+    for ((i=0;i<${#start_line};i++)); do # get the index of the first non-whie space character in start_line
+        if [[ ${start_line:$i:1} != " " ]]; then
+            start_line_index=$i
+            break
+        fi
+    done
+    end_symbol=$(echo "${start_line:0:$start_line_index}}") # take the substring of start_line from 0 to start_line_index and append }
+
+    # Find code_end_line_count
+    for ((i=code_change_line_count;i<=((code_change_line_count + 1000));i++)); do # for loop that goes from code_change_line_count up to the end of the file
+        line=$(echo "$code_block" | sed "${i}!d") # get line i from code_block
+        if [[ $line == "${end_symbol}"* ]]; then # if line contains end_symbol
+            code_end_line_count=$i # set code_end_line_count to i
+            break # break the loop
+        fi
+    done
+
+    code_block=$(echo "$code_block" | sed -n "${code_start_line_count},${code_end_line_count}p") # take the lines from code_start_line_count to code_end_line_count from code_block
+
+    echo ${code_block}
 }
 
 # ------------------------------

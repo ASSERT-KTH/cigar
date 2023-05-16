@@ -96,11 +96,12 @@ class Framework(object):
 
         return n_shot_bugs
 
-    def validate_patch(self, bug: Bug, proposed_line_fix):
+    def validate_patch(self, bug: Bug, proposed_patch: str, mode: str):
+        assert mode in ["SL", "SH", "SF"]
 
         test_result = None
         result_reason = None
-        patch_hash = hashlib.md5(str(proposed_line_fix).encode('utf-8')).hexdigest()
+        patch_hash = hashlib.md5(str(proposed_patch).encode('utf-8')).hexdigest()
 
         if self.validate_patch_cache_folder is not None:
             cache_file_path = f"{self.validate_patch_cache_folder}/{self.test_framework}_{bug.project}_{bug.bug_id}_{patch_hash}.json"
@@ -116,7 +117,7 @@ class Framework(object):
             bug_id = bug.bug_id
             work_dir = f"{self.tmp_dir}/{project}-{bug_id}"
 
-            result = self.run_bash("validate_patch", work_dir, project, bug_id, proposed_line_fix)
+            result = self.run_bash("validate_patch", work_dir, project, bug_id, proposed_patch, mode)
             
             if result.returncode == 1:
                 result_reason = result.stderr
@@ -135,12 +136,12 @@ class Framework(object):
 
         if self.validate_patch_cache_folder is not None:
             with open(cache_file_path, "w") as file:
-                json.dump({'patch': proposed_line_fix, 'test_result': test_result, 'result_reason': result_reason}, file,  indent=4, sort_keys=True)
+                json.dump({'patch': proposed_patch, 'test_result': test_result, 'result_reason': result_reason}, file,  indent=4, sort_keys=True)
             
         return test_result, result_reason
     
-    def run_bash(self, function, work_dir, project, bug_id, extra_arg=None):
-        command = ['bash', f'{self.shell_scripts_folder}/{self.test_framework}.sh', function, f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}", f"{extra_arg}"]
+    def run_bash(self, function, work_dir, project, bug_id, extra_arg1=None, extra_arg2=None):
+        command = ['bash', f'{self.shell_scripts_folder}/{self.test_framework}.sh', function, f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}", f"{extra_arg1}", f"{extra_arg2}"]
         result = run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True)
         result.stdout = result.stdout[:-1]
         return result

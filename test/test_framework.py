@@ -42,11 +42,14 @@ class TestFramework(unittest.TestCase):
         framework = Framework(test_framework="defects4j",
                               list_of_bugs=None)
         
-        bug_time_24 = framework.reproduce_bug("Time", 24) # Single Hunk Bug
-        bug_lang_58 = framework.reproduce_bug("Lang", 58) # SH Bug, 2 line addition, 2 line deletion
+        bug_chart_10 = framework.reproduce_bug("Chart", 10) # SH Bug, 2 line addition, 2 line deletion
 
-        self.assertEqual(bug_time_24.masked_code.count("INFILL"), 1)
-        self.assertEqual(bug_lang_58.masked_code.count("INFILL"), 1)
+        expected_masked_code = '''     public String generateToolTipFragment(String toolTipText) {
+INFILL
+             + "\\" alt=\\"\\"";
+     }'''
+
+        self.assertEqual(bug_chart_10.masked_code, expected_masked_code)
 
     def test_validate_patch_gson_15(self):
         framework = Framework(test_framework="defects4j",
@@ -90,11 +93,35 @@ class TestFramework(unittest.TestCase):
         test_result, _ = framework.validate_patch(bug, code_fixed_should_pass_2)
         self.assertEqual(test_result, "PASS")
 
+    def test_validate_patch_lang_54(self):
+        framework = Framework(test_framework="defects4j",
+                              list_of_bugs=[("Lang", [54])])
+
+        bug = framework.reproduce_bug("Lang", 54) # Single Hunk Bug
+
+        code_fixed_should_pass = """            if (ch3 == '_') {
+                return new Locale(str.substring(0, 2), "", str.substring(4));
+            }"""
+
+        test_result, _ = framework.validate_patch(bug, code_fixed_should_pass, mode="SH")
+        self.assertEqual(test_result, "PASS")
+
+    def test_validate_patch_chart_10(self):
+        framework = Framework(test_framework="defects4j",
+                              list_of_bugs=[("Chart", [10])])
+
+        bug = framework.reproduce_bug("Chart", 10) # Single Function Bug, solution contains escape characters
+
+        sf_patch_fix = bug.masked_code.replace("INFILL", bug.fixed_lines)
+
+        test_result, _ = framework.validate_patch(bug, sf_patch_fix, mode="SF")
+        self.assertEqual(test_result, "PASS")
+
     def test_n_shot_examples(self):
         framework = Framework(test_framework="defects4j",
-                              list_of_bugs=[("Time", [i for i in range(1, 28) if i != 21])])
+                              list_of_bugs=[("Time", [1, 4, 16, 19])])
         
-        bug = framework.reproduce_bug("Time", 4)
+        bug = framework.reproduce_bug("Time", 1)
 
         expected_n_shot_bug_ids = [16, 19, 4]
 
