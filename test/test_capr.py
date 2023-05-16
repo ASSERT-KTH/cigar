@@ -64,7 +64,7 @@ class TestCAPR(unittest.TestCase):
                           cache_folder=self.cache_folder,
                           load_from_cache=True,
                           save_to_cache=True)
-        framework = Framework("defects4j")
+        framework = Framework("defects4j", list_of_bugs=None)
         capr = CAPR(chatgpt=chatgpt, framework=framework, max_conv_length=3, max_tries=10)
         
         response_patch_pairs = [
@@ -72,14 +72,25 @@ class TestCAPR(unittest.TestCase):
              "if (Double.isNaN(value) || Double.isInfinite(value)) {"),
             ("Alternative fix line:\n\n```java\nif (!Double.isFinite(value)) {\n```", 
              "if (!Double.isFinite(value)) {"),
+        ]
+
+        for response, patch in response_patch_pairs:
+            self.assertEqual(capr.extract_patch_from_response(response), patch)
+
+    def test_extract_patch_from_response_with_multiple_lines(self):
+        chatgpt = ChatGPT(model=self.chatgpt_model, 
+                          api_key_path=self.chatgpt_api_key_path,
+                          cache_folder=self.cache_folder,
+                          load_from_cache=True,
+                          save_to_cache=True)
+        framework = Framework("defects4j", list_of_bugs=None)
+        capr = CAPR(chatgpt=chatgpt, framework=framework, max_conv_length=3, max_tries=10)
+        
+        response_patch_pairs = [
             ("```java\nif (!throwOnNonFiniteDouble && (Double.isNaN(value) || Double.isInfinite(value))) {\n    throw new IOException(\"Numeric values must be finite, but was \" + value);\n}\n``` \nNote: This solution checks if `throwOnNonFiniteDouble` is `false` before throwing the exception to avoid throwing an exception when `throwOnNonFiniteDouble` is `true`.",
-             "if (!throwOnNonFiniteDouble && (Double.isNaN(value) || Double.isInfinite(value))) {"),
-            ("```java\nif (Double.isNaN(value) || Double.isInfinite(value)) {\n    throw new IOException(\"Numeric values must be finite, but was \" + value);\n}\n``` \nNote: Since `JsonWriter` implements `Closeable` and `Flushable`, it is appropriate to throw an `IOException`.",
-             "if (Double.isNaN(value) || Double.isInfinite(value)) {"),
-            ("Apologies for the confusion. Here's the correct patch line:\n\n```java\nif (!lenient && (Double.isNaN(value) || Double.isInfinite(value))) {\n    throw new IllegalArgumentException(\"Numeric values must be finite, but was \" + value);\n}\n``` \n\nThis line includes a check for the `lenient` flag, which is missing in the previous version. If `lenient` is set to true, non-finite doubles will be allowed. Otherwise, an exception will be thrown.", 
-             "if (!lenient && (Double.isNaN(value) || Double.isInfinite(value))) {"),
+             "if (!throwOnNonFiniteDouble && (Double.isNaN(value) || Double.isInfinite(value))) {\n    throw new IOException(\"Numeric values must be finite, but was \" + value);\n}"),
             ("I apologize for the oversight. Here's the corrected patch line:\n\n```java\nif (!lenient && (Double.isNaN(value) || Double.isInfinite(value))) {\n    throw new IllegalArgumentException(\"Numeric values must be finite, but was \" + value);\n}\nreturn this;\n```\n\nIn addition to the check for `lenient` and finite values, we add `return this;` to return the current `JsonWriter` object. This should fix the compilation error.", 
-             "if (!lenient && (Double.isNaN(value) || Double.isInfinite(value))) {")
+             "if (!lenient && (Double.isNaN(value) || Double.isInfinite(value))) {\n    throw new IllegalArgumentException(\"Numeric values must be finite, but was \" + value);\n}\nreturn this;")
         ]
 
         for response, patch in response_patch_pairs:
