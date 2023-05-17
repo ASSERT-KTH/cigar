@@ -36,7 +36,7 @@ function get_bug_type {
     IFS='%' # preserve white spaces in code
 
     # Get git details
-    git_show=$(git show --no-prefix -U150)
+    git_show=$(git show --no-prefix -U500)
     git_diff=$(git diff --stat HEAD^)
 
     # Export file_change_count from git_diff
