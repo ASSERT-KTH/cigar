@@ -4,6 +4,15 @@ from src.framework import Framework
 
 class TestFramework(unittest.TestCase):
 
+    def test_get_bug_type(self):
+        framework = Framework(test_framework="defects4j",
+                              list_of_bugs=None)
+
+        bug_time_58 = framework.reproduce_bug("Time", 6, run_tests=False) # Caused a bug because git show --no-prefix was too small
+        expected_bug_type = "OT"
+        
+        self.assertEqual(bug_time_58.bug_type, expected_bug_type)
+
     def test_get_buggy_lines(self):
         framework = Framework(test_framework="defects4j",
                               list_of_bugs=None)
