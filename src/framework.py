@@ -24,7 +24,7 @@ class Framework(object):
             self.run_bash("compile_and_run_tests", work_dir, project, bug_id)
 
         bug_type = self.run_bash("get_bug_type", work_dir, project, bug_id).stdout
-        test_suite, test_name, test_error, test_line, buggy_lines, fixed_lines, code, masked_code = None, None, None, None, None, None, None, None
+        test_suite, test_name, test_error, test_line, buggy_lines, fixed_lines, code, masked_code, fixed_code = None, None, None, None, None, None, None, None, None
         if bug_type != "OT":
             if run_tests:
                 test_suite = self.run_bash("get_test_suite", work_dir, project, bug_id).stdout
@@ -35,44 +35,36 @@ class Framework(object):
             fixed_lines = self.run_bash("get_fixed_lines", work_dir, project, bug_id).stdout
             code = self.run_bash("get_code", work_dir, project, bug_id).stdout
             masked_code = self.run_bash("get_masked_code", work_dir, project, bug_id).stdout
+            fixed_code = self.run_bash("get_fixed_code", work_dir, project, bug_id).stdout
 
-        return Bug(test_framework=self.test_framework,
-                   project=project,
-                   bug_id=bug_id,
-                   bug_type=bug_type,
-                   code=code,
-                   masked_code=masked_code,
-                   buggy_lines=buggy_lines,
-                   fixed_lines=fixed_lines,
-                   test_suite=test_suite,
-                   test_name=test_name,
-                   test_line=test_line,
-                   test_error_message=test_error)
+        return Bug(test_suite=test_suite, test_name=test_name, test_line=test_line, test_error_message=test_error,
+                   buggy_lines=buggy_lines, fixed_lines=fixed_lines, code=code, masked_code=masked_code, fixed_code=fixed_code,
+                   test_framework=self.test_framework, project=project, bug_id=bug_id, bug_type=bug_type)
     
-    def get_n_shot_bug_id_list(self, n: int, project: str, mode: str):
+    def get_n_shot_bugs(self, n: int, bug: Bug, mode: str):
         assert mode in ["SL", "SH", "SF"]
 
         n_shot_list = []
 
         if self.n_shot_cache_folder is not None:
-            cache_file_path = f"{self.n_shot_cache_folder}/{project}_{mode}.json"
+            cache_file_path = f"{self.n_shot_cache_folder}/{bug.project}_{mode}.json"
             if Path(cache_file_path).is_file():
                 with open(cache_file_path, "r") as file:
                     json_to_load = json.load(file)
                     n_shot_list = json_to_load['n_shot_list']
 
         if len(n_shot_list) == 0:         
-            list_of_project_bugs = [bug_list for bug_list in self.list_of_bugs if bug_list[0] == project]
+            list_of_project_bugs = [bug_list for bug_list in self.list_of_bugs if bug_list[0] == bug.project]
 
             for bug_id in list_of_project_bugs[0][1]:
 
-                work_dir = f"{self.tmp_dir}/{project}-{bug_id}"
+                work_dir = f"{self.tmp_dir}/{bug.project}-{bug_id}"
                 if not Path(work_dir).is_dir():
-                    self.run_bash("checkout_bug", work_dir, project, bug_id)
-                bug_type = self.run_bash("get_bug_type", work_dir, project, bug_id).stdout
+                    self.run_bash("checkout_bug", work_dir, bug.project, bug_id)
+                bug_type = self.run_bash("get_bug_type", work_dir, bug.project, bug_id).stdout
 
                 if mode in bug_type:
-                    code_len = len(self.run_bash("get_code", work_dir, project, bug_id).stdout)
+                    code_len = len(self.run_bash("get_code", work_dir, bug.project, bug_id).stdout)
 
                     n_shot_list.append({"bug_id": bug_id, "code_len": code_len})
             
@@ -82,9 +74,9 @@ class Framework(object):
                 with open(cache_file_path, "w") as file:
                     json.dump({"n_shot_list": n_shot_list}, file, indent=4, sort_keys=True)
 
-        n_shot_list = [n_shot["bug_id"] for n_shot in n_shot_list]
+        n_shot_bug_list = [self.reproduce_bug(bug.project, n_shot["bug_id"], run_tests=False) for n_shot in n_shot_list if n_shot["bug_id"] != bug.bug_id]
 
-        return n_shot_list
+        return n_shot_bug_list[:n]
 
     def validate_patch(self, bug: Bug, proposed_patch: str, mode: str):
         assert mode in ["SL", "SH", "SF"]

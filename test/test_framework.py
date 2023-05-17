@@ -114,7 +114,7 @@ INFILL
 
         bug = framework.reproduce_bug("Chart", 10, run_tests=False) # Single Function Bug, solution contains escape characters
 
-        sf_patch_fix = bug.masked_code.replace("INFILL", bug.fixed_lines)
+        sf_patch_fix = bug.fixed_code
 
         test_result, _ = framework.validate_patch(bug, sf_patch_fix, mode="SF")
         self.assertEqual(test_result, "PASS")
@@ -127,9 +127,10 @@ INFILL
 
         expected_n_shot_bug_ids = [16, 19, 4]
 
-        n_shot_bug_id_list = framework.get_n_shot_bug_id_list(n=3, project="Time", mode="SL")
+        n_shot_bugs = framework.get_n_shot_bugs(n=3, bug=bug, mode="SL")
+        n_shot_bug_ids = [bug.bug_id for bug in n_shot_bugs]
 
-        self.assertEqual(n_shot_bug_id_list, expected_n_shot_bug_ids)
+        self.assertEqual(n_shot_bug_ids, expected_n_shot_bug_ids)
 
     def test_n_shot_examples_excludes_target_bug(self):
         framework = Framework(test_framework="defects4j",
@@ -141,7 +142,7 @@ INFILL
 
         expected_n_shot_bug_ids = [19, 4]
 
-        n_shot_bug_id_list = framework.get_n_shot_bug_id_list(n=3, project=project, mode="SL")
-        n_shot_bug_id_list.remove(bug_id)
+        n_shot_bugs = framework.get_n_shot_bugs(n=3, bug=bug, mode="SL")
+        n_shot_bug_ids = [bug.bug_id for bug in n_shot_bugs]
 
-        self.assertEqual(n_shot_bug_id_list, expected_n_shot_bug_ids)
+        self.assertEqual(n_shot_bug_ids, expected_n_shot_bug_ids)

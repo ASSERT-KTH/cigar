@@ -6,7 +6,8 @@ class Bug(object):
                  bug_id,
                  bug_type,
                  code,
-                 masked_code, 
+                 masked_code,
+                 fixed_code,
                  buggy_lines, 
                  fixed_lines, 
                  test_suite, 
@@ -19,6 +20,7 @@ class Bug(object):
         self.bug_type = bug_type
         self.code = code
         self.masked_code = masked_code
+        self.fixed_code = fixed_code
         self.buggy_lines = buggy_lines
         self.fixed_lines = fixed_lines
         self.test_suite = test_suite

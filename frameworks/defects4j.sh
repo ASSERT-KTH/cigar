@@ -35,7 +35,7 @@ function get_bug_type {
     IFS='%' # preserve white spaces in code
 
     # Get git details
-    git_show=$(git show --no-prefix -U1000)
+    git_show=$(git show --no-prefix -U150)
     git_diff=$(git diff --stat HEAD^)
 
     # Export file_change_count from git_diff
@@ -233,6 +233,21 @@ function get_masked_code {
     masked_code=$(echo "$masked_code" | sed 's/^[[:space:]]//') # Remove first leading white spaces
 
     echo $masked_code
+}
+
+function get_fixed_code {
+    work_dir=$3
+    cd $work_dir
+
+    IFS='%' # preserve white spaces in code
+
+    code_block=$(get_git_show_function_code $@) # Get function code from git show that contains the changes
+
+    code=$(echo "$code_block" | sed '/^[+]/d') # Remove lines that start with +
+    code=$(echo "$code" | sed '/^[-]/s/-/ /') # Replace - with space in lines that start with -
+    code=$(echo "$code" | sed 's/^[[:space:]]//') # Remove first leading white spaces
+
+    echo $code
 }
 
 function validate_patch {
