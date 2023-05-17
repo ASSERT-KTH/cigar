@@ -22,7 +22,7 @@ class CAPR(object):
         while (current_tries < self.max_tries and len(plausable_patches) == 0):
             current_conversation_length = 1
             n_shot_bugs=self.framework.get_n_shot_bugs(n=n_shot_count, bug=bug, mode=mode)
-            prompt = prompts.construct_initial_prompt(big=bug, mode=mode, n_shot_bugs=n_shot_bugs)
+            prompt = prompts.construct_initial_prompt(bug=bug, mode=mode, n_shot_bugs=n_shot_bugs)
 
             while (current_conversation_length <= self.max_conversation_length and current_tries <= self.max_tries):
                 response, cost = self.chatgpt.call(prompt, num_of_samples=sample_per_try, prefix=f"{prefix}_{current_tries}")
