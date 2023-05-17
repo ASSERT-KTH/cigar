@@ -10,19 +10,21 @@ class CAPR(object):
         self.max_conversation_length = max_conv_length
         self.max_tries = max_tries
 
-    def repair(self, bug: Bug, mode: str, sample_per_try=1):
+    def repair(self, bug: Bug, mode: str, n_shot_count=1, sample_per_try=1, stop_after_first_plausible_patch=False):
         assert mode in ["SL", "SH", "SF"]
         plausable_patches = []
-        first_plausible_patch_try = -1
-        current_tries = 0
-        total_cost = 0
+        first_plausible_patch_try = 0
+        current_conversation_length = 0
+        current_tries = 1
+        total_cost = 1
         prefix = f"{self.framework.test_framework}_{bug.project}_{bug.bug_id}_{mode}"
 
         while (current_tries < self.max_tries and len(plausable_patches) == 0):
-            current_conversation_length = 0
-            prompt = prompts.construct_initial_prompt(bug, mode)
+            current_conversation_length = 1
+            n_shot_bugs=self.framework.get_n_shot_bugs(n=n_shot_count, bug=bug, mode=mode)
+            prompt = prompts.construct_initial_prompt(big=bug, mode=mode, n_shot_bugs=n_shot_bugs)
 
-            while (current_conversation_length < self.max_conversation_length and current_tries < self.max_tries):
+            while (current_conversation_length <= self.max_conversation_length and current_tries <= self.max_tries):
                 response, cost = self.chatgpt.call(prompt, num_of_samples=sample_per_try, prefix=f"{prefix}_{current_tries}")
                 total_cost += cost
 
@@ -45,8 +47,8 @@ class CAPR(object):
                 current_tries += 1
                 current_conversation_length += 1
         
-        if len(plausable_patches) != 0:
-            while (current_tries < self.max_tries):
+        if len(plausable_patches) != 0 and not stop_after_first_plausible_patch:
+            while (current_tries <= self.max_tries):
                 prompt = prompts.construct_plausable_path_prompt(bug, plausable_patches, mode)
 
                 response, cost = self.chatgpt.call(prompt, num_of_samples=sample_per_try, prefix=f"{prefix}_{current_tries}")
@@ -60,7 +62,7 @@ class CAPR(object):
                 
                 current_tries += 1
         
-        return first_plausible_patch_try, plausable_patches, total_cost
+        return plausable_patches, total_cost, first_plausible_patch_try, current_conversation_length
     
     def extract_patch_from_response(self, response):
 

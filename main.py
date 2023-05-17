@@ -9,6 +9,7 @@ def main():
 
     max_conv_length = 3
     max_tries = 3
+    n_shot_count = 1
     framework_name = "defects4j"
 
     framework = Framework(test_framework=framework_name,
@@ -18,8 +19,9 @@ def main():
                                          ("Math", [i for i in range(1, 107)]),
                                          ("Mockito", [i for i in range(1, 39)]), # Failed to reproduce bugs on macOS and Ubuntu
                                          ("Time", [i for i in range(1, 28) if i != 21])],
-                          validate_patch_cache_folder=Path(__file__).parent / 'data' / 'validate_patch_cache')
-    chatgpt = ChatGPT(model="gpt-3.5-turbo", 
+                          validate_patch_cache_folder=Path(__file__).parent / 'data' / 'validate_patch_cache',
+                          n_shot_cache_folder=Path(__file__).parent / 'data' / 'n_shot_cache')
+    chatgpt = ChatGPT(model="gpt-3.5-turbo-0301", 
                     api_key_path=Path(__file__).parent / 'openai_api_key.env',
                     cache_folder=Path(__file__).parent / 'data' / 'chatgpt_cache',
                     load_from_cache=True,
@@ -33,57 +35,63 @@ def main():
     plausible_patches_folder = Path(__file__).parent / 'data' / 'output' / 'plausible_patches'
     bug_details_folder = Path(__file__).parent / 'data' / 'output' / 'bug_details'
 
-    fieldnames = ['framework', 'project', 'bug_id',
-        'first_plausible_patch_try', 'plausible_patch_count', 'repair_cost', 'conversation_length', 'max_tries', 'comment']
+    list_of_bugs= [("Chart", [i for i in range(1, 27)]),
+                   ("Closure", [i for i in range(1, 177) if i != 63 and i != 93]),
+                   ("Lang", [i for i in range(1, 66) if i != 2]),
+                   ("Math", [i for i in range(1, 107)]),
+                   ("Mockito", [i for i in range(1, 39)]), # Failed to reproduce bugs on macOS and Ubuntu
+                   ("Time", [i for i in range(1, 28) if i != 21])]
+
+    fieldnames = ['framework', 'project', 'bug_id', 'bug_type'
+                  'SL_ppc', 'SL_rc', 'SL_fppt', 'SL_fppcl',
+                  'SH_ppc', 'SH_rc', 'SH_fppt', 'SH_fppcl',
+                  'SF_ppc', 'SF_rc', 'SF_fppt', 'SF_fppcl',
+                  'conversation_length', 'max_tries', 'comment']
     with open(summary_file_path, 'w', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
 
-    for project, ids in framework.list_of_bugs:
+    for project, ids in list_of_bugs:
         for bug_id in ids:
             print(f"Reproducing {project}-{bug_id}")
             bug = framework.reproduce_bug(project, bug_id)
 
-            first_plausible_path_try = ""
-            plausible_patches = []
-            repair_cost = ""
-            comment = ""
-            blocker = False
+            row = {key: "" for key in fieldnames}
+            row['framework'] = framework_name
+            row['project'] = project
+            row['bug_id'] = bug_id
+            row['bug_type'] = bug.bug_type
+            row['conversation_length'] = max_conv_length
+            row['max_tries'] = max_tries
 
-            if bug:
-                if len(bug.test_line) < 2 :
-                    print(f"Skipping {project}-{bug_id} because test line could not be found")
-                    comment += "Test line not found. "
-                    blocker = True
-                if "INFILL" not in bug.masked_code or len(bug.buggy_line) < 2:
-                    comment += "Buggy line is empty. "
-                
-                if not blocker and "SL" in bug.bug_type:
-                    print(f"Repairing {project}-{bug_id}")
-                    first_plausible_path_try, plausible_patches, repair_cost = capr.repair(bug=bug)
+            if bug.bug_type != "OT":
+                for mode in ['SL', 'SH', 'SF']:
+                    if mode in bug.bug_type:
+                        print(f"Repairing {project}-{bug_id} ({mode})")
+                        plausible_patches, repair_cost, first_plausible_patch_try, first_plausible_patch_conv_len = capr.repair(bug=bug, 
+                                                                                                                                mode=mode, 
+                                                                                                                                n_shot_count=n_shot_count,
+                                                                                                                                stop_after_first_plausible_patch=True)
 
-                if len(plausible_patches) > 0:
-                    with open(f'{plausible_patches_folder}/{framework_name}_{project}_{bug_id}_pp.txt', 'w') as f:
-                        f.writelines('\n'.join(plausible_patches))
+                        row[f'{mode}_ppc'] = len(plausible_patches)
+                        row[f'{mode}_rc'] = repair_cost
+                        row[f'{mode}_fppt'] = first_plausible_patch_try
+                        row[f'{mode}_fppcl'] = first_plausible_patch_conv_len
+
+                        for i, plausible_patch in enumerate(plausible_patches):
+                            with open(f'{plausible_patches_folder}/{framework_name}/{project}_{bug_id}_{mode}_{i}.txt', 'w+') as f:
+                                f.writelines(plausible_patch)
 
                 with open(f'{bug_details_folder}/{framework_name}_{project}_{bug_id}.txt', 'w') as f:
                     vars_object = vars(bug)
                     f.write(json.dumps(vars_object, indent=4, sort_keys=True))
             else:
                 print(f"Skipping {project}-{bug_id} because it is not SL, SH or SF bug")
-                comment += "Not SL, SH or SF bug. "
+                row['comment'] += "Not SL, SH or SF bug. "
                 
             with open(summary_file_path, 'a', newline='') as csvfile:
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-                writer.writerow({'framework': framework_name,
-                                 'project': project,
-                                 'bug_id': bug_id,
-                                 'first_plausible_patch_try': first_plausible_path_try, 
-                                 'plausible_patch_count': len(plausible_patches),
-                                 'repair_cost': repair_cost,
-                                 'conversation_length': max_conv_length,
-                                 'max_tries': max_tries,
-                                 'comment': comment})
+                writer.writerow(row)
 
 if __name__ == "__main__":
     main()
