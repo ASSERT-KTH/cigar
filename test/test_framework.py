@@ -151,7 +151,14 @@ INFILL
 
         expected_n_shot_bug_ids = [19, 4]
 
-        n_shot_bugs = framework.get_n_shot_bugs(n=3, bug=bug, mode="SL")
-        n_shot_bug_ids = [bug.bug_id for bug in n_shot_bugs]
+        n_shot_bugs = framework.get_n_shot_bugs(n=2, bug=bug, mode="SL")
+        n_shot_bug_ids = [b.bug_id for b in n_shot_bugs]
 
         self.assertEqual(n_shot_bug_ids, expected_n_shot_bug_ids)
+
+    def test_reproduce_bug(self):
+        framework = Framework(test_framework="defects4j",
+                              list_of_bugs=[("Time", [1, 4, 16, 19])])
+        
+        bug1 = framework.reproduce_bug("Time", 19)
+        bug2 = framework.reproduce_bug("Time", 4)

@@ -55,12 +55,13 @@ class Framework(object):
 
         if len(n_shot_list) == 0:         
             list_of_project_bugs = [bug_list for bug_list in self.list_of_bugs if bug_list[0] == bug.project]
+            assert len(list_of_project_bugs) == 1
+            assert len(list_of_project_bugs[0][1]) == 4
 
             for bug_id in list_of_project_bugs[0][1]:
 
                 work_dir = f"{self.tmp_dir}/{bug.project}-{bug_id}"
-                if not Path(work_dir).is_dir():
-                    self.run_bash("checkout_bug", work_dir, bug.project, bug_id)
+                self.run_bash("checkout_bug", work_dir, bug.project, bug_id)
                 bug_type = self.run_bash("get_bug_type", work_dir, bug.project, bug_id).stdout
 
                 if mode in bug_type:
@@ -74,9 +75,12 @@ class Framework(object):
                 with open(cache_file_path, "w") as file:
                     json.dump({"n_shot_list": n_shot_list}, file, indent=4, sort_keys=True)
 
-        n_shot_bug_list = [self.reproduce_bug(bug.project, n_shot["bug_id"], run_tests=False) for n_shot in n_shot_list if n_shot["bug_id"] != bug.bug_id]
+        n_shot_bug_id_list = [n_shot["bug_id"] for n_shot in n_shot_list if n_shot["bug_id"] != bug.bug_id]
+        n = min(n, len(n_shot_bug_id_list))
+        n_shot_bug_id_list = n_shot_bug_id_list[:n]
+        n_shot_bug_list = [self.reproduce_bug(bug.project, bug_id) for bug_id in n_shot_bug_id_list]
 
-        return n_shot_bug_list[:n]
+        return n_shot_bug_list
 
     def validate_patch(self, bug: Bug, proposed_patch: str, mode: str):
         assert mode in ["SL", "SH", "SF"]

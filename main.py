@@ -6,9 +6,8 @@ from src.chatgpt import ChatGPT
 from src.framework import Framework
 
 def main():
-
     max_conv_length = 3
-    max_tries = 3
+    max_tries = 1
     n_shot_count = 1
     framework_name = "defects4j"
 
@@ -35,12 +34,8 @@ def main():
     plausible_patches_folder = Path(__file__).parent / 'data' / 'output' / 'plausible_patches'
     bug_details_folder = Path(__file__).parent / 'data' / 'output' / 'bug_details'
 
-    list_of_bugs= [("Chart", [i for i in range(1, 27)]),
-                   ("Closure", [i for i in range(1, 177) if i != 63 and i != 93]),
-                   ("Lang", [i for i in range(1, 66) if i != 2]),
-                   ("Math", [i for i in range(1, 107)]),
-                   ("Mockito", [i for i in range(1, 39)]), # Failed to reproduce bugs on macOS and Ubuntu
-                   ("Time", [i for i in range(1, 28) if i != 21])]
+    # list_of_bugs= [("Time", [4, 5, 15, 16, 18, 19, 20])] # Bugs fixed by the authors
+    list_of_bugs= [("Time", [19])] # Bugs fixed by the authors
 
     fieldnames = ['framework', 'project', 'bug_id', 'bug_type'
                   'SL_ppc', 'SL_rc', 'SL_fppt', 'SL_fppcl',

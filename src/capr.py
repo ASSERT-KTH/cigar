@@ -30,7 +30,7 @@ class CAPR(object):
 
                 patch = self.extract_patch_from_response(response)
                 
-                test_result, result_reason = self.framework.validate_patch(bug, patch)
+                test_result, result_reason = self.framework.validate_patch(bug=bug, proposed_patch=patch, mode=mode)
                 if test_result == "PASS":
                     plausable_patches.append(patch)
                     first_plausible_patch_try = current_tries

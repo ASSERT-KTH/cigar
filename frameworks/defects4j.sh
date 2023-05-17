@@ -8,6 +8,9 @@ function checkout_bug {
 
     export PATH=$PATH:$d4j_path
     defects4j checkout -p $project_id -v "${bug_id}b" -w $work_dir
+
+    cd $work_dir
+    git restore .
 }
 
 function compile_and_run_tests {
