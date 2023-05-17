@@ -1,6 +1,7 @@
 from src.chatgpt import ChatGPT
 from src.framework import Framework
 from src.bug import Bug
+from src.prompts import Prompts as prompts
 
 class CAPR(object):
     def __init__(self, chatgpt: ChatGPT, framework: Framework,  max_conv_length, max_tries):
@@ -9,7 +10,8 @@ class CAPR(object):
         self.max_conversation_length = max_conv_length
         self.max_tries = max_tries
 
-    def repair(self, bug: Bug, sample_per_try=1):
+    def repair(self, bug: Bug, mode: str, sample_per_try=1):
+        assert mode in ["SL", "SH", "SF"]
         plausable_patches = []
         first_plausible_patch_try = -1
         current_tries = 0
@@ -18,7 +20,7 @@ class CAPR(object):
 
         while (current_tries < self.max_tries and len(plausable_patches) == 0):
             current_conversation_length = 0
-            prompt = self.construct_initial_prompt(bug)
+            prompt = prompts.construct_initial_prompt(bug, mode)
 
             while (current_conversation_length < self.max_conversation_length and current_tries < self.max_tries):
                 response, cost = self.chatgpt.call(prompt, num_of_samples=sample_per_try, prefix=f"{prefix}_{current_tries}")
@@ -33,9 +35,9 @@ class CAPR(object):
                     current_tries += 1
                     break
                 elif result_reason == bug.test_error_message:
-                    feedback = {"role": "user", "content": "The fixed version is still not correct.\nPlease fix the correct line at the INFILL location."}
+                    feedback = prompts.test_fail_feedback()
                 else:
-                    feedback = self.construct_feedback_message(test_result, result_reason)
+                    feedback = prompts.construct_feedback_prompt(test_result, result_reason, mode)
                 
                 prompt.append({"role": "assistant", "content": f"""{response}"""})
                 prompt.append(feedback)
@@ -45,7 +47,7 @@ class CAPR(object):
         
         if len(plausable_patches) != 0:
             while (current_tries < self.max_tries):
-                prompt = self.construct_plausable_path_prompt(bug, plausable_patches)
+                prompt = prompts.construct_plausable_path_prompt(bug, plausable_patches, mode)
 
                 response, cost = self.chatgpt.call(prompt, num_of_samples=sample_per_try, prefix=f"{prefix}_{current_tries}")
                 total_cost += cost
@@ -69,79 +71,4 @@ class CAPR(object):
             patch = response
 
         return patch
-
-    def construct_initial_prompt(self, bug: Bug):
-        return [{"role": "system", "content": "You are an automated program repair tool. Please answer with the correct line in a code block."},
-        {"role": "user", "content": f"""The following Java code contains a buggy line that has been replaced with INFILL:
-```java
-{bug.masked_code}
-```
-
-This was the original buggy line which was at the INFILL location:
-```java
-{bug.buggy_line}
-```
-
-The code fails on this test:
-```
-{bug.test_name}
-```
-
-on this test line:
-```java
-{bug.test_line}
-```
-
-with this error message:
-```
-{bug.test_error_message}
-```
-
-Please provide the correct line at the INFILL location.
-"""}]
-    
-    def construct_feedback_message(self, test_result, result_reason):
-        error_type = "test error" if test_result == "FAIL" else "compilation error"
-        return {"role": "user", "content": f"""The fixed version is still incorrect, it contains the {error_type}:
-{result_reason}
-Please provide the correct patch line at the INFILL location."""}
-
-    def construct_plausable_path_prompt(self, bug: Bug, plausable_patches):
-        plausable_patches_text = ""
-        for i, patch in enumerate(plausable_patches):
-            plausable_patches_text += f"""{i+1}. ```java
-{patch}
-```
-"""
-
-        return [{"role": "system", "content": "You are an automated program repair tool. Please answer with the correct line in a code block."},
-        {"role": "user", "content": f"""The following Java code contains a buggy line that has been replaced with INFILL:
-```java
-{bug.masked_code}
-```
-
-This was the original buggy line which was at the INFILL location:
-```java
-{bug.buggy_line}
-```
-
-The code fails on this test:
-```
-{bug.test_name}
-```
-
-on this test line:
-```java
-{bug.test_line}
-```
-
-with this error message:
-```
-{bug.test_error_message}
-```
-        
-It can be fixed by the following lines:
-{plausable_patches_text}
-
-Please generate an alternative fix line."""}]
     
