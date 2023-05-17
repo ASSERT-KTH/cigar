@@ -15,9 +15,10 @@ function compile_and_run_tests {
     bug_id=$2
     work_dir=$3
     d4j_path=$4
-
+    
+    cd $work_dir
+    
     export PATH=$PATH:$d4j_path
-
     defects4j compile
     defects4j test -r
 }
