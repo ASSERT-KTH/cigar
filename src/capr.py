@@ -16,7 +16,7 @@ class CAPR(object):
         first_plausible_patch_try = -1
         current_tries = 0
         total_cost = 0
-        prefix = f"{self.framework.test_framework}_{bug.project}_{bug.bug_id}"
+        prefix = f"{self.framework.test_framework}_{bug.project}_{bug.bug_id}_{mode}"
 
         while (current_tries < self.max_tries and len(plausable_patches) == 0):
             current_conversation_length = 0
