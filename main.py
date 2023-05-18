@@ -6,11 +6,18 @@ from src.chatgpt import ChatGPT
 from src.framework import Framework
 
 def main():
-    SL_SH_max_tries, SF_max_tries = 3, 3
+    SL_SH_max_tries, SF_max_tries = 1, 1
     n_shot_count = 1
     max_conv_length = 3
     framework_name = "defects4j"
-    list_of_bugs_to_fix= [("Time", [4, 5, 15, 16, 18, 19, 20])] # Bugs fixed by the authors
+    list_of_bugs_to_fix = [("Chart", [1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 17, 20, 24, 26]), # All Bugs fixed by the authors
+                           ("Closure", [2, 5, 7, 10, 11, 13, 15, 18, 19, 20, 22, 31, 33, 36, 38, 44, 51, 52, 56, 57, 58, 61, 62, 65, 67, 70, 73, 77, 78, 83, 86, 92, 94, 97, 101, 102, 104, 107, 119, 122, 124, 125, 126, 128, 129, 131, ]),
+                           ("Lang", [3, 10, 11, 12, 14, 16, 18, 21, 22, 24, 26, 27, 28, 29, 31, 33, 37, 38, 39, 40, 42, 43, 44, 45, 48, 51, 52, 54, 55, 57, 58, 59, 61]),
+                           ("Math", [2, 3, 5, 8, 10, 11, 17, 19, 20, 23, 24, 25, 26, 27, 28, 30, 32, 33, 34, 39, 41, 42, 45, 48, 50, 53, 56, 57, 58, 59, 60, 63, 69, 70, 72, 73, 75, 78, 79, 80, 82, 85, 86, 87, 88, 89, 91, 94, 95, 96, 97, 101, 105, 106]),
+                           ("Mockito", [12, 22, 24, 29, 33, 34, 38]),
+                           ("Time", [4, 5, 15, 16, 18, 19, 20])],
+    
+    list_of_bugs_to_fix= [("Time", [4, 5, 15, 16, 18, 19, 20])] # Time Bugs fixed by the authors
 
     framework = Framework(test_framework=framework_name,
                           list_of_bugs = [("Chart", [i for i in range(1, 27)]),
