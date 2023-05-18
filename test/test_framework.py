@@ -54,7 +54,7 @@ class TestFramework(unittest.TestCase):
         bug_chart_10 = framework.reproduce_bug("Chart", 10, run_tests=False) # SH Bug, 2 line addition, 2 line deletion
 
         expected_masked_code = '''    public String generateToolTipFragment(String toolTipText) {
-INFILL
+>>> [ INFILL ] <<<
             + "\\" alt=\\"\\"";
     }'''
 

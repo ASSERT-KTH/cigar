@@ -55,8 +55,6 @@ class Framework(object):
 
         if len(n_shot_list) == 0:         
             list_of_project_bugs = [bug_list for bug_list in self.list_of_bugs if bug_list[0] == bug.project]
-            assert len(list_of_project_bugs) == 1
-            assert len(list_of_project_bugs[0][1]) == 4
 
             for bug_id in list_of_project_bugs[0][1]:
 

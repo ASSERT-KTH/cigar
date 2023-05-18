@@ -234,6 +234,7 @@ function get_masked_code {
         masked_code=$(echo "$masked_code" | sed "${first_infill_line_count}d") # remove the line at first_infill_line_count
     done
 
+    masked_code=$(echo "$masked_code" | sed 's/INFILL/>>> [ INFILL ] <<</')
     masked_code=$(echo "$masked_code" | sed 's/^[[:space:]]//') # Remove first leading white spaces
 
     echo $masked_code
@@ -274,7 +275,7 @@ function validate_patch {
         patch_function=$patch
     else
         masked_code=$(get_masked_code $@)
-        patch_function="${masked_code//INFILL/${patch}}"
+        patch_function="${masked_code//>>> [ INFILL ] <<</${patch}}"
     fi
 
     # Extract buggy code path
