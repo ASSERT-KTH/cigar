@@ -7,11 +7,12 @@ def print_call(json_path):
         cached_conversation = json.load(file)
         messages = [(message['role'],message['content']) for message in cached_conversation['call']['messages']]
         messages.append(("assistant",cached_conversation['response']['choices'][0]['message']['content']))
+    print()
     for role, message in messages:
         if role == "system":
-            print(f'\x1b[33m\'{message}\'\x1b[0m\n')
-        if role == "assistant":
-            print(f'\x1b[32m\'{message}\'\x1b[0m\n')
+            print(f'\x1b[33m{message}\x1b[0m\n')
+        elif role == "assistant":
+            print(f'\x1b[32m{message}\x1b[0m\n')
         else:
             print(message)        
 

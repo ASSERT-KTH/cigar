@@ -127,5 +127,7 @@ class Framework(object):
     def run_bash(self, function, work_dir, project, bug_id, extra_arg1=None, extra_arg2=None):
         command = ['bash', f'{self.shell_scripts_folder}/{self.test_framework}.sh', function, f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}", f"{extra_arg1}", f"{extra_arg2}"]
         result = run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True)
-        result.stdout = result.stdout[:-1]
+        if len(result.stdout) > 0:
+            if result.stdout[-1] == "\n":
+                result.stdout = result.stdout[:-1]
         return result

@@ -18,7 +18,7 @@ class TestCAPR(unittest.TestCase):
                           load_from_cache=True,
                           save_to_cache=True)
         framework = Framework("defects4j", list_of_bugs=[("Chart", [1])])
-        capr = CAPR(chatgpt=chatgpt, framework=framework, max_conv_length=3, max_tries=10)
+        capr = CAPR(chatgpt=chatgpt, framework=framework)
         self.assertIsInstance(capr, CAPR)
 
     def test_extract_patch_from_response(self):
@@ -28,7 +28,7 @@ class TestCAPR(unittest.TestCase):
                           load_from_cache=True,
                           save_to_cache=True)
         framework = Framework("defects4j", list_of_bugs=None)
-        capr = CAPR(chatgpt=chatgpt, framework=framework, max_conv_length=3, max_tries=10)
+        capr = CAPR(chatgpt=chatgpt, framework=framework)
         
         response_patch_pairs = [
             ("Alternative fix line:\n```java\nif (Double.isNaN(value) || Double.isInfinite(value)) {\n```", 
@@ -47,7 +47,7 @@ class TestCAPR(unittest.TestCase):
                           load_from_cache=True,
                           save_to_cache=True)
         framework = Framework("defects4j", list_of_bugs=None)
-        capr = CAPR(chatgpt=chatgpt, framework=framework, max_conv_length=3, max_tries=10)
+        capr = CAPR(chatgpt=chatgpt, framework=framework)
         
         response_patch_pairs = [
             ("```java\nif (!throwOnNonFiniteDouble && (Double.isNaN(value) || Double.isInfinite(value))) {\n    throw new IOException(\"Numeric values must be finite, but was \" + value);\n}\n``` \nNote: This solution checks if `throwOnNonFiniteDouble` is `false` before throwing the exception to avoid throwing an exception when `throwOnNonFiniteDouble` is `true`.",

@@ -171,6 +171,8 @@ function get_test_line {
     work_dir=$3
     cd $work_dir
 
+    IFS='%' # preserve white spaces in code
+
     # Extract test suite and test name
     test_suite=$(get_test_suite $@)
 
@@ -194,7 +196,8 @@ function get_test_line {
     test_file_name=${test_file_name%.*} # trim log_line_at_test_suite to remove everything after the last .
     test_file_name=${test_file_name##*.} # trim log_line_at_test_suite to remove everything before last .
 
-    test_file_path=$(exec find $work_dir | grep "/${test_file_name}.java" | sed '1!d') # find test_file_path
+    test_file_path=$(exec find $work_dir | grep "/${test_file_name}.java")
+    test_file_path=$(echo "$test_file_path" | awk '{ print length, $0 }' | sort -n | cut -d" " -f2- | sed '1!d') # Order each line in test_file_path by length and get the first line
 
     test_line=$(exec sed "${test_line_count}!d" $test_file_path)
 
@@ -275,7 +278,7 @@ function validate_patch {
         patch_function=$patch
     else
         masked_code=$(get_masked_code $@)
-        patch_function="${masked_code//>>> [ INFILL ] <<</${patch}}"
+        patch_function="${masked_code//\>\>\> \[ INFILL \] \<\<\</${patch}}"
     fi
 
     # Extract buggy code path

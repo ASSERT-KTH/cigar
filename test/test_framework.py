@@ -36,6 +36,16 @@ class TestFramework(unittest.TestCase):
         
         self.assertEqual(bug_time_54.fixed_lines, expected_fixed_lines)
 
+    def test_get_test_line(self):
+        framework = Framework(test_framework="defects4j",
+                              list_of_bugs=None)
+
+        bug_time_22 = framework.reproduce_bug("Time", 22) # Edge case, has multiple test files with same name
+
+        expected_test_line = """            assertEquals(0, test.getWeeks());"""
+        
+        self.assertEqual(bug_time_22.test_line, expected_test_line)
+
     def test_get_code(self):
         framework = Framework(test_framework="defects4j",
                               list_of_bugs=None)
