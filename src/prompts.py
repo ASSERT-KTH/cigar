@@ -53,7 +53,7 @@ with the following test error:\n```\n{bug.test_error_message}\n```
             call_to_action = "Please provide the correct hunk at the infill location."
         elif mode == "SF":
             call_to_action = "Please provide the correct function."
-        return {"role": "user", "content": f"""The fixed version is still not correct. code has the following {error_type}:```\n{result_reason}\n```\n{call_to_action}"""}
+        return {"role": "user", "content": f"""The fixed version is still not correct. code has the following {error_type}:\n```\n{result_reason}\n```\n{call_to_action}"""}
     
     def test_fail_feedback():
         return {"role": "user", "content": f"The fixed version is still not correct.It still does not fix the original test failure."}
