@@ -8,6 +8,8 @@ def print_calls(chatgpt_cache_path):
     current_index = 0
 
     while True:
+        for i in range(20):
+            print()
         print_call(f"{chatgpt_cache_path}/{cache_file_names[current_index]}")
         inp = input(f"\nCurrent cache file: {cache_file_names[current_index]}\nPress b or p to go back, any other key to go forward, q to quit:\n")
         if inp == "q":
