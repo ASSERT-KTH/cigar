@@ -6,18 +6,19 @@ from src.chatgpt import ChatGPT
 from src.framework import Framework
 
 def main():
-    max_tries = 1
+    SL_SH_max_tries, SF_max_tries = 3, 3
     n_shot_count = 1
     max_conv_length = 3
     framework_name = "defects4j"
+    list_of_bugs_to_fix= [("Time", [4, 5, 15, 16, 18, 19, 20])] # Bugs fixed by the authors
 
     framework = Framework(test_framework=framework_name,
-                          list_of_bugs= [("Chart", [i for i in range(1, 27)]),
-                                         ("Closure", [i for i in range(1, 177) if i != 63 and i != 93]),
-                                         ("Lang", [i for i in range(1, 66) if i != 2]),
-                                         ("Math", [i for i in range(1, 107)]),
-                                         ("Mockito", [i for i in range(1, 39)]), # Failed to reproduce bugs on macOS and Ubuntu
-                                         ("Time", [i for i in range(1, 28) if i != 21])],
+                          list_of_bugs = [("Chart", [i for i in range(1, 27)]),
+                                          ("Closure", [i for i in range(1, 177) if i != 63 and i != 93]),
+                                          ("Lang", [i for i in range(1, 66) if i != 2]),
+                                          ("Math", [i for i in range(1, 107)]),
+                                          ("Mockito", [i for i in range(1, 39)]), # Failed to reproduce bugs on macOS and Ubuntu
+                                          ("Time", [i for i in range(1, 28) if i != 21])],
                           validate_patch_cache_folder=Path(__file__).parent / 'data' / 'validate_patch_cache',
                           n_shot_cache_folder=Path(__file__).parent / 'data' / 'n_shot_cache')
     chatgpt = ChatGPT(model="gpt-3.5-turbo-0301", 
@@ -32,9 +33,6 @@ def main():
     plausible_patches_folder = Path(__file__).parent / 'data' / 'output' / 'plausible_patches'
     bug_details_folder = Path(__file__).parent / 'data' / 'output' / 'bug_details'
 
-    # list_of_bugs= [("Time", [4, 5, 15, 16, 18, 19, 20])] # Bugs fixed by the authors
-    list_of_bugs= [("Time", [19])] # Bugs fixed by the authors
-
     fieldnames = ['framework', 'project', 'bug_id', 'bug_type',
                   'SL_ppc', 'SL_rc', 'SL_fppt', 'SL_fppcl', 'SL_mts',
                   'SH_ppc', 'SH_rc', 'SH_fppt', 'SH_fppcl', 'SH_mts',
@@ -44,7 +42,7 @@ def main():
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
 
-    for project, ids in list_of_bugs:
+    for project, ids in list_of_bugs_to_fix:
         for bug_id in ids:
             print(f"Reproducing {project}-{bug_id}")
             bug = framework.reproduce_bug(project, bug_id)
@@ -57,9 +55,9 @@ def main():
             row['max_conv_length'] = max_conv_length
 
             if bug.bug_type != "OT":
-                # for mode in ['SL', 'SH', 'SF']:
-                for mode in ['SL', 'SH']:
+                for mode in ['SL', 'SH', 'SF']:
                     if mode in bug.bug_type:
+                        max_tries = SL_SH_max_tries if mode in ['SL', 'SH'] else SF_max_tries
                         print(f"Repairing {project}-{bug_id} ({mode})")
                         plausible_patches, repair_cost, first_plausible_patch_try, first_plausible_patch_conv_len = capr.repair(bug=bug, 
                                                                                                                                 mode=mode, 

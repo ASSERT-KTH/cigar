@@ -36,7 +36,7 @@ function get_bug_type {
     SINGLE_FUNCTION="SF"
     OTHER="OT"
 
-    IFS='%' # preserve white spaces in code
+    IFS='∫' # preserve white spaces in code
 
     # Get git details
     git_show=$(git show --no-prefix -U500)
@@ -132,7 +132,7 @@ function get_buggy_lines {
     work_dir=$3
     cd $work_dir
 
-    IFS='%' # preserve white spaces in code
+    IFS='∫' # preserve white spaces in code
     code=$(git show)
     code=${code##*@@} # take the code from the last @@ sign until the end of file using
     code=$(echo "$code" | sed '/^[^+]/d') # remove all lines that doesn't start with +
@@ -145,7 +145,7 @@ function get_fixed_lines {
     work_dir=$3
     cd $work_dir
 
-    IFS='%' # preserve white spaces in code
+    IFS='∫' # preserve white spaces in code
     code=$(git show)
     code=${code##*@@} # take the code from the last @@ sign until the end of file using
     code=$(echo "$code" | sed '/^[^-]/d') # remove all lines that doesn't start with +
@@ -171,7 +171,7 @@ function get_test_line {
     work_dir=$3
     cd $work_dir
 
-    IFS='%' # preserve white spaces in code
+    IFS='∫' # preserve white spaces in code
 
     # Extract test suite and test name
     test_suite=$(get_test_suite $@)
@@ -208,7 +208,7 @@ function get_code {
     work_dir=$3
     cd $work_dir
 
-    IFS='%' # preserve white spaces in code
+    IFS='∫' # preserve white spaces in code
 
     code_block=$(get_git_show_function_code $@) # Get function code from git show that contains the changes
 
@@ -223,7 +223,7 @@ function get_masked_code {
     work_dir=$3
     cd $work_dir
 
-    IFS='%' # preserve white spaces in code
+    IFS='∫' # preserve white spaces in code
 
     code_block=$(get_git_show_function_code $@) # Get function code from git show that contains the changes
 
@@ -247,7 +247,7 @@ function get_fixed_code {
     work_dir=$3
     cd $work_dir
 
-    IFS='%' # preserve white spaces in code
+    IFS='∫' # preserve white spaces in code
 
     code_block=$(get_git_show_function_code $@) # Get function code from git show that contains the changes
 
@@ -266,7 +266,7 @@ function validate_patch {
     patch=$5
     mode=$6
 
-    IFS='%' # preserve white spaces in code
+    IFS='∫' # preserve white spaces in code
     export PATH=$PATH:$d4j_path
     cd $work_dir
 
@@ -392,6 +392,8 @@ function get_function_line_count_from_line_in_code_block {
 }
 
 function get_git_show_function_code {
+    IFS='∫'
+
     git_show=$(git show --no-prefix -U150)
     git_diff_code=${git_show##*@@} # take the code from the last @@ sign until the end of file using
     code_block=$(less $git_diff_code)
