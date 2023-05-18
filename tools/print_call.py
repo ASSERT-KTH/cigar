@@ -8,8 +8,6 @@ def print_calls(chatgpt_cache_path):
     current_index = 0
 
     while True:
-        for i in range(20):
-            print()
         print_call(f"{chatgpt_cache_path}/{cache_file_names[current_index]}")
         inp = input(f"\nCurrent cache file: {cache_file_names[current_index]}\nPress b or p to go back, any other key to go forward, q to quit:\n")
         if inp == "q":
@@ -26,7 +24,8 @@ def print_call(json_path):
         cached_conversation = json.load(file)
         messages = [(message['role'],message['content']) for message in cached_conversation['call']['messages']]
         messages.append(("assistant",cached_conversation['response']['choices'][0]['message']['content']))
-    print()
+    for _ in range(20):
+            print()
     for role, message in messages:
         if role == "system":
             print(f'\x1b[33m{message}\x1b[0m\n')
