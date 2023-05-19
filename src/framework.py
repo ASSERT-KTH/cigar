@@ -4,6 +4,7 @@ import logging
 from pathlib import Path
 from subprocess import PIPE, run
 from src.bug import Bug
+from params import Params as params
 
 class Framework(object):
     def __init__(self, test_framework, list_of_bugs, d4j_path, tmp_dir, 
@@ -17,7 +18,7 @@ class Framework(object):
         self.tmp_dir = tmp_dir
         self.bug_details_cache_folder = bug_details_cache_folder
 
-        self.shell_scripts_folder = Path(__file__).parent.parent / "frameworks"
+        self.shell_script_folder = params.shell_script_folder
 
     def get_bug_details(self, project, bug_id):
         if self.bug_details_cache_folder is not None:
@@ -58,8 +59,8 @@ class Framework(object):
             fixed_code = self.run_bash("get_fixed_code", work_dir, project, bug_id).stdout
 
         bug = Bug(test_suite=test_suite, test_name=test_name, test_line=test_line, test_error_message=test_error,
-                   buggy_lines=buggy_lines, fixed_lines=fixed_lines, code=code, masked_code=masked_code, fixed_code=fixed_code,
-                   test_framework=self.test_framework, project=project, bug_id=bug_id, bug_type=bug_type)
+                  buggy_lines=buggy_lines, fixed_lines=fixed_lines, code=code, masked_code=masked_code, fixed_code=fixed_code,
+                  test_framework=self.test_framework, project=project, bug_id=bug_id, bug_type=bug_type)
 
         if self.bug_details_cache_folder is not None:
             with open(f'{file_path}', 'w') as f:
@@ -150,7 +151,7 @@ class Framework(object):
         return test_result, result_reason, patch_diff
     
     def run_bash(self, function, work_dir, project, bug_id, extra_arg1=None, extra_arg2=None):
-        command = ['bash', f'{self.shell_scripts_folder}/{self.test_framework}.sh', function, f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}", f"{extra_arg1}", f"{extra_arg2}"]
+        command = ['bash', f'{self.shell_script_folder}/{self.test_framework}.sh', function, f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}", f"{extra_arg1}", f"{extra_arg2}"]
         result = run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True)
         if len(result.stdout) > 0:
             if result.stdout[-1] == "\n":

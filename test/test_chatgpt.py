@@ -2,11 +2,12 @@ import unittest
 from unittest.mock import patch
 from src.chatgpt import ChatGPT
 from pathlib import Path
+from params import Params as params
 
 class TestChatGPT(unittest.TestCase):
     def __init__(self, methodName: str = "runTest") -> None:
         super().__init__(methodName)
-        self.api_key_path = Path(__file__).parent.parent / 'openai_api_key.env'
+        self.api_key_path = params.api_key_path
         self.test_cache_path = Path(__file__).parent / 'test_chatgpt_cache'
         self.mocked_prompt = [
             {"role": "system", "content": "You are a helpful assistant."},

@@ -3,12 +3,13 @@ from pathlib import Path
 from src.chatgpt import ChatGPT
 from src.capr import CAPR
 from src.framework import Framework
+from params import Params as params
 
 class TestCAPR(unittest.TestCase):
     def __init__(self, methodName: str = "runTest") -> None:
         super().__init__(methodName)
-        self.chatgpt_model = "gpt-3.5-turbo-0301"
-        self.chatgpt_api_key_path = Path(__file__).parent.parent / 'openai_api_key.env'
+        self.chatgpt_model = params.model
+        self.chatgpt_api_key_path = params.api_key_path
         self.cache_folder = Path(__file__).parent / 'test_capr_cache'
 
     def test_init(self):
@@ -17,7 +18,7 @@ class TestCAPR(unittest.TestCase):
                           cache_folder=self.cache_folder,
                           load_from_cache=True,
                           save_to_cache=True)
-        framework = Framework("defects4j", list_of_bugs=[("Chart", [1])])
+        framework = Framework("defects4j", list_of_bugs=[("Chart", [1])], d4j_path=params.D4J_PATH, tmp_dir=params.TMP_DIR)
         capr = CAPR(chatgpt=chatgpt, framework=framework)
         self.assertIsInstance(capr, CAPR)
 
@@ -27,7 +28,7 @@ class TestCAPR(unittest.TestCase):
                           cache_folder=self.cache_folder,
                           load_from_cache=True,
                           save_to_cache=True)
-        framework = Framework("defects4j", list_of_bugs=None)
+        framework = Framework("defects4j", list_of_bugs=None, d4j_path=params.D4J_PATH, tmp_dir=params.TMP_DIR)
         capr = CAPR(chatgpt=chatgpt, framework=framework)
         
         response_patch_pairs = [
@@ -46,7 +47,7 @@ class TestCAPR(unittest.TestCase):
                           cache_folder=self.cache_folder,
                           load_from_cache=True,
                           save_to_cache=True)
-        framework = Framework("defects4j", list_of_bugs=None)
+        framework = Framework("defects4j", list_of_bugs=None, d4j_path=params.D4J_PATH, tmp_dir=params.TMP_DIR)
         capr = CAPR(chatgpt=chatgpt, framework=framework)
         
         response_patch_pairs = [

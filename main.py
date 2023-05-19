@@ -5,6 +5,7 @@ from pathlib import Path
 from src.capr import CAPR
 from src.chatgpt import ChatGPT
 from src.framework import Framework
+from params import Params as params
 
 def main():
     SL_SH_max_tries, SF_max_tries = 6, 6
@@ -24,26 +25,18 @@ def main():
         ("Time", [19])
     ]
 
-    tmp_dir = f"/tmp/{framework_name}"
-    d4j_path = "/Users/davidhidvegi/Desktop/defects4j/framework/bin"
-
     logging.basicConfig(level=logging.INFO, format='%(funcName)s :: %(levelname)s :: %(message)s')
 
     framework = Framework(test_framework=framework_name,
-                          list_of_bugs = [("Chart", [i for i in range(1, 27)]),
-                                          ("Closure", [i for i in range(1, 177) if i != 63 and i != 93]),
-                                          ("Lang", [i for i in range(1, 66) if i != 2]),
-                                          ("Math", [i for i in range(1, 107)]),
-                                          ("Mockito", [i for i in range(1, 39)]), # Failed to reproduce bugs on macOS and Ubuntu
-                                          ("Time", [i for i in range(1, 28) if i != 21])], 
-                          d4j_path=d4j_path,
-                          tmp_dir=tmp_dir,
-                          validate_patch_cache_folder=Path(__file__).parent / 'data' / 'validate_patch_cache',
-                          n_shot_cache_folder=Path(__file__).parent / 'data' / 'n_shot_cache',
-                          bug_details_cache_folder=Path(__file__).parent / 'data' / 'bug_details_cache')
-    chatgpt = ChatGPT(model="gpt-3.5-turbo-0301", 
-                    api_key_path=Path(__file__).parent / 'openai_api_key.env',
-                    cache_folder=Path(__file__).parent / 'data' / 'chatgpt_cache',
+                          list_of_bugs = params.list_of_d4j_bugs, 
+                          d4j_path=params.D4J_PATH,
+                          tmp_dir=params.TMP_DIR,
+                          validate_patch_cache_folder=params.validate_patch_cache_folder,
+                          n_shot_cache_folder=params.n_shot_cache_folder,
+                          bug_details_cache_folder=params.bug_details_cache_folder)
+    chatgpt = ChatGPT(model=params.model, 
+                    api_key_path=params.api_key_path,
+                    cache_folder=params.chatgpt_cache_folder,
                     load_from_cache=True,
                     save_to_cache=True)
     capr = CAPR(chatgpt=chatgpt, 
@@ -78,12 +71,13 @@ def main():
                     if mode in bug.bug_type:
                         max_tries = SL_SH_max_tries if mode in ['SL', 'SH'] else SF_max_tries
                         logging.info(f" --- Started repairing {project}-{bug_id} ({mode}) --- ")
-                        plausible_patches, plausible_patch_diffs, repair_cost, first_plausible_patch_try, first_plausible_patch_conv_len = capr.repair(bug=bug, 
-                                                                                                                                                       mode=mode, 
-                                                                                                                                                       n_shot_count=n_shot_count,
-                                                                                                                                                       stop_after_first_plausible_patch=True,
-                                                                                                                                                       max_tries=max_tries,
-                                                                                                                                                       max_conv_length=max_conv_length)
+                        repair_results = capr.repair(bug=bug, 
+                                                     mode=mode, 
+                                                     n_shot_count=n_shot_count,
+                                                     stop_after_first_plausible_patch=True,
+                                                     max_tries=max_tries,
+                                                     max_conv_length=max_conv_length)
+                        plausible_patches, plausible_patch_diffs, repair_cost, first_plausible_patch_try, first_plausible_patch_conv_len = repair_results
                         logging.debug(f"Finished repair of {project}-{bug_id} ({mode})")
 
                         row[f'{mode}_ppc'] = len(plausible_patches)
@@ -94,7 +88,7 @@ def main():
                             row[f'{mode}_fppcl'] = first_plausible_patch_conv_len
 
                         for i, plausible_patch_diff in enumerate(plausible_patch_diffs):
-                            with open(f'{plausible_patches_folder}/{framework_name}/{project}_{bug_id}_{mode}_{i}.diff', 'w+') as f:
+                            with open(f'{plausible_patches_folder}/{project}_{bug_id}_{mode}_{i}.diff', 'w+') as f:
                                 f.writelines(plausible_patch_diff)
 
             else:
