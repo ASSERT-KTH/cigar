@@ -16,14 +16,11 @@ def main():
         # ("Lang", [3, 10, 11, 12, 14, 16, 18, 21, 22, 24, 26, 27, 28, 29, 31, 33, 37, 38, 39, 40, 42, 43, 44, 45, 48, 51, 52, 54, 55, 57, 58, 59, 61]),
         # ("Math", [2, 3, 5, 8, 10, 11, 17, 19, 20, 23, 24, 25, 26, 27, 28, 30, 32, 33, 34, 39, 41, 42, 45, 48, 50, 53, 56, 57, 58, 59, 60, 63, 69, 70, 72, 73, 75, 78, 79, 80, 82, 85, 86, 87, 88, 89, 91, 94, 95, 96, 97, 101, 105, 106]),
         # ("Mockito", [12, 22, 24, 29, 33, 34, 38]),
-        ("Time", [4, 5, 15, 16, 18, 19, 20])
+        # ("Time", [4, 5, 15, 16, 18, 19, 20])
+        ("Time", [19])
     ]
     tmp_dir = f"/tmp/{framework_name}"
     d4j_path = "/Users/davidhidvegi/Desktop/defects4j/framework/bin"
-
-    list_of_bugs_to_fix = [
-        ("Time", [15, 16, 19, 20])
-    ]
 
     framework = Framework(test_framework=framework_name,
                           list_of_bugs = [("Chart", [i for i in range(1, 27)]),
@@ -84,9 +81,10 @@ def main():
 
                         row[f'{mode}_ppc'] = len(plausible_patches)
                         row[f'{mode}_rc'] = repair_cost
-                        row[f'{mode}_fppt'] = first_plausible_patch_try
-                        row[f'{mode}_fppcl'] = first_plausible_patch_conv_len
                         row[f'{mode}_mts'] = max_tries
+                        if len(plausible_patches) > 0:
+                            row[f'{mode}_fppt'] = first_plausible_patch_try
+                            row[f'{mode}_fppcl'] = first_plausible_patch_conv_len
 
                         for i, plausible_patch_diff in enumerate(plausible_patch_diffs):
                             with open(f'{plausible_patches_folder}/{framework_name}/{project}_{bug_id}_{mode}_{i}.diff', 'w+') as f:

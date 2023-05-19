@@ -16,26 +16,30 @@ class CAPR(object):
         plausible_patch_diffs = []
         first_plausible_patch_try = 0
         current_conversation_length = 0
-        current_tries = 1
-        total_cost = 1
+        current_tries = 0
+        total_cost = 0
         prefix = f"{self.framework.test_framework}_{bug.project}_{bug.bug_id}_{mode}"
 
-        while (current_tries <= max_tries and len(plausible_patches) == 0):
+        while (current_tries < max_tries and len(plausible_patches) == 0):
             current_conversation_length = 0
             prompt = prompts.construct_initial_prompt(bug=bug, mode=mode, n_shot_bugs=n_shot_bugs)
 
-            while (current_conversation_length < max_conv_length and current_tries <= max_tries):
+            while (current_conversation_length < max_conv_length and current_tries < max_tries):
+                current_tries += 1
+                current_conversation_length += 1
+
+                print(f"Repairing attempt of {bug.project}-{bug.bug_id} ({mode}), try {current_tries} (ccl: {current_conversation_length})")
                 response, cost = self.chatgpt.call(prompt, num_of_samples=sample_per_try, prefix=f"{prefix}_{current_tries}")
                 total_cost += cost
 
                 patch = self.extract_patch_from_response(response)
+                print(f"Validating response of {bug.project}-{bug.bug_id} ({mode})")
                 test_result, result_reason, patch_diff = self.framework.validate_patch(bug=bug, proposed_patch=patch, mode=mode)
 
                 if test_result == "PASS":
                     plausible_patches.append(patch)
                     plausible_patch_diffs.append(patch_diff)
                     first_plausible_patch_try = current_tries
-                    current_tries += 1
                     break
                 elif result_reason == bug.test_error_message:
                     feedback = prompts.test_fail_feedback()
@@ -44,12 +48,10 @@ class CAPR(object):
                 
                 prompt.append({"role": "assistant", "content": f"""{response}"""})
                 prompt.append(feedback)
-                
-                current_tries += 1
-                current_conversation_length += 1
         
         if len(plausible_patches) != 0 and not stop_after_first_plausible_patch:
-            while (current_tries <= max_tries):
+            while (current_tries < max_tries):
+                current_tries += 1
                 prompt = prompts.construct_plausable_path_prompt(bug, plausible_patches, mode)
 
                 response, cost = self.chatgpt.call(prompt, num_of_samples=sample_per_try, prefix=f"{prefix}_{current_tries}")
@@ -61,8 +63,6 @@ class CAPR(object):
                 if test_result == "PASS" and patch not in plausible_patches:
                     plausible_patches.append(patch)
                     plausible_patch_diffs.append(patch_diff)
-                
-                current_tries += 1
         
         return plausible_patches, plausible_patch_diffs, total_cost, first_plausible_patch_try, current_conversation_length
     
