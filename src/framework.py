@@ -5,15 +5,15 @@ from subprocess import PIPE, run
 from src.bug import Bug
 
 class Framework(object):
-    def __init__(self, test_framework, list_of_bugs, validate_patch_cache_folder=None, n_shot_cache_folder=None):
+    def __init__(self, test_framework, list_of_bugs, d4j_path, tmp_dir, validate_patch_cache_folder=None, n_shot_cache_folder=None):
         assert test_framework in ["defects4j", "quixbugs"]
         self.test_framework = test_framework
         self.list_of_bugs = list_of_bugs
         self.validate_patch_cache_folder = validate_patch_cache_folder
         self.n_shot_cache_folder = n_shot_cache_folder
+        self.d4j_path = d4j_path
+        self.tmp_dir = tmp_dir
 
-        self.d4j_path = "/Users/davidhidvegi/Desktop/defects4j/framework/bin"
-        self.tmp_dir = f"/tmp/{test_framework}"
         self.shell_scripts_folder = Path(__file__).parent.parent / "frameworks"
 
     def reproduce_bug(self, project, bug_id, run_tests=True):

@@ -24,6 +24,8 @@ pip install -r requirements.txt
 
 - Add openai key to `openai_api_key.env` file in root folder of capr
 
+- Set the `d4j_path` in `main.py` to the path of your defects4j folder
+
 - Run capr.py
 ```
 ./venv/bin/python3 "$(pwd)/main.py"

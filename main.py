@@ -18,6 +18,8 @@ def main():
         # ("Mockito", [12, 22, 24, 29, 33, 34, 38]),
         ("Time", [4, 5, 15, 16, 18, 19, 20])
     ]
+    tmp_dir = f"/tmp/{framework_name}"
+    d4j_path = "/Users/davidhidvegi/Desktop/defects4j/framework/bin"
 
     framework = Framework(test_framework=framework_name,
                           list_of_bugs = [("Chart", [i for i in range(1, 27)]),
@@ -25,7 +27,9 @@ def main():
                                           ("Lang", [i for i in range(1, 66) if i != 2]),
                                           ("Math", [i for i in range(1, 107)]),
                                           ("Mockito", [i for i in range(1, 39)]), # Failed to reproduce bugs on macOS and Ubuntu
-                                          ("Time", [i for i in range(1, 28) if i != 21])],
+                                          ("Time", [i for i in range(1, 28) if i != 21])], 
+                          d4j_path=d4j_path,
+                          tmp_dir=tmp_dir,
                           validate_patch_cache_folder=Path(__file__).parent / 'data' / 'validate_patch_cache',
                           n_shot_cache_folder=Path(__file__).parent / 'data' / 'n_shot_cache')
     chatgpt = ChatGPT(model="gpt-3.5-turbo-0301", 
