@@ -290,7 +290,10 @@ function validate_patch {
     code_function_length=$(echo "$code_function" | wc -l | sed 's/^[ \t]*//;s/[ \t]*$//')
     code_function_first_line=$(echo "$code_function" | head -n 1)
 
-    code_function_first_line_number=$(grep -n "$code_function_first_line" $code_file_path | cut -d: -f1)
+    # Find first and last line numbers of the function in which the change was made
+    first_change_line_count_number=$(get_first_change_line_count_number $@)
+    code_block=$(less $code_file_path)
+    code_function_first_line_number=$(get_function_line_count_from_line_in_code_block $first_change_line_count_number)
     code_function_last_line_number=$((code_function_first_line_number + code_function_length - 1))
 
     patched_full_code=$(echo "$full_code" | sed "${code_function_first_line_number},${code_function_last_line_number}d")
@@ -389,6 +392,19 @@ function get_function_line_count_from_line_in_code_block {
     done
     
     echo ${line_count}
+}
+
+function get_first_change_line_count_number {
+    IFS='∫'
+
+    git_show=$(git show --no-prefix -U9999999)
+    git_diff_code=${git_show##*@@} # take the code from the last @@ sign until the end of file using
+    code_block=$(less $git_diff_code)
+
+    # get first line number that starts with + or -
+    first_change_line_count_number=$(echo "$code_block" | grep -n -m 1 "^[+-]" | cut -d: -f1)
+
+    echo $first_change_line_count_number
 }
 
 function get_git_show_function_code {
