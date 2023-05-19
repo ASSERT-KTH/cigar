@@ -124,6 +124,14 @@ class Framework(object):
             
         return test_result, result_reason
     
+    def get_patch_diff(self, bug: Bug):
+        project = bug.project
+        bug_id = bug.bug_id
+        work_dir = f"{self.tmp_dir}/{project}-{bug_id}"
+
+        result = self.run_bash("get_patch_diff", work_dir, project, bug_id)
+        return result.stdout
+    
     def run_bash(self, function, work_dir, project, bug_id, extra_arg1=None, extra_arg2=None):
         command = ['bash', f'{self.shell_scripts_folder}/{self.test_framework}.sh', function, f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}", f"{extra_arg1}", f"{extra_arg2}"]
         result = run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True)

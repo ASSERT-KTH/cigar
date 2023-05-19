@@ -306,6 +306,22 @@ function validate_patch {
     compile_and_run_tests $@
 }
 
+function get_patch_git_diff {
+    set -e
+
+    work_dir=$3
+    d4j_path=$4
+
+    IFS='∫' # preserve white spaces in code
+    cd $work_dir
+
+    # Get code path
+    code_file_path=$(get_source_code_file_path $@)
+
+    # export diff file of code_file_path to diff_file_path
+    echo $(git diff $code_file_path)
+}
+
 # ---------- UTILS -------------
 
 function get_test_suite_and_name {

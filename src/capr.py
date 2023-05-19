@@ -11,6 +11,7 @@ class CAPR(object):
     def repair(self, bug: Bug, mode: str, n_shot_count=1, sample_per_try=1, max_conv_length=3, max_tries=1, stop_after_first_plausible_patch=False):
         assert mode in ["SL", "SH", "SF"]
         plausable_patches = []
+        plausable_patch_diffs = []
         first_plausible_patch_try = 0
         current_conversation_length = 0
         current_tries = 1
@@ -31,6 +32,7 @@ class CAPR(object):
                 test_result, result_reason = self.framework.validate_patch(bug=bug, proposed_patch=patch, mode=mode)
                 if test_result == "PASS":
                     plausable_patches.append(patch)
+                    plausable_patch_diffs.append(self.framework.get_patch_diff(bug=bug))
                     first_plausible_patch_try = current_tries
                     current_tries += 1
                     break
@@ -57,10 +59,11 @@ class CAPR(object):
                 test_result, result_reason = self.framework.validate_patch(bug, patch)
                 if test_result == "PASS" and patch not in plausable_patches:
                     plausable_patches.append(patch)
+                    plausable_patch_diffs.append(self.framework.get_patch_diff(bug=bug))
                 
                 current_tries += 1
         
-        return plausable_patches, total_cost, first_plausible_patch_try, current_conversation_length
+        return plausable_patches, plausable_patch_diffs, total_cost, first_plausible_patch_try, current_conversation_length
     
     def extract_patch_from_response(self, response):
 
