@@ -6,7 +6,7 @@ from src.chatgpt import ChatGPT
 from src.framework import Framework
 
 def main():
-    SL_SH_max_tries, SF_max_tries = 1, 1
+    SL_SH_max_tries, SF_max_tries = 6, 6
     n_shot_count = 1
     max_conv_length = 3
     framework_name = "defects4j"

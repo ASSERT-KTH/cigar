@@ -8,7 +8,7 @@ class Prompts(object):
             for n_shot_bug in n_shot_bugs:
                 n_shot_initial_prompt = Prompts.construct_initial_message(bug=n_shot_bug, mode=mode, n_shot_bugs=None)
                 if mode == "SL":
-                    n_shot_examples_text += f"{n_shot_initial_prompt}\n\nIt can be fixed by these possible lines:\n```java\n{n_shot_bug.fixed_lines}\n```\n\n"
+                    n_shot_examples_text += f"{n_shot_initial_prompt}\n\nIt can be fixed by these possible line:\n```java\n{n_shot_bug.fixed_lines}\n```\n\n"
                 elif mode == "SH":
                     n_shot_examples_text += f"{n_shot_initial_prompt}\n\nIt can be fixed by the following hunk:\n```java\n{n_shot_bug.fixed_lines}\n```\n\n"
                 elif mode == "SF":
@@ -56,7 +56,7 @@ with the following test error:\n```\n{bug.test_error_message}\n```
         return {"role": "user", "content": f"""The fixed version is still not correct. code has the following {error_type}:\n```\n{result_reason}\n```\n{call_to_action}"""}
     
     def test_fail_feedback():
-        return {"role": "user", "content": f"The fixed version is still not correct.It still does not fix the original test failure."}
+        return {"role": "user", "content": f"The fixed version is still not correct. It still does not fix the original test failure."}
 
     def construct_plausable_path_prompt(bug: Bug, plausible_patches, mode: str):
 
