@@ -32,7 +32,8 @@ def main():
                           d4j_path=d4j_path,
                           tmp_dir=tmp_dir,
                           validate_patch_cache_folder=Path(__file__).parent / 'data' / 'validate_patch_cache',
-                          n_shot_cache_folder=Path(__file__).parent / 'data' / 'n_shot_cache')
+                          n_shot_cache_folder=Path(__file__).parent / 'data' / 'n_shot_cache',
+                          bug_details_cache_folder=Path(__file__).parent / 'data' / 'bug_details_cache')
     chatgpt = ChatGPT(model="gpt-3.5-turbo-0301", 
                     api_key_path=Path(__file__).parent / 'openai_api_key.env',
                     cache_folder=Path(__file__).parent / 'data' / 'chatgpt_cache',
@@ -43,7 +44,6 @@ def main():
     
     summary_file_path = Path(__file__).parent / 'data' / 'output' / 'summary.csv'
     plausible_patches_folder = Path(__file__).parent / 'data' / 'output' / 'plausible_patches'
-    bug_details_folder = Path(__file__).parent / 'data' / 'output' / 'bug_details'
 
     fieldnames = ['framework', 'project', 'bug_id', 'bug_type',
                   'SL_ppc', 'SL_rc', 'SL_fppt', 'SL_fppcl', 'SL_mts',
@@ -57,7 +57,7 @@ def main():
     for project, ids in list_of_bugs_to_fix:
         for bug_id in ids:
             print(f"\n\nReproducing {project}-{bug_id}")
-            bug = framework.reproduce_bug(project, bug_id)
+            bug = framework.get_bug_details(project, bug_id)
 
             row = {key: "" for key in fieldnames}
             row['framework'] = framework_name
@@ -90,9 +90,6 @@ def main():
                             with open(f'{plausible_patches_folder}/{framework_name}/{project}_{bug_id}_{mode}_{i}.diff', 'w+') as f:
                                 f.writelines(plausible_patch_diff)
 
-                with open(f'{bug_details_folder}/{framework_name}_{project}_{bug_id}.txt', 'w') as f:
-                    vars_object = vars(bug)
-                    f.write(json.dumps(vars_object, indent=4, sort_keys=True))
             else:
                 print(f"Skipping {project}-{bug_id} because it is not SL, SH or SF bug")
                 row['comment'] += "Not SL, SH or SF bug. "

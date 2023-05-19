@@ -15,7 +15,7 @@ class TestFramework(unittest.TestCase):
                               d4j_path=self.d4j_path,
                               tmp_dir=self.tmp_dir)
 
-        bug_time_58 = framework.reproduce_bug("Time", 6, run_tests=False) # Caused a bug because git show --no-prefix was too small
+        bug_time_58 = framework.get_bug_details("Time", 6) # Caused a bug because git show --no-prefix was too small
         expected_bug_type = "OT"
         
         self.assertEqual(bug_time_58.bug_type, expected_bug_type)
@@ -26,7 +26,7 @@ class TestFramework(unittest.TestCase):
                               d4j_path=self.d4j_path,
                               tmp_dir=self.tmp_dir)
 
-        bug_time_58 = framework.reproduce_bug("Lang", 58, run_tests=False) # Edge case, multiple buggy lines
+        bug_time_58 = framework.get_bug_details("Lang", 58) # Edge case, multiple buggy lines
 
         expected_buggy_lines = """                        && isDigits(numeric.substring(1))
                         && (numeric.charAt(0) == '-' || Character.isDigit(numeric.charAt(0)))) {"""
@@ -39,7 +39,7 @@ class TestFramework(unittest.TestCase):
                               d4j_path=self.d4j_path,
                               tmp_dir=self.tmp_dir)
 
-        bug_time_54 = framework.reproduce_bug("Lang", 54, run_tests=False) # Edge case, multiple fixed lines
+        bug_time_54 = framework.get_bug_details("Lang", 54) # Edge case, multiple fixed lines
 
         expected_fixed_lines = """            if (ch3 == '_') {
                 return new Locale(str.substring(0, 2), "", str.substring(4));
@@ -53,7 +53,7 @@ class TestFramework(unittest.TestCase):
                               d4j_path=self.d4j_path,
                               tmp_dir=self.tmp_dir)
 
-        bug_time_22 = framework.reproduce_bug("Time", 22) # Edge case, has multiple test files with same name
+        bug_time_22 = framework.get_bug_details("Time", 22) # Edge case, has multiple test files with same name
 
         expected_test_line = """            assertEquals(0, test.getWeeks());"""
         
@@ -65,8 +65,8 @@ class TestFramework(unittest.TestCase):
                               d4j_path=self.d4j_path,
                               tmp_dir=self.tmp_dir)
         
-        bug_time_4 = framework.reproduce_bug("Time", 4, run_tests=False) # Edge case containing keywords in comments
-        bug_time_24 = framework.reproduce_bug("Time", 24, run_tests=False) # Edge case, selects 2 functions
+        bug_time_4 = framework.get_bug_details("Time", 4) # Edge case containing keywords in comments
+        bug_time_24 = framework.get_bug_details("Time", 24) # Edge case, selects 2 functions
 
         self.assertGreater(len(bug_time_4.code), 0)
         self.assertGreater(len(bug_time_24.code), 0)
@@ -78,7 +78,7 @@ class TestFramework(unittest.TestCase):
                               d4j_path=self.d4j_path,
                               tmp_dir=self.tmp_dir)
         
-        bug_chart_10 = framework.reproduce_bug("Chart", 10, run_tests=False) # SH Bug, 2 line addition, 2 line deletion
+        bug_chart_10 = framework.get_bug_details("Chart", 10) # SH Bug, 2 line addition, 2 line deletion
 
         expected_masked_code = '''    public String generateToolTipFragment(String toolTipText) {
 >>> [ INFILL ] <<<
@@ -93,7 +93,7 @@ class TestFramework(unittest.TestCase):
                               d4j_path=self.d4j_path,
                               tmp_dir=self.tmp_dir)
 
-        bug = framework.reproduce_bug("Gson", 15, run_tests=False)
+        bug = framework.get_bug_details("Gson", 15)
         mode = "SL"
 
         code_causes_compilation_error = "    if (Double.isInfini(value)) {"
@@ -115,7 +115,7 @@ class TestFramework(unittest.TestCase):
                               d4j_path=self.d4j_path,
                               tmp_dir=self.tmp_dir)
 
-        bug = framework.reproduce_bug("Lang", 16, run_tests=False)
+        bug = framework.get_bug_details("Lang", 16)
         mode = "SL"
 
         code_causes_compilation_error = '        if (str.startsWith("0x") || str.startsWith("-0x")))))) {'
@@ -141,7 +141,7 @@ class TestFramework(unittest.TestCase):
                               d4j_path=self.d4j_path,
                               tmp_dir=self.tmp_dir)
 
-        bug = framework.reproduce_bug("Lang", 54, run_tests=False) # Single Hunk Bug
+        bug = framework.get_bug_details("Lang", 54) # Single Hunk Bug
 
         code_fixed_should_pass = """            if (ch3 == '_') {
                 return new Locale(str.substring(0, 2), "", str.substring(4));
@@ -156,7 +156,7 @@ class TestFramework(unittest.TestCase):
                               d4j_path=self.d4j_path,
                               tmp_dir=self.tmp_dir)
 
-        bug = framework.reproduce_bug("Chart", 10, run_tests=False) # Single Function Bug, solution contains escape characters
+        bug = framework.get_bug_details("Chart", 10) # Single Function Bug, solution contains escape characters
 
         sf_patch_fix = bug.fixed_code
 
@@ -170,7 +170,7 @@ class TestFramework(unittest.TestCase):
                               tmp_dir=self.tmp_dir)
 
         mode = "SF"
-        bug = framework.reproduce_bug("Time", 18, run_tests=False)
+        bug = framework.get_bug_details("Time", 18)
 
         original_buggy_code = '''    public long getDateTimeMillis(int year, int monthOfYear, int dayOfMonth,
                                   int hourOfDay, int minuteOfHour,
@@ -255,7 +255,7 @@ class TestFramework(unittest.TestCase):
                               d4j_path=self.d4j_path,
                               tmp_dir=self.tmp_dir)
         
-        bug = framework.reproduce_bug("Time", 1, run_tests=False)
+        bug = framework.get_bug_details("Time", 1)
 
         expected_n_shot_bug_ids = [16, 19, 4]
 
@@ -272,7 +272,7 @@ class TestFramework(unittest.TestCase):
         
         bug_id = 16
         project = "Time"
-        bug = framework.reproduce_bug(project, bug_id, run_tests=False)
+        bug = framework.get_bug_details(project, bug_id)
 
         expected_n_shot_bug_ids = [19, 4]
 
@@ -287,5 +287,5 @@ class TestFramework(unittest.TestCase):
                               d4j_path=self.d4j_path,
                               tmp_dir=self.tmp_dir)
         
-        bug1 = framework.reproduce_bug("Time", 19)
-        bug2 = framework.reproduce_bug("Time", 4)
+        bug1 = framework.get_bug_details("Time", 19)
+        bug2 = framework.get_bug_details("Time", 4)

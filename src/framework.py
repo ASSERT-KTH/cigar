@@ -5,7 +5,8 @@ from subprocess import PIPE, run
 from src.bug import Bug
 
 class Framework(object):
-    def __init__(self, test_framework, list_of_bugs, d4j_path, tmp_dir, validate_patch_cache_folder=None, n_shot_cache_folder=None):
+    def __init__(self, test_framework, list_of_bugs, d4j_path, tmp_dir, 
+                 bug_details_cache_folder=None, validate_patch_cache_folder=None, n_shot_cache_folder=None):
         assert test_framework in ["defects4j", "quixbugs"]
         self.test_framework = test_framework
         self.list_of_bugs = list_of_bugs
@@ -13,30 +14,37 @@ class Framework(object):
         self.n_shot_cache_folder = n_shot_cache_folder
         self.d4j_path = d4j_path
         self.tmp_dir = tmp_dir
+        self.bug_details_cache_folder = bug_details_cache_folder
 
         self.shell_scripts_folder = Path(__file__).parent.parent / "frameworks"
 
-    def reproduce_bug(self, project, bug_id, run_tests=True):
+    def get_bug_details(self, project, bug_id):
+        if self.bug_details_cache_folder is not None:
+            file_path = f"{self.bug_details_cache_folder}/{project}-{bug_id}.json"
+            if Path(file_path).is_file():
+                print (f"Retrieving bug details from cache (project={project}, bug_id={bug_id})")
+                with open(file_path, "r") as f:
+                    bug_details = json.load(f)
+                return Bug(**bug_details)
+
         work_dir = f"{self.tmp_dir}/{project}-{bug_id}"
 
         print(f"Checking out bug (project={project}, bug_id={bug_id}))")
         self.run_bash("checkout_bug", work_dir, project, bug_id)
-        if run_tests:
-            print(f"Compiling and running tests")
-            self.run_bash("compile_and_run_tests", work_dir, project, bug_id)
+        print(f"Compiling and running tests")
+        self.run_bash("compile_and_run_tests", work_dir, project, bug_id)
 
         bug_type = self.run_bash("get_bug_type", work_dir, project, bug_id).stdout
         test_suite, test_name, test_error, test_line, buggy_lines, fixed_lines, code, masked_code, fixed_code = None, None, None, None, None, None, None, None, None
         if bug_type != "OT":
-            if run_tests:
-                print(f"Retreiving test suite")
-                test_suite = self.run_bash("get_test_suite", work_dir, project, bug_id).stdout
-                print(f"Retreiving test name")
-                test_name = self.run_bash("get_test_name", work_dir, project, bug_id).stdout
-                print(f"Retreiving test error message")
-                test_error = self.run_bash("get_test_error", work_dir, project, bug_id).stdout
-                print(f"Retreiving test line")
-                test_line = self.run_bash("get_test_line", work_dir, project, bug_id).stdout
+            print(f"Retreiving test suite")
+            test_suite = self.run_bash("get_test_suite", work_dir, project, bug_id).stdout
+            print(f"Retreiving test name")
+            test_name = self.run_bash("get_test_name", work_dir, project, bug_id).stdout
+            print(f"Retreiving test error message")
+            test_error = self.run_bash("get_test_error", work_dir, project, bug_id).stdout
+            print(f"Retreiving test line")
+            test_line = self.run_bash("get_test_line", work_dir, project, bug_id).stdout
             print(f"Retreiving buggy lines")
             buggy_lines = self.run_bash("get_buggy_lines", work_dir, project, bug_id).stdout
             print(f"Retreiving fixed lines")
@@ -48,9 +56,16 @@ class Framework(object):
             print(f"Retreiving fixed code")
             fixed_code = self.run_bash("get_fixed_code", work_dir, project, bug_id).stdout
 
-        return Bug(test_suite=test_suite, test_name=test_name, test_line=test_line, test_error_message=test_error,
+        bug = Bug(test_suite=test_suite, test_name=test_name, test_line=test_line, test_error_message=test_error,
                    buggy_lines=buggy_lines, fixed_lines=fixed_lines, code=code, masked_code=masked_code, fixed_code=fixed_code,
                    test_framework=self.test_framework, project=project, bug_id=bug_id, bug_type=bug_type)
+
+        if self.bug_details_cache_folder is not None:
+            with open(f'{file_path}', 'w') as f:
+                vars_object = vars(bug)
+                f.write(json.dumps(vars_object, indent=4, sort_keys=True))
+
+        return bug
     
     def get_n_shot_bugs(self, n: int, bug: Bug, mode: str):
         assert mode in ["SL", "SH", "SF"]
@@ -68,14 +83,10 @@ class Framework(object):
             list_of_project_bugs = [bug_list for bug_list in self.list_of_bugs if bug_list[0] == bug.project]
 
             for bug_id in list_of_project_bugs[0][1]:
+                n_shot_bug = self.get_bug_details(bug.project, bug_id)
 
-                work_dir = f"{self.tmp_dir}/{bug.project}-{bug_id}"
-                self.run_bash("checkout_bug", work_dir, bug.project, bug_id)
-                bug_type = self.run_bash("get_bug_type", work_dir, bug.project, bug_id).stdout
-
-                if mode in bug_type:
-                    code_len = len(self.run_bash("get_code", work_dir, bug.project, bug_id).stdout)
-
+                if mode in n_shot_bug.bug_type:
+                    code_len = len(n_shot_bug.code)
                     n_shot_list.append({"bug_id": bug_id, "code_len": code_len})
             
             n_shot_list = sorted(n_shot_list, key=lambda k: k['code_len'])
@@ -87,7 +98,7 @@ class Framework(object):
         n_shot_bug_id_list = [n_shot["bug_id"] for n_shot in n_shot_list if n_shot["bug_id"] != bug.bug_id]
         n = min(n, len(n_shot_bug_id_list))
         n_shot_bug_id_list = n_shot_bug_id_list[:n]
-        n_shot_bug_list = [self.reproduce_bug(bug.project, bug_id) for bug_id in n_shot_bug_id_list]
+        n_shot_bug_list = [self.get_bug_details(bug.project, bug_id) for bug_id in n_shot_bug_id_list]
 
         return n_shot_bug_list
 
