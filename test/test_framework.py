@@ -219,8 +219,8 @@ class TestFramework(unittest.TestCase):
         test_result, _ = framework.validate_patch(bug, original_buggy_code, mode)
         self.assertEqual(test_result, "FAIL")
 
-        # test_result, _ = framework.validate_patch(bug, proposed_buggy_code, mode)
-        # self.assertEqual(test_result, "FAIL")
+        test_result, _ = framework.validate_patch(bug, proposed_buggy_code, mode)
+        self.assertEqual(test_result, "FAIL")
 
     def test_n_shot_examples(self):
         framework = Framework(test_framework="defects4j",
