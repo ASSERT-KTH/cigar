@@ -19,22 +19,33 @@ class Framework(object):
     def reproduce_bug(self, project, bug_id, run_tests=True):
         work_dir = f"{self.tmp_dir}/{project}-{bug_id}"
 
+        print(f"Checking out bug (project={project}, bug_id={bug_id}))")
         self.run_bash("checkout_bug", work_dir, project, bug_id)
         if run_tests:
+            print(f"Compiling and running tests")
             self.run_bash("compile_and_run_tests", work_dir, project, bug_id)
 
         bug_type = self.run_bash("get_bug_type", work_dir, project, bug_id).stdout
         test_suite, test_name, test_error, test_line, buggy_lines, fixed_lines, code, masked_code, fixed_code = None, None, None, None, None, None, None, None, None
         if bug_type != "OT":
             if run_tests:
+                print(f"Retreiving test suite")
                 test_suite = self.run_bash("get_test_suite", work_dir, project, bug_id).stdout
+                print(f"Retreiving test name")
                 test_name = self.run_bash("get_test_name", work_dir, project, bug_id).stdout
+                print(f"Retreiving test error message")
                 test_error = self.run_bash("get_test_error", work_dir, project, bug_id).stdout
+                print(f"Retreiving test line")
                 test_line = self.run_bash("get_test_line", work_dir, project, bug_id).stdout
+            print(f"Retreiving buggy lines")
             buggy_lines = self.run_bash("get_buggy_lines", work_dir, project, bug_id).stdout
+            print(f"Retreiving fixed lines")
             fixed_lines = self.run_bash("get_fixed_lines", work_dir, project, bug_id).stdout
+            print(f"Retreiving code")
             code = self.run_bash("get_code", work_dir, project, bug_id).stdout
+            print(f"Retreiving masked code")
             masked_code = self.run_bash("get_masked_code", work_dir, project, bug_id).stdout
+            print(f"Retreiving fixed code")
             fixed_code = self.run_bash("get_fixed_code", work_dir, project, bug_id).stdout
 
         return Bug(test_suite=test_suite, test_name=test_name, test_line=test_line, test_error_message=test_error,
@@ -94,6 +105,7 @@ class Framework(object):
                     json_to_load = json.load(file)
                     test_result = json_to_load['test_result']
                     result_reason = json_to_load['result_reason']
+                    patch_diff = json_to_load['patch_diff']
 
         if test_result is None and result_reason is None:
 
@@ -102,6 +114,7 @@ class Framework(object):
             work_dir = f"{self.tmp_dir}/{project}-{bug_id}"
 
             result = self.run_bash("validate_patch", work_dir, project, bug_id, proposed_patch, mode)
+            patch_diff = self.run_bash("get_patch_git_diff", work_dir, bug.project, bug.bug_id).stdout
             
             if result.returncode == 1:
                 result_reason = result.stderr
@@ -118,19 +131,11 @@ class Framework(object):
                     test_result = "FAIL" # test fail
                     result_reason = self.run_bash("get_test_error", work_dir, project, bug_id).stdout
 
-        if self.validate_patch_cache_folder is not None:
-            with open(cache_file_path, "w") as file:
-                json.dump({'patch': proposed_patch, 'test_result': test_result, 'result_reason': result_reason}, file,  indent=4, sort_keys=True)
+            if self.validate_patch_cache_folder is not None:
+                with open(cache_file_path, "w") as file:
+                    json.dump({'patch': proposed_patch, 'test_result': test_result, 'result_reason': result_reason, 'patch_diff': patch_diff}, file,  indent=4, sort_keys=True)
             
-        return test_result, result_reason
-    
-    def get_patch_diff(self, bug: Bug):
-        project = bug.project
-        bug_id = bug.bug_id
-        work_dir = f"{self.tmp_dir}/{project}-{bug_id}"
-
-        result = self.run_bash("get_patch_diff", work_dir, project, bug_id)
-        return result.stdout
+        return test_result, result_reason, patch_diff
     
     def run_bash(self, function, work_dir, project, bug_id, extra_arg1=None, extra_arg2=None):
         command = ['bash', f'{self.shell_scripts_folder}/{self.test_framework}.sh', function, f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}", f"{extra_arg1}", f"{extra_arg2}"]

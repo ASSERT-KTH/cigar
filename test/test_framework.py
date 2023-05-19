@@ -100,13 +100,13 @@ class TestFramework(unittest.TestCase):
         code_buggy_fails_test =         "    if (Double.isNaN(value) || Double.isInfinite(value)) {"
         code_fixed_should_pass =        "    if (!lenient && (Double.isNaN(value) || Double.isInfinite(value))) {"
 
-        test_result, _ = framework.validate_patch(bug, code_causes_compilation_error, mode)
+        test_result, _, _ = framework.validate_patch(bug, code_causes_compilation_error, mode)
         self.assertEqual(test_result, "ERROR")
 
-        test_result, _ = framework.validate_patch(bug, code_buggy_fails_test, mode)
+        test_result, _, _ = framework.validate_patch(bug, code_buggy_fails_test, mode)
         self.assertEqual(test_result, "FAIL")
 
-        test_result, _ = framework.validate_patch(bug, code_fixed_should_pass, mode)
+        test_result, _, _ = framework.validate_patch(bug, code_fixed_should_pass, mode)
         self.assertEqual(test_result, "PASS")
 
     def test_validate_patch_lang_16(self):
@@ -123,16 +123,16 @@ class TestFramework(unittest.TestCase):
         code_fixed_should_pass =        '        if (str.startsWith("0x") || str.startsWith("-0x") || str.startsWith("0X") || str.startsWith("-0X")) {'
         code_fixed_should_pass_2 =      '        if (str.regionMatches(true, 0, \"0x\", 0, 2) || str.regionMatches(true, 0, \"-0x\", 0, 3)) {'
 
-        test_result, _ = framework.validate_patch(bug, code_causes_compilation_error, mode)
+        test_result, _, _ = framework.validate_patch(bug, code_causes_compilation_error, mode)
         self.assertEqual(test_result, "ERROR")
 
-        test_result, _ = framework.validate_patch(bug, code_buggy_fails_test, mode)
+        test_result, _, _ = framework.validate_patch(bug, code_buggy_fails_test, mode)
         self.assertEqual(test_result, "FAIL")
 
-        test_result, _ = framework.validate_patch(bug, code_fixed_should_pass, mode)
+        test_result, _, _ = framework.validate_patch(bug, code_fixed_should_pass, mode)
         self.assertEqual(test_result, "PASS")
 
-        test_result, _ = framework.validate_patch(bug, code_fixed_should_pass_2, mode)
+        test_result, _, _ = framework.validate_patch(bug, code_fixed_should_pass_2, mode)
         self.assertEqual(test_result, "PASS")
 
     def test_validate_patch_lang_54(self):
@@ -147,7 +147,7 @@ class TestFramework(unittest.TestCase):
                 return new Locale(str.substring(0, 2), "", str.substring(4));
             }"""
 
-        test_result, _ = framework.validate_patch(bug, code_fixed_should_pass, mode="SH")
+        test_result, _, _ = framework.validate_patch(bug, code_fixed_should_pass, mode="SH")
         self.assertEqual(test_result, "PASS")
 
     def test_validate_patch_chart_10(self):
@@ -160,7 +160,7 @@ class TestFramework(unittest.TestCase):
 
         sf_patch_fix = bug.fixed_code
 
-        test_result, _ = framework.validate_patch(bug, sf_patch_fix, mode="SF")
+        test_result, _, _ = framework.validate_patch(bug, sf_patch_fix, mode="SF")
         self.assertEqual(test_result, "PASS")
 
     def test_validate_patch_time_18(self):
@@ -243,10 +243,10 @@ class TestFramework(unittest.TestCase):
         return instant;
     }'''
 
-        test_result, _ = framework.validate_patch(bug, original_buggy_code, mode)
+        test_result, _, _ = framework.validate_patch(bug, original_buggy_code, mode)
         self.assertEqual(test_result, "FAIL")
 
-        test_result, _ = framework.validate_patch(bug, proposed_buggy_code, mode)
+        test_result, _, _ = framework.validate_patch(bug, proposed_buggy_code, mode)
         self.assertEqual(test_result, "FAIL")
 
     def test_n_shot_examples(self):

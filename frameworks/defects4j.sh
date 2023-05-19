@@ -6,6 +6,7 @@ function checkout_bug {
     work_dir=$3
     d4j_path=$4
 
+    rm -rf $work_dir
     export PATH=$PATH:$d4j_path
     defects4j checkout -p $project_id -v "${bug_id}b" -w $work_dir
 

@@ -21,6 +21,10 @@ def main():
     tmp_dir = f"/tmp/{framework_name}"
     d4j_path = "/Users/davidhidvegi/Desktop/defects4j/framework/bin"
 
+    list_of_bugs_to_fix = [
+        ("Time", [15, 16, 19, 20])
+    ]
+
     framework = Framework(test_framework=framework_name,
                           list_of_bugs = [("Chart", [i for i in range(1, 27)]),
                                           ("Closure", [i for i in range(1, 177) if i != 63 and i != 93]),
@@ -55,7 +59,7 @@ def main():
 
     for project, ids in list_of_bugs_to_fix:
         for bug_id in ids:
-            print(f"Reproducing {project}-{bug_id}")
+            print(f"\n\nReproducing {project}-{bug_id}")
             bug = framework.reproduce_bug(project, bug_id)
 
             row = {key: "" for key in fieldnames}
@@ -69,13 +73,14 @@ def main():
                 for mode in ['SL', 'SH', 'SF']:
                     if mode in bug.bug_type:
                         max_tries = SL_SH_max_tries if mode in ['SL', 'SH'] else SF_max_tries
-                        print(f"Repairing {project}-{bug_id} ({mode})")
+                        print(f"\nStarted repairing {project}-{bug_id} ({mode})")
                         plausible_patches, plausible_patch_diffs, repair_cost, first_plausible_patch_try, first_plausible_patch_conv_len = capr.repair(bug=bug, 
                                                                                                                                                        mode=mode, 
                                                                                                                                                        n_shot_count=n_shot_count,
                                                                                                                                                        stop_after_first_plausible_patch=True,
                                                                                                                                                        max_tries=max_tries,
                                                                                                                                                        max_conv_length=max_conv_length)
+                        print(f"Finished repair of {project}-{bug_id} ({mode})")
 
                         row[f'{mode}_ppc'] = len(plausible_patches)
                         row[f'{mode}_rc'] = repair_cost
