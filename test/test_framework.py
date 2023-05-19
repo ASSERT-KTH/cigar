@@ -4,9 +4,16 @@ from src.framework import Framework
 
 class TestFramework(unittest.TestCase):
 
+    def __init__(self, methodName: str = "runTest") -> None:
+        super().__init__(methodName)
+        self.tmp_dir = f"/tmp/defects4j"
+        self.d4j_path = "/Users/davidhidvegi/Desktop/defects4j/framework/bin"
+
     def test_get_bug_type(self):
         framework = Framework(test_framework="defects4j",
-                              list_of_bugs=None)
+                              list_of_bugs=None,
+                              d4j_path=self.d4j_path,
+                              tmp_dir=self.tmp_dir)
 
         bug_time_58 = framework.reproduce_bug("Time", 6, run_tests=False) # Caused a bug because git show --no-prefix was too small
         expected_bug_type = "OT"
@@ -15,7 +22,9 @@ class TestFramework(unittest.TestCase):
 
     def test_get_buggy_lines(self):
         framework = Framework(test_framework="defects4j",
-                              list_of_bugs=None)
+                              list_of_bugs=None,
+                              d4j_path=self.d4j_path,
+                              tmp_dir=self.tmp_dir)
 
         bug_time_58 = framework.reproduce_bug("Lang", 58, run_tests=False) # Edge case, multiple buggy lines
 
@@ -26,7 +35,9 @@ class TestFramework(unittest.TestCase):
 
     def test_get_fixed_lines(self):
         framework = Framework(test_framework="defects4j",
-                              list_of_bugs=None)
+                              list_of_bugs=None,
+                              d4j_path=self.d4j_path,
+                              tmp_dir=self.tmp_dir)
 
         bug_time_54 = framework.reproduce_bug("Lang", 54, run_tests=False) # Edge case, multiple fixed lines
 
@@ -38,7 +49,9 @@ class TestFramework(unittest.TestCase):
 
     def test_get_test_line(self):
         framework = Framework(test_framework="defects4j",
-                              list_of_bugs=None)
+                              list_of_bugs=None,
+                              d4j_path=self.d4j_path,
+                              tmp_dir=self.tmp_dir)
 
         bug_time_22 = framework.reproduce_bug("Time", 22) # Edge case, has multiple test files with same name
 
@@ -48,7 +61,9 @@ class TestFramework(unittest.TestCase):
 
     def test_get_code(self):
         framework = Framework(test_framework="defects4j",
-                              list_of_bugs=None)
+                              list_of_bugs=None,
+                              d4j_path=self.d4j_path,
+                              tmp_dir=self.tmp_dir)
         
         bug_time_4 = framework.reproduce_bug("Time", 4, run_tests=False) # Edge case containing keywords in comments
         bug_time_24 = framework.reproduce_bug("Time", 24, run_tests=False) # Edge case, selects 2 functions
@@ -59,7 +74,9 @@ class TestFramework(unittest.TestCase):
 
     def test_get_masked_code(self):
         framework = Framework(test_framework="defects4j",
-                              list_of_bugs=None)
+                              list_of_bugs=None,
+                              d4j_path=self.d4j_path,
+                              tmp_dir=self.tmp_dir)
         
         bug_chart_10 = framework.reproduce_bug("Chart", 10, run_tests=False) # SH Bug, 2 line addition, 2 line deletion
 
@@ -72,7 +89,9 @@ class TestFramework(unittest.TestCase):
 
     def test_validate_patch_gson_15(self):
         framework = Framework(test_framework="defects4j",
-                              list_of_bugs=[("Gson", [15])])
+                              list_of_bugs=[("Gson", [15])],
+                              d4j_path=self.d4j_path,
+                              tmp_dir=self.tmp_dir)
 
         bug = framework.reproduce_bug("Gson", 15, run_tests=False)
         mode = "SL"
@@ -92,7 +111,9 @@ class TestFramework(unittest.TestCase):
 
     def test_validate_patch_lang_16(self):
         framework = Framework(test_framework="defects4j",
-                              list_of_bugs=[("Lang", [16])])
+                              list_of_bugs=[("Lang", [16])],
+                              d4j_path=self.d4j_path,
+                              tmp_dir=self.tmp_dir)
 
         bug = framework.reproduce_bug("Lang", 16, run_tests=False)
         mode = "SL"
@@ -116,7 +137,9 @@ class TestFramework(unittest.TestCase):
 
     def test_validate_patch_lang_54(self):
         framework = Framework(test_framework="defects4j",
-                              list_of_bugs=[("Lang", [54])])
+                              list_of_bugs=[("Lang", [54])],
+                              d4j_path=self.d4j_path,
+                              tmp_dir=self.tmp_dir)
 
         bug = framework.reproduce_bug("Lang", 54, run_tests=False) # Single Hunk Bug
 
@@ -129,7 +152,9 @@ class TestFramework(unittest.TestCase):
 
     def test_validate_patch_chart_10(self):
         framework = Framework(test_framework="defects4j",
-                              list_of_bugs=[("Chart", [10])])
+                              list_of_bugs=[("Chart", [10])],
+                              d4j_path=self.d4j_path,
+                              tmp_dir=self.tmp_dir)
 
         bug = framework.reproduce_bug("Chart", 10, run_tests=False) # Single Function Bug, solution contains escape characters
 
@@ -140,7 +165,9 @@ class TestFramework(unittest.TestCase):
 
     def test_validate_patch_time_18(self):
         framework = Framework(test_framework="defects4j",
-                              list_of_bugs=[("Time", [18])])
+                              list_of_bugs=[("Time", [18])],
+                              d4j_path=self.d4j_path,
+                              tmp_dir=self.tmp_dir)
 
         mode = "SF"
         bug = framework.reproduce_bug("Time", 18, run_tests=False)
@@ -224,7 +251,9 @@ class TestFramework(unittest.TestCase):
 
     def test_n_shot_examples(self):
         framework = Framework(test_framework="defects4j",
-                              list_of_bugs=[("Time", [1, 4, 16, 19])])
+                              list_of_bugs=[("Time", [1, 4, 16, 19])],
+                              d4j_path=self.d4j_path,
+                              tmp_dir=self.tmp_dir)
         
         bug = framework.reproduce_bug("Time", 1, run_tests=False)
 
@@ -237,7 +266,9 @@ class TestFramework(unittest.TestCase):
 
     def test_n_shot_examples_excludes_target_bug(self):
         framework = Framework(test_framework="defects4j",
-                              list_of_bugs=[("Time", [1, 4, 16, 19])])
+                              list_of_bugs=[("Time", [1, 4, 16, 19])],
+                              d4j_path=self.d4j_path,
+                              tmp_dir=self.tmp_dir)
         
         bug_id = 16
         project = "Time"
@@ -252,7 +283,9 @@ class TestFramework(unittest.TestCase):
 
     def test_reproduce_bug(self):
         framework = Framework(test_framework="defects4j",
-                              list_of_bugs=[("Time", [1, 4, 16, 19])])
+                              list_of_bugs=[("Time", [1, 4, 16, 19])],
+                              d4j_path=self.d4j_path,
+                              tmp_dir=self.tmp_dir)
         
         bug1 = framework.reproduce_bug("Time", 19)
         bug2 = framework.reproduce_bug("Time", 4)

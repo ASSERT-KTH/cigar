@@ -296,10 +296,14 @@ function validate_patch {
     code_function_first_line_number=$(get_function_line_count_from_line_in_code_block $first_change_line_count_number)
     code_function_last_line_number=$((code_function_first_line_number + code_function_length - 1))
 
-    patched_full_code=$(echo "$full_code" | sed "${code_function_first_line_number},${code_function_last_line_number}d")
-    patched_full_code=$(echo "$patched_full_code" | sed "${code_function_first_line_number}s/^/FUNCTION_HERE\n&/")
+    full_code_without_buggy_function=$(echo "$full_code" | sed "${code_function_first_line_number},${code_function_last_line_number}d")
 
-    patched_full_code="${patched_full_code//FUNCTION_HERE/${patch_function}}"
+    prefix=$(echo "$full_code_without_buggy_function" | head -n $((code_function_first_line_number - 1)))
+    suffix=$(echo "$full_code_without_buggy_function" | tail -n +$((code_function_first_line_number)))
+
+    patched_full_code="${prefix}
+${patch_function}
+${suffix}"
     echo "$patched_full_code" > ${code_file_path}
 
     # Compile and run test
@@ -411,14 +415,18 @@ function get_function_line_count_from_line_in_code_block {
 }
 
 function get_first_change_line_count_number {
+    work_dir=$3
+    cd $work_dir
+
     IFS='∫'
 
-    git_show=$(git show --no-prefix -U9999999)
-    git_diff_code=${git_show##*@@} # take the code from the last @@ sign until the end of file using
-    code_block=$(less $git_diff_code)
-
-    # get first line number that starts with + or -
-    first_change_line_count_number=$(echo "$code_block" | grep -n -m 1 "^[+-]" | cut -d: -f1)
+    git_show=$(git show --no-prefix -U0)
+    
+    first_change_line_count_number=$(echo "$git_show" | grep "^@@" | head -n 2 | tail -n 1) # take the second line that starts with @@
+    first_change_line_count_number=${first_change_line_count_number//@@/} # remove @@
+    first_change_line_count_number=$(echo "${first_change_line_count_number}" | sed 's/^[ \t]*//') # remove space from beginning of line
+    first_change_line_count_number=$(echo "${first_change_line_count_number}" | cut -d' ' -f1) # remove everything after the first space
+    first_change_line_count_number=$(echo "${first_change_line_count_number}" | sed 's/^[+-]//')
 
     echo $first_change_line_count_number
 }
