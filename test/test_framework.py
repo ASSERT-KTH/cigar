@@ -138,6 +138,90 @@ class TestFramework(unittest.TestCase):
         test_result, _ = framework.validate_patch(bug, sf_patch_fix, mode="SF")
         self.assertEqual(test_result, "PASS")
 
+    def test_validate_patch_time_18(self):
+        framework = Framework(test_framework="defects4j",
+                              list_of_bugs=[("Time", [18])])
+
+        mode = "SF"
+        bug = framework.reproduce_bug("Time", 18, run_tests=False)
+
+        original_buggy_code = '''    public long getDateTimeMillis(int year, int monthOfYear, int dayOfMonth,
+                                  int hourOfDay, int minuteOfHour,
+                                  int secondOfMinute, int millisOfSecond)
+        throws IllegalArgumentException
+    {
+        Chronology base;
+        if ((base = getBase()) != null) {
+            return base.getDateTimeMillis
+                (year, monthOfYear, dayOfMonth,
+                 hourOfDay, minuteOfHour, secondOfMinute, millisOfSecond);
+        }
+
+        // Assume date is Gregorian.
+        long instant;
+            instant = iGregorianChronology.getDateTimeMillis
+                (year, monthOfYear, dayOfMonth,
+                 hourOfDay, minuteOfHour, secondOfMinute, millisOfSecond);
+        if (instant < iCutoverMillis) {
+            // Maybe it's Julian.
+            instant = iJulianChronology.getDateTimeMillis
+                (year, monthOfYear, dayOfMonth,
+                 hourOfDay, minuteOfHour, secondOfMinute, millisOfSecond);
+            if (instant >= iCutoverMillis) {
+                // Okay, it's in the illegal cutover gap.
+                throw new IllegalArgumentException("Specified date does not exist");
+            }
+        }
+        return instant;
+    }'''
+        proposed_buggy_code = '''    public long getDateTimeMillis(int year, int monthOfYear, int dayOfMonth,
+                                  int hourOfDay, int minuteOfHour,
+                                  int secondOfMinute, int millisOfSecond)
+        throws IllegalArgumentException
+    {
+        Chronology base;
+        if ((base = getBase()) != null) {
+            return base.getDateTimeMillis
+                (year, monthOfYear, dayOfMonth,
+                 hourOfDay, minuteOfHour, secondOfMinute, millisOfSecond);
+        }
+
+        // Assume date is Gregorian.
+        long instant;
+        if (year > 1582 || year == 1582 && (monthOfYear > 10 || monthOfYear == 10 && dayOfMonth >= 15)) {
+            instant = iGregorianChronology.getDateTimeMillis
+                (year, monthOfYear, dayOfMonth,
+                 hourOfDay, minuteOfHour, secondOfMinute, millisOfSecond);
+            if (instant < iCutoverMillis) {
+                // Maybe it's Julian.
+                instant = iJulianChronology.getDateTimeMillis
+                    (year, monthOfYear, dayOfMonth,
+                     hourOfDay, minuteOfHour, secondOfMinute, millisOfSecond);
+                if (instant >= iCutoverMillis) {
+                    // Okay, it's in the illegal cutover gap.
+                    throw new IllegalArgumentException("Specified date does not exist");
+                }
+            }
+        } else {
+            // Maybe it's Julian.
+            instant = iJulianChronology.getDateTimeMillis
+                (year, monthOfYear, dayOfMonth,
+                 hourOfDay, minuteOfHour, secondOfMinute, millisOfSecond);
+            if (instant < iCutoverMillis) {
+                // Okay, it's after the Gregorian cut-over but before the
+                // start of the Julian calendar.  Drop through.
+                throw new IllegalArgumentException("Specified date does not exist");
+            }
+        }
+        return instant;
+    }'''
+
+        test_result, _ = framework.validate_patch(bug, original_buggy_code, mode)
+        self.assertEqual(test_result, "FAIL")
+
+        # test_result, _ = framework.validate_patch(bug, proposed_buggy_code, mode)
+        # self.assertEqual(test_result, "FAIL")
+
     def test_n_shot_examples(self):
         framework = Framework(test_framework="defects4j",
                               list_of_bugs=[("Time", [1, 4, 16, 19])])
