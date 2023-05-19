@@ -1,5 +1,6 @@
 import csv
 import json
+import logging
 from pathlib import Path
 from src.capr import CAPR
 from src.chatgpt import ChatGPT
@@ -17,10 +18,16 @@ def main():
         # ("Math", [2, 3, 5, 8, 10, 11, 17, 19, 20, 23, 24, 25, 26, 27, 28, 30, 32, 33, 34, 39, 41, 42, 45, 48, 50, 53, 56, 57, 58, 59, 60, 63, 69, 70, 72, 73, 75, 78, 79, 80, 82, 85, 86, 87, 88, 89, 91, 94, 95, 96, 97, 101, 105, 106]),
         # ("Mockito", [12, 22, 24, 29, 33, 34, 38]),
         # ("Time", [4, 5, 15, 16, 18, 19, 20])
+    ]
+
+    list_of_bugs_to_fix = [ # Temporarily list of bugs to fix
         ("Time", [19])
     ]
+
     tmp_dir = f"/tmp/{framework_name}"
     d4j_path = "/Users/davidhidvegi/Desktop/defects4j/framework/bin"
+
+    logging.basicConfig(level=logging.INFO, format='%(funcName)s :: %(levelname)s :: %(message)s')
 
     framework = Framework(test_framework=framework_name,
                           list_of_bugs = [("Chart", [i for i in range(1, 27)]),
@@ -56,7 +63,7 @@ def main():
 
     for project, ids in list_of_bugs_to_fix:
         for bug_id in ids:
-            print(f"\n\nReproducing {project}-{bug_id}")
+            logging.info(f" ---------- Reproducing {project}-{bug_id} ----------")
             bug = framework.get_bug_details(project, bug_id)
 
             row = {key: "" for key in fieldnames}
@@ -70,14 +77,14 @@ def main():
                 for mode in ['SL', 'SH', 'SF']:
                     if mode in bug.bug_type:
                         max_tries = SL_SH_max_tries if mode in ['SL', 'SH'] else SF_max_tries
-                        print(f"\nStarted repairing {project}-{bug_id} ({mode})")
+                        logging.info(f" --- Started repairing {project}-{bug_id} ({mode}) --- ")
                         plausible_patches, plausible_patch_diffs, repair_cost, first_plausible_patch_try, first_plausible_patch_conv_len = capr.repair(bug=bug, 
                                                                                                                                                        mode=mode, 
                                                                                                                                                        n_shot_count=n_shot_count,
                                                                                                                                                        stop_after_first_plausible_patch=True,
                                                                                                                                                        max_tries=max_tries,
                                                                                                                                                        max_conv_length=max_conv_length)
-                        print(f"Finished repair of {project}-{bug_id} ({mode})")
+                        logging.debug(f"Finished repair of {project}-{bug_id} ({mode})")
 
                         row[f'{mode}_ppc'] = len(plausible_patches)
                         row[f'{mode}_rc'] = repair_cost
@@ -91,12 +98,12 @@ def main():
                                 f.writelines(plausible_patch_diff)
 
             else:
-                print(f"Skipping {project}-{bug_id} because it is not SL, SH or SF bug")
+                logging.info(f" --- Skipping {project}-{bug_id}, not SL, SH or SF bug. --- ")
                 row['comment'] += "Not SL, SH or SF bug. "
 
             with open(summary_file_path, 'a', newline='') as csvfile:
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                 writer.writerow(row)
 
-if __name__ == "__main__":
+if __name__ == "__main__": 
     main()

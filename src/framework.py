@@ -1,5 +1,6 @@
 import hashlib
 import json
+import logging
 from pathlib import Path
 from subprocess import PIPE, run
 from src.bug import Bug
@@ -22,38 +23,38 @@ class Framework(object):
         if self.bug_details_cache_folder is not None:
             file_path = f"{self.bug_details_cache_folder}/{project}-{bug_id}.json"
             if Path(file_path).is_file():
-                print (f"Retrieving bug details from cache (project={project}, bug_id={bug_id})")
+                logging.debug(f"Retrieving bug details from cache (project={project}, bug_id={bug_id})")
                 with open(file_path, "r") as f:
                     bug_details = json.load(f)
                 return Bug(**bug_details)
 
         work_dir = f"{self.tmp_dir}/{project}-{bug_id}"
 
-        print(f"Checking out bug (project={project}, bug_id={bug_id}))")
+        logging.debug(f"Checking out bug (project={project}, bug_id={bug_id}))")
         self.run_bash("checkout_bug", work_dir, project, bug_id)
-        print(f"Compiling and running tests")
+        logging.debug(f"Compiling and running tests")
         self.run_bash("compile_and_run_tests", work_dir, project, bug_id)
 
         bug_type = self.run_bash("get_bug_type", work_dir, project, bug_id).stdout
         test_suite, test_name, test_error, test_line, buggy_lines, fixed_lines, code, masked_code, fixed_code = None, None, None, None, None, None, None, None, None
         if bug_type != "OT":
-            print(f"Retreiving test suite")
+            logging.debug(f"Retreiving test suite")
             test_suite = self.run_bash("get_test_suite", work_dir, project, bug_id).stdout
-            print(f"Retreiving test name")
+            logging.debug(f"Retreiving test name")
             test_name = self.run_bash("get_test_name", work_dir, project, bug_id).stdout
-            print(f"Retreiving test error message")
+            logging.debug(f"Retreiving test error message")
             test_error = self.run_bash("get_test_error", work_dir, project, bug_id).stdout
-            print(f"Retreiving test line")
+            logging.debug(f"Retreiving test line")
             test_line = self.run_bash("get_test_line", work_dir, project, bug_id).stdout
-            print(f"Retreiving buggy lines")
+            logging.debug(f"Retreiving buggy lines")
             buggy_lines = self.run_bash("get_buggy_lines", work_dir, project, bug_id).stdout
-            print(f"Retreiving fixed lines")
+            logging.debug(f"Retreiving fixed lines")
             fixed_lines = self.run_bash("get_fixed_lines", work_dir, project, bug_id).stdout
-            print(f"Retreiving code")
+            logging.debug(f"Retreiving code")
             code = self.run_bash("get_code", work_dir, project, bug_id).stdout
-            print(f"Retreiving masked code")
+            logging.debug(f"Retreiving masked code")
             masked_code = self.run_bash("get_masked_code", work_dir, project, bug_id).stdout
-            print(f"Retreiving fixed code")
+            logging.debug(f"Retreiving fixed code")
             fixed_code = self.run_bash("get_fixed_code", work_dir, project, bug_id).stdout
 
         bug = Bug(test_suite=test_suite, test_name=test_name, test_line=test_line, test_error_message=test_error,

@@ -1,3 +1,4 @@
+import logging
 from src.chatgpt import ChatGPT
 from src.framework import Framework
 from src.bug import Bug
@@ -28,23 +29,26 @@ class CAPR(object):
                 current_tries += 1
                 current_conversation_length += 1
 
-                print(f"Repairing attempt of {bug.project}-{bug.bug_id} ({mode}), try {current_tries} (ccl: {current_conversation_length})")
+                logging.debug(f"Repairing attempt of {bug.project}-{bug.bug_id} ({mode}), try {current_tries} (ccl: {current_conversation_length})")
                 response, cost = self.chatgpt.call(prompt, num_of_samples=sample_per_try, prefix=f"{prefix}_{current_tries}")
                 total_cost += cost
 
                 patch = self.extract_patch_from_response(response)
-                print(f"Validating response of {bug.project}-{bug.bug_id} ({mode})")
+                logging.debug(f"Validating response of {bug.project}-{bug.bug_id} ({mode})")
                 test_result, result_reason, patch_diff = self.framework.validate_patch(bug=bug, proposed_patch=patch, mode=mode)
 
                 if test_result == "PASS":
                     plausible_patches.append(patch)
                     plausible_patch_diffs.append(patch_diff)
                     first_plausible_patch_try = current_tries
+                    logging.debug(f"Proposed patch of {bug.project}-{bug.bug_id} ({mode}) patch passed all tests")
                     break
                 elif result_reason == bug.test_error_message:
                     feedback = prompts.test_fail_feedback()
+                    logging.debug(f"Proposed patch of {bug.project}-{bug.bug_id} ({mode}) failed with same error message as original bug")
                 else:
                     feedback = prompts.construct_feedback_prompt(test_result, result_reason, mode)
+                    logging.debug(f"Proposed patch of {bug.project}-{bug.bug_id} ({mode}) failed with a different error message than original bug")
                 
                 prompt.append({"role": "assistant", "content": f"""{response}"""})
                 prompt.append(feedback)
