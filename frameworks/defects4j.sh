@@ -268,11 +268,11 @@ function validate_patch {
     mode=$6
 
     IFS='∫' # preserve white spaces in code
-    export PATH=$PATH:$d4j_path
-    cd $work_dir
-
+    
     # Checkout bug
     checkout_bug $@
+
+    cd $work_dir
 
     # Construct patch_function
     if [[ $mode == "SF" ]]; then
