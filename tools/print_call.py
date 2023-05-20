@@ -5,6 +5,11 @@ from pathlib import Path
 
 def print_calls(chatgpt_cache_path):
     cache_file_names = os.listdir(chatgpt_cache_path)
+    cache_file_names = [path for path in cache_file_names if path.endswith(".json")]
+    
+    # Order cache_file_names by the number after the second underscore, then by the number after the fourth underscore
+    cache_file_names.sort(key=lambda x: (int(x.split('_')[2]), x.split('_')[3],int(x.split("_")[4])))
+
     current_index = 0
 
     while True:
@@ -17,7 +22,6 @@ def print_calls(chatgpt_cache_path):
         else:
             current_index = (current_index+1) % len(cache_file_names)
         
-
 
 def print_call(json_path):    
     with open(json_path, 'r') as file:
