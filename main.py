@@ -30,9 +30,9 @@ def main():
     plausible_patches_folder = Path(__file__).parent / 'data' / 'output' / 'plausible_patches'
 
     fieldnames = ['framework', 'project', 'bug_id', 'bug_type',
-                  'SL_ppc', 'SL_rc', 'SL_fppt', 'SL_fppcl', 'SL_mts',
-                  'SH_ppc', 'SH_rc', 'SH_fppt', 'SH_fppcl', 'SH_mts',
-                  'SF_ppc', 'SF_rc', 'SF_fppt', 'SF_fppcl', 'SF_mts',
+                  'SL_ppc', 'SL_rc', 'SL_fppt', 'SL_fppcl', 'SL_uts', 'SL_mts',
+                  'SH_ppc', 'SH_rc', 'SH_fppt', 'SH_fppcl', 'SH_uts', 'SH_mts',
+                  'SF_ppc', 'SF_rc', 'SF_fppt', 'SF_fppcl', 'SF_uts', 'SF_mts',
                   'max_conv_length', 'comment']
     with open(summary_file_path, 'w', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -61,15 +61,18 @@ def main():
                                                      stop_after_first_plausible_patch=True,
                                                      max_tries=max_tries,
                                                      max_conv_length=user_params.max_conv_length)
-                        plausible_patches, plausible_patch_diffs, repair_cost, first_plausible_patch_try, first_plausible_patch_conv_len = repair_results
-                        logging.debug(f"Finished repair of {project}-{bug_id} ({mode})")
+                        plausible_patches, plausible_patch_diffs, repair_cost, first_plausible_patch_try, first_plausible_patch_conv_len, used_tries = repair_results
 
                         row[f'{mode}_ppc'] = len(plausible_patches)
                         row[f'{mode}_rc'] = repair_cost
+                        row[f'{mode}_uts'] = used_tries
                         row[f'{mode}_mts'] = max_tries
                         if len(plausible_patches) > 0:
                             row[f'{mode}_fppt'] = first_plausible_patch_try
                             row[f'{mode}_fppcl'] = first_plausible_patch_conv_len
+                            logging.info(f"Finished repair attempt of {project}-{bug_id} ({mode}), found {len(plausible_patches)} plausible patches. Used {used_tries} tries totalling {repair_cost} tokens.")
+                        else:
+                            logging.info(f"Finished repair attempt of {project}-{bug_id} ({mode}), no plausible patches found. Used {used_tries} tries totalling {repair_cost} tokens.")
 
                         for i, plausible_patch_diff in enumerate(plausible_patch_diffs):
                             with open(f'{plausible_patches_folder}/{project}_{bug_id}_{mode}_{i}.diff', 'w+') as f:

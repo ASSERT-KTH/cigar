@@ -68,7 +68,7 @@ class CAPR(object):
                     plausible_patches.append(patch)
                     plausible_patch_diffs.append(patch_diff)
         
-        return plausible_patches, plausible_patch_diffs, total_cost, first_plausible_patch_try, current_conversation_length
+        return plausible_patches, plausible_patch_diffs, total_cost, first_plausible_patch_try, current_conversation_length, current_tries
     
     def extract_patch_from_response(self, response):
 
