@@ -27,15 +27,22 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-- Add openai key to `openai_api_key.env` file in root folder of capr
+- Duplicate the `user_params.py.template` file in root folder, name the duplicate file `user_params.py`
 
-- Set the `TMP_DIR` (path to checkout the bugs to) and `D4J_PATH` (path that points to your defects4j/framework/bin) in the params.py file
+- Set the `TMP_DIR` (path to checkout the bugs to), `D4J_PATH` (path that points to your defects4j/framework/bin) and `API_KEY` (your openai api key) in the `user_params.py` file
 
-- Run the following command with your `TMP_DIR` and `D4J_PATH` to check if everything was setup properly
+- Now you can run capr.py with the following command
+```
+$(pwd)/venv/bin/python3 "$(pwd)/main.py"
+```
+
+## Tests
+
+To test your `TMP_DIR` and `D4J_PATH` settings, you can run the following command from the root folder.
 
 ```
-TMP_DIR="/tmp/defects4j"
-D4J_PATH="/home/david/Desktop/defects4j/framework/bin"
+TMP_DIR=$(grep TMP_DIR user_params.py | grep -o '".*"' | sed 's/"//g')
+D4J_PATH=$(grep D4J_PATH user_params.py | grep -o '".*"' | sed 's/"//g')
 
 bug_id=1
 project="Time"
@@ -51,8 +58,4 @@ After running the command above you should see the following console output:
 ```
 Check out program version: Time-1b......................................... OK
 ```
-
-- Run capr.py
-```
-$(pwd)/venv/bin/python3 "$(pwd)/main.py"
-```
+And you should find the bug in the `$TMP_DIR` folder, that you've set.

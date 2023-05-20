@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from subprocess import PIPE, run
 from src.bug import Bug
-from params import Params as params
+from prog_params import ProgParams as prog_params
 
 class Framework(object):
     def __init__(self, test_framework, list_of_bugs, d4j_path, tmp_dir, 
@@ -18,7 +18,7 @@ class Framework(object):
         self.tmp_dir = tmp_dir
         self.bug_details_cache_folder = bug_details_cache_folder
 
-        self.shell_script_folder = params.shell_script_folder
+        self.shell_script_folder = prog_params.shell_script_folder
 
     def get_bug_details(self, project, bug_id):
         if self.bug_details_cache_folder is not None:

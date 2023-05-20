@@ -5,36 +5,24 @@ from pathlib import Path
 from src.capr import CAPR
 from src.chatgpt import ChatGPT
 from src.framework import Framework
-from params import Params as params
+from prog_params import ProgParams as prog_params
+from user_params import UserParams as user_params
 
 def main():
-    SL_SH_max_tries, SF_max_tries = 6, 6
-    n_shot_count = 1
-    max_conv_length = 3
-    framework_name = "defects4j"
-    list_of_bugs_to_fix = [ # All Bugs fixed by the authors
-        # ("Chart", [1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 17, 20, 24, 26]),
-        # ("Closure", [2, 5, 7, 10, 11, 13, 15, 18, 19, 20, 22, 31, 33, 36, 38, 44, 51, 52, 56, 57, 58, 61, 62, 65, 67, 70, 73, 77, 78, 83, 86, 92, 94, 97, 101, 102, 104, 107, 119, 122, 124, 125, 126, 128, 129, 131, ]),
-        # ("Lang", [3, 10, 11, 12, 14, 16, 18, 21, 22, 24, 26, 27, 28, 29, 31, 33, 37, 38, 39, 40, 42, 43, 44, 45, 48, 51, 52, 54, 55, 57, 58, 59, 61]),
-        # ("Math", [2, 3, 5, 8, 10, 11, 17, 19, 20, 23, 24, 25, 26, 27, 28, 30, 32, 33, 34, 39, 41, 42, 45, 48, 50, 53, 56, 57, 58, 59, 60, 63, 69, 70, 72, 73, 75, 78, 79, 80, 82, 85, 86, 87, 88, 89, 91, 94, 95, 96, 97, 101, 105, 106]),
-        # ("Mockito", [12, 22, 24, 29, 33, 34, 38]),
-        # ("Time", [4, 5, 15, 16, 18, 19, 20])
-    ]
+    logging.basicConfig(level=user_params.logging_level, format='%(funcName)s :: %(levelname)s :: %(message)s')
 
-    logging.basicConfig(level=logging.DEBUG, format='%(funcName)s :: %(levelname)s :: %(message)s')
-
-    framework = Framework(test_framework=framework_name,
-                          list_of_bugs = params.list_of_d4j_bugs, 
-                          d4j_path=params.D4J_PATH,
-                          tmp_dir=params.TMP_DIR,
-                          validate_patch_cache_folder=params.validate_patch_cache_folder,
-                          n_shot_cache_folder=params.n_shot_cache_folder,
-                          bug_details_cache_folder=params.bug_details_cache_folder)
-    chatgpt = ChatGPT(model=params.model, 
-                    api_key_path=params.api_key_path,
-                    cache_folder=params.chatgpt_cache_folder,
-                    load_from_cache=True,
-                    save_to_cache=True)
+    framework = Framework(test_framework="defects4j",
+                          list_of_bugs = prog_params.list_of_d4j_bugs, 
+                          d4j_path=user_params.D4J_PATH,
+                          tmp_dir=user_params.TMP_DIR,
+                          validate_patch_cache_folder=prog_params.validate_patch_cache_folder,
+                          n_shot_cache_folder=prog_params.n_shot_cache_folder,
+                          bug_details_cache_folder=prog_params.bug_details_cache_folder)
+    chatgpt = ChatGPT(model=prog_params.model, 
+                      api_key=user_params.API_KEY,
+                      cache_folder=prog_params.chatgpt_cache_folder,
+                      load_from_cache=True,
+                      save_to_cache=True)
     capr = CAPR(chatgpt=chatgpt, 
                 framework=framework)
     
@@ -50,29 +38,29 @@ def main():
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
 
-    for project, ids in list_of_bugs_to_fix:
+    for project, ids in user_params.list_of_bugs_to_fix:
         for bug_id in ids:
             logging.info(f" ---------- Reproducing {project}-{bug_id} ----------")
             bug = framework.get_bug_details(project, bug_id)
 
             row = {key: "" for key in fieldnames}
-            row['framework'] = framework_name
+            row['framework'] = "defects4j"
             row['project'] = project
             row['bug_id'] = bug_id
             row['bug_type'] = bug.bug_type
-            row['max_conv_length'] = max_conv_length
+            row['max_conv_length'] = user_params.max_conv_length
 
             if bug.bug_type != "OT":
                 for mode in ['SL', 'SH', 'SF']:
                     if mode in bug.bug_type:
-                        max_tries = SL_SH_max_tries if mode in ['SL', 'SH'] else SF_max_tries
+                        max_tries = user_params.SL_SH_max_tries if mode in ['SL', 'SH'] else user_params.SF_max_tries
                         logging.info(f" --- Started repairing {project}-{bug_id} ({mode}) --- ")
                         repair_results = capr.repair(bug=bug, 
                                                      mode=mode, 
-                                                     n_shot_count=n_shot_count,
+                                                     n_shot_count=user_params.n_shot_count,
                                                      stop_after_first_plausible_patch=True,
                                                      max_tries=max_tries,
-                                                     max_conv_length=max_conv_length)
+                                                     max_conv_length=user_params.max_conv_length)
                         plausible_patches, plausible_patch_diffs, repair_cost, first_plausible_patch_try, first_plausible_patch_conv_len = repair_results
                         logging.debug(f"Finished repair of {project}-{bug_id} ({mode})")
 

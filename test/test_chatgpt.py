@@ -2,12 +2,12 @@ import unittest
 from unittest.mock import patch
 from src.chatgpt import ChatGPT
 from pathlib import Path
-from params import Params as params
+from user_params import UserParams as user_params
 
 class TestChatGPT(unittest.TestCase):
     def __init__(self, methodName: str = "runTest") -> None:
         super().__init__(methodName)
-        self.api_key_path = params.api_key_path
+        self.api_key = user_params.API_KEY
         self.test_cache_path = Path(__file__).parent / 'test_chatgpt_cache'
         self.mocked_prompt = [
             {"role": "system", "content": "You are a helpful assistant."},
@@ -90,7 +90,7 @@ class TestChatGPT(unittest.TestCase):
 
     @unittest.skip("Skipping test_openai_call because it requires an OpenAI API key")
     def test_openai_call(self):
-        chatgpt = ChatGPT(api_key_path=self.api_key_path, 
+        chatgpt = ChatGPT(api_key=self.api_key, 
                           cache_folder=self.test_cache_path, 
                           load_from_cache=False, 
                           save_to_cache=True)

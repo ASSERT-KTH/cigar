@@ -3,32 +3,33 @@ from pathlib import Path
 from src.chatgpt import ChatGPT
 from src.capr import CAPR
 from src.framework import Framework
-from params import Params as params
+from prog_params import ProgParams as prog_params
+from user_params import UserParams as user_params
 
 class TestCAPR(unittest.TestCase):
     def __init__(self, methodName: str = "runTest") -> None:
         super().__init__(methodName)
-        self.chatgpt_model = params.model
-        self.chatgpt_api_key_path = params.api_key_path
+        self.chatgpt_model = prog_params.model
+        self.chatgpt_api_key = user_params.API_KEY
         self.cache_folder = Path(__file__).parent / 'test_capr_cache'
 
     def test_init(self):
         chatgpt = ChatGPT(model=self.chatgpt_model, 
-                          api_key_path=self.chatgpt_api_key_path,
+                          api_key=self.chatgpt_api_key,
                           cache_folder=self.cache_folder,
                           load_from_cache=True,
                           save_to_cache=True)
-        framework = Framework("defects4j", list_of_bugs=[("Chart", [1])], d4j_path=params.D4J_PATH, tmp_dir=params.TMP_DIR)
+        framework = Framework("defects4j", list_of_bugs=[("Chart", [1])], d4j_path=user_params.D4J_PATH, tmp_dir=user_params.TMP_DIR)
         capr = CAPR(chatgpt=chatgpt, framework=framework)
         self.assertIsInstance(capr, CAPR)
 
     def test_extract_patch_from_response(self):
         chatgpt = ChatGPT(model=self.chatgpt_model, 
-                          api_key_path=self.chatgpt_api_key_path,
+                          api_key=self.chatgpt_api_key,
                           cache_folder=self.cache_folder,
                           load_from_cache=True,
                           save_to_cache=True)
-        framework = Framework("defects4j", list_of_bugs=None, d4j_path=params.D4J_PATH, tmp_dir=params.TMP_DIR)
+        framework = Framework("defects4j", list_of_bugs=None, d4j_path=user_params.D4J_PATH, tmp_dir=user_params.TMP_DIR)
         capr = CAPR(chatgpt=chatgpt, framework=framework)
         
         response_patch_pairs = [
@@ -43,11 +44,11 @@ class TestCAPR(unittest.TestCase):
 
     def test_extract_patch_from_response_with_multiple_lines(self):
         chatgpt = ChatGPT(model=self.chatgpt_model, 
-                          api_key_path=self.chatgpt_api_key_path,
+                          api_key=self.chatgpt_api_key,
                           cache_folder=self.cache_folder,
                           load_from_cache=True,
                           save_to_cache=True)
-        framework = Framework("defects4j", list_of_bugs=None, d4j_path=params.D4J_PATH, tmp_dir=params.TMP_DIR)
+        framework = Framework("defects4j", list_of_bugs=None, d4j_path=user_params.D4J_PATH, tmp_dir=user_params.TMP_DIR)
         capr = CAPR(chatgpt=chatgpt, framework=framework)
         
         response_patch_pairs = [
