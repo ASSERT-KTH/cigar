@@ -271,8 +271,8 @@ function validate_patch {
     export PATH=$PATH:$d4j_path
     cd $work_dir
 
-    # Restore original git state
-    git restore .
+    # Checkout bug
+    checkout_bug $@
 
     # Construct patch_function
     if [[ $mode == "SF" ]]; then
