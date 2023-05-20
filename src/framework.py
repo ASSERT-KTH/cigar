@@ -126,6 +126,9 @@ class Framework(object):
             bug_id = bug.bug_id
             work_dir = f"{self.tmp_dir}/{project}-{bug_id}"
 
+            if not Path(f"{work_dir}/.git").is_dir():
+                self.run_bash("checkout_bug", work_dir, bug.project, bug.bug_id)
+
             result = self.run_bash("validate_patch", work_dir, project, bug_id, proposed_patch, mode)
             patch_diff = self.run_bash("get_patch_git_diff", work_dir, bug.project, bug.bug_id).stdout
             

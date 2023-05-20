@@ -268,11 +268,9 @@ function validate_patch {
     mode=$6
 
     IFS='∫' # preserve white spaces in code
-    
-    # Checkout bug
-    checkout_bug $@
-
     cd $work_dir
+
+    git restore .
 
     # Construct patch_function
     if [[ $mode == "SF" ]]; then
