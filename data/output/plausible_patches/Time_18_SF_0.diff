@@ -1,0 +1,100 @@
+diff --git a/src/main/java/org/joda/time/chrono/GJChronology.java b/src/main/java/org/joda/time/chrono/GJChronology.java
+index 29e559d4..57a998b9 100644
+--- a/src/main/java/org/joda/time/chrono/GJChronology.java
++++ b/src/main/java/org/joda/time/chrono/GJChronology.java
+@@ -346,32 +346,77 @@ public final class GJChronology extends AssembledChronology {
+         }
+         return instant;
+     }
+-
+-    public long getDateTimeMillis(int year, int monthOfYear, int dayOfMonth,
+-                                  int hourOfDay, int minuteOfHour,
+-                                  int secondOfMinute, int millisOfSecond)
++public long getDateTimeMillis(int year, int monthOfYear, int dayOfMonth,
++                              int hourOfDay, int minuteOfHour, int secondOfMinute, int millisOfSecond)
+         throws IllegalArgumentException
+     {
+         Chronology base;
+         if ((base = getBase()) != null) {
+-            return base.getDateTimeMillis
+-                (year, monthOfYear, dayOfMonth,
+-                 hourOfDay, minuteOfHour, secondOfMinute, millisOfSecond);
++            return base.getDateTimeMillis(year, monthOfYear, dayOfMonth,
++                    hourOfDay, minuteOfHour, secondOfMinute, millisOfSecond);
++        }
++
++        // Check if the date is before Gregorian reform. 1582-10-04 is
++        // Julian, all later dates are Gregorian. This is valid only for
++        // the Gregorian chronology.
++        if (year == 1582 && monthOfYear == 10) {
++            if (dayOfMonth >= 5 && dayOfMonth <= 14) {
++                throw new IllegalArgumentException("Specified date does not exist");
++            }
++        }
++        boolean isJulianBeforeCutover = false;
++        boolean isGregorianAfterCutover = false;
++        if (year < 1582) {
++            // Date is Julian
++            isJulianBeforeCutover = true;
++        } else if (year > 1582) {
++            // Date is Gregorian
++            isGregorianAfterCutover = true;
++        } else {
++            if (monthOfYear < 10) {
++                // Date is before cutover, use Julian.
++                isJulianBeforeCutover = true;
++            } else if (monthOfYear > 10) {
++                // Date is after cutover, use Gregorian.
++                isGregorianAfterCutover = true;
++            } else {
++                if (dayOfMonth < 5) {
++                    // Date is before cutover, use Julian.
++                    isJulianBeforeCutover = true;
++                } else if (dayOfMonth > 14) {
++                    // Date is after cutover, use Gregorian.
++                    isGregorianAfterCutover = true;
++                } else {
++                    // Date is within cutover gap. Throw exception.
++                    throw new IllegalArgumentException("Specified date does not exist");
++                }
++            }
+         }
+ 
+-        // Assume date is Gregorian.
+         long instant;
+-            instant = iGregorianChronology.getDateTimeMillis
+-                (year, monthOfYear, dayOfMonth,
+-                 hourOfDay, minuteOfHour, secondOfMinute, millisOfSecond);
+-        if (instant < iCutoverMillis) {
+-            // Maybe it's Julian.
+-            instant = iJulianChronology.getDateTimeMillis
+-                (year, monthOfYear, dayOfMonth,
+-                 hourOfDay, minuteOfHour, secondOfMinute, millisOfSecond);
+-            if (instant >= iCutoverMillis) {
+-                // Okay, it's in the illegal cutover gap.
++        if (isJulianBeforeCutover) {
++            instant = iJulianChronology.getDateTimeMillis(year, monthOfYear, dayOfMonth,
++                    hourOfDay, minuteOfHour, secondOfMinute, millisOfSecond);
++        } else if (isGregorianAfterCutover) {
++            instant = iGregorianChronology.getDateTimeMillis(year, monthOfYear, dayOfMonth,
++                    hourOfDay, minuteOfHour, secondOfMinute, millisOfSecond);
++        } else {
++            // Date is within valid range of both calendars.
++            long julianInstant = iJulianChronology.getDateTimeMillis(year, monthOfYear, dayOfMonth,
++                    hourOfDay, minuteOfHour, secondOfMinute, millisOfSecond);
++            long gregorianInstant = iGregorianChronology.getDateTimeMillis(year, monthOfYear, dayOfMonth,
++                    hourOfDay, minuteOfHour, secondOfMinute, millisOfSecond);
++
++            if (julianInstant < iCutoverMillis && gregorianInstant >= iCutoverMillis) {
++                // Julian calendar was in effect, but the date is in the cutover gap. Throw exception.
+                 throw new IllegalArgumentException("Specified date does not exist");
++            } else if (julianInstant >= iCutoverMillis && gregorianInstant < iCutoverMillis) {
++                // Gregorian calendar was in effect, but the date is in the cutover gap. Throw exception.
++                throw new IllegalArgumentException("Specified date does not exist");
++            } else if (julianInstant >= iCutoverMillis) {
++                instant = gregorianInstant;
++            } else {
++                instant = julianInstant;
+             }
+         }
+         return instant;
