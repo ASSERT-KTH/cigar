@@ -22,9 +22,10 @@ virtualenv venv
 source venv/bin/activate
 ```
 
-- Install the requiremets
+- Install the requiremets and svn (for Chart bugs)
 ```
 pip install -r requirements.txt
+sudo apt-get install subversion
 ```
 
 - Duplicate the `user_params.py.template` file in root folder, name the duplicate file `user_params.py`
