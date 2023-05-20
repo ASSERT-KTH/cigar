@@ -21,11 +21,7 @@ def main():
         # ("Time", [4, 5, 15, 16, 18, 19, 20])
     ]
 
-    list_of_bugs_to_fix = [ # Temporarily list of bugs to fix
-        ("Time", [19])
-    ]
-
-    logging.basicConfig(level=logging.INFO, format='%(funcName)s :: %(levelname)s :: %(message)s')
+    logging.basicConfig(level=logging.DEBUG, format='%(funcName)s :: %(levelname)s :: %(message)s')
 
     framework = Framework(test_framework=framework_name,
                           list_of_bugs = params.list_of_d4j_bugs, 
