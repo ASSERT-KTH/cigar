@@ -70,3 +70,18 @@ After running the command above you should see the following console output:
 Check out program version: Time-1b......................................... OK
 ```
 And you should find the bug in the `$TMP_DIR` folder, that you've set.
+
+## Continuous Running
+
+As explained [here](https://stackoverflow.com/questions/696839/how-do-i-write-a-bash-script-to-restart-a-process-if-it-dies) you can start the script in a loop, so that it restarts if it crashes. (Which happens often with the openai api)
+
+```
+function run_capr {
+    $(pwd)/venv/bin/python3 "$(pwd)/main.py"
+}
+
+until run_capr; do
+    echo "CAPR crashed with exit code $?. Restaring in a second..."
+    sleep 1
+done
+```
