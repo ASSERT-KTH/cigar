@@ -8,6 +8,17 @@
 
 ## Reproducability
 
+### Setup Pre-requisites
+
+Make sure defects4j is setup on your computer properly and you can checkout any active bug in Chart, Closure, Lang, Math, Mockito and Time projects.
+
+- For Chart bugs you may need to install svn
+```
+sudo apt-get install subversion
+```
+
+### Setup CAPR
+
 Steps to reproduce the results:
 
 - Clone the repo, cd into folder
@@ -22,10 +33,9 @@ virtualenv venv
 source venv/bin/activate
 ```
 
-- Install the requiremets and svn (for Chart bugs)
+- Install the requiremets
 ```
 pip install -r requirements.txt
-sudo apt-get install subversion
 ```
 
 - Duplicate the `user_params.py.template` file in root folder, name the duplicate file `user_params.py`
