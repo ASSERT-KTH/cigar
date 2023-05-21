@@ -133,9 +133,15 @@ class Framework(object):
             patch_diff = self.run_bash("get_patch_git_diff", work_dir, bug.project, bug.bug_id).stdout
             
             if result.returncode == 1:
-                result_reason = result.stderr
-                result_reason = result_reason[result_reason.find("error: "):]
-                result_reason = result_reason[:result_reason.find("\n")]
+                if result.stderr.find("error: ") > 0:
+                    result_reason = result.stderr
+                    result_reason = result_reason[result_reason.find("error: "):]
+                    result_reason = result_reason[:result_reason.find("\n")]
+                else:
+                    stderr_lines = result.stderr.split("\n")
+                    build_failed_line_i = next((i for i, line in enumerate(stderr_lines) if "BUILD FAILED" in line), None) # line number of line that contains "BUILD FAILED"
+                    result_reason = stderr_lines[build_failed_line_i+1]
+                    result_reason = result_reason[result_reason.find(' '):]
 
                 test_result, result_reason = "ERROR", result_reason # compilation error
             else:

@@ -266,6 +266,51 @@ class TestFramework(unittest.TestCase):
         test_result, _, _ = framework.validate_patch(bug, proposed_buggy_code, mode)
         self.assertEqual(test_result, "FAIL")
 
+    def test_validate_patch_time_16_compilation_error_reason(self):
+        framework = Framework(test_framework="defects4j",
+                              list_of_bugs=[("Time", [16])],
+                              d4j_path=user_params.D4J_PATH,
+                              tmp_dir=user_params.TMP_DIR)
+
+        bug = framework.get_bug_details("Time", 16) # Single Function Bug, Compilation Error doesn't contain 'error' in stderr
+
+        buggy_function_code = '''    public int parseInto(ReadWritableInstant instant, String text, int position) {
+        DateTimeParser parser = requireParser();
+        if (instant == null) {
+            throw new IllegalArgumentException("Instant must not be null");
+        }
+
+        long instantMillis = instant.getMillis();
+        Chronology chrono = instant.getChronology();
+        chrono = selectChronology(chrono);
+        DateTimeParserBucket bucket = new DateTimeParserBucket(
+            instantMillis, chrono, iLocale, iPivotYear, iDefaultYear);
+        int newPos = parser.parseInto(bucket, text, position);
+        if (bucket.computeMillis(false, text) <= instantMillis) {
+            newPos = ~position;
+        } else {
+            instant.setMillis(bucket.computeMillis(false, text));
+            if (iOffsetParsed && bucket.getOffsetInteger() != null) {
+                int parsedOffset = bucket.getOffsetInteger();
+                DateTimeZone parsedZone = DateTimeZone.forOffsetMillis(parsedOffset);
+                chrono = chrono.withZone(parsedZone);
+            } else if (bucket.getZone() != null) {
+                chrono = chrono.withZone(bucket.getZone());
+            }
+            instant.setChronology(chrono);
+            if (iZone != null) {
+                instant.setZone(iZone);
+            }
+        }
+        return newPos;
+    }'''
+        expected_test_reason = " java.lang.IllegalArgumentException: 0"
+
+        test_result, test_reason, _ = framework.validate_patch(bug, buggy_function_code, mode="SF")
+        self.assertEqual(test_result, "ERROR")
+        self.assertEqual(test_reason, expected_test_reason)
+
+
     def test_n_shot_examples(self):
         framework = Framework(test_framework="defects4j",
                               list_of_bugs=[("Time", [1, 4, 16, 19])],
