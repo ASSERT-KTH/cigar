@@ -30,9 +30,9 @@ def main():
     plausible_patches_folder = Path(__file__).parent / 'data' / 'output' / 'plausible_patches'
 
     fieldnames = ['framework', 'project', 'bug_id', 'bug_type',
-                  'SL_ppc', 'SL_rc', 'SL_fppt', 'SL_fppcl', 'SL_uts', 'SL_mts',
-                  'SH_ppc', 'SH_rc', 'SH_fppt', 'SH_fppcl', 'SH_uts', 'SH_mts',
-                  'SF_ppc', 'SF_rc', 'SF_fppt', 'SF_fppcl', 'SF_uts', 'SF_mts',
+                  'SL_ppc', 'SL_rc', 'SL_fppt', 'SL_fppcl', 'SL_uts', 'SL_mts', 'SL_errtf', 'SL_errce',
+                  'SH_ppc', 'SH_rc', 'SH_fppt', 'SH_fppcl', 'SH_uts', 'SH_mts', 'SH_errtf', 'SH_errce',
+                  'SF_ppc', 'SF_rc', 'SF_fppt', 'SF_fppcl', 'SF_uts', 'SF_mts', 'SF_errtf', 'SF_errce',
                   'max_conv_length', 'comment']
     with open(summary_file_path, 'w', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -61,12 +61,14 @@ def main():
                                                      stop_after_first_plausible_patch=True,
                                                      max_tries=max_tries,
                                                      max_conv_length=user_params.max_conv_length)
-                        plausible_patches, plausible_patch_diffs, repair_cost, first_plausible_patch_try, first_plausible_patch_conv_len, used_tries = repair_results
+                        plausible_patches, plausible_patch_diffs, repair_cost, first_plausible_patch_try, first_plausible_patch_conv_len, used_tries, err_tf, err_ce = repair_results
 
                         row[f'{mode}_ppc'] = len(plausible_patches)
                         row[f'{mode}_rc'] = repair_cost
                         row[f'{mode}_uts'] = used_tries
                         row[f'{mode}_mts'] = max_tries
+                        row[f'{mode}_errtf'] = err_tf
+                        row[f'{mode}_errce'] = err_ce
                         if len(plausible_patches) > 0:
                             row[f'{mode}_fppt'] = first_plausible_patch_try
                             row[f'{mode}_fppcl'] = first_plausible_patch_conv_len

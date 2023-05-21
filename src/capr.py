@@ -19,6 +19,8 @@ class CAPR(object):
         current_conversation_length = 0
         current_tries = 0
         total_cost = 0
+        err_tf = 0
+        err_ce = 0
         prefix = f"{self.framework.test_framework}_{bug.project}_{bug.bug_id}_{mode}"
 
         while (current_tries < max_tries and len(plausible_patches) == 0):
@@ -49,6 +51,11 @@ class CAPR(object):
                 else:
                     feedback = prompts.construct_feedback_prompt(test_result, result_reason, mode)
                     logging.debug(f"Proposed patch of {bug.project}-{bug.bug_id} ({mode}) failed with a different error message than original bug")
+
+                if test_result == "FAIL":
+                    err_tf += 1
+                elif test_result == "ERROR":
+                    err_ce += 1
                 
                 prompt.append({"role": "assistant", "content": f"""{response}"""})
                 prompt.append(feedback)
@@ -67,8 +74,13 @@ class CAPR(object):
                 if test_result == "PASS" and patch not in plausible_patches:
                     plausible_patches.append(patch)
                     plausible_patch_diffs.append(patch_diff)
+
+                if test_result == "FAIL":
+                    err_tf += 1
+                elif test_result == "ERROR":
+                    err_ce += 1
         
-        return plausible_patches, plausible_patch_diffs, total_cost, first_plausible_patch_try, current_conversation_length, current_tries
+        return plausible_patches, plausible_patch_diffs, total_cost, first_plausible_patch_try, current_conversation_length, current_tries, err_tf, err_ce
     
     def extract_patch_from_response(self, response):
 
