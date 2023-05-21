@@ -89,7 +89,8 @@ class Framework(object):
 
                 if mode in n_shot_bug.bug_type:
                     code_len = len(n_shot_bug.code)
-                    n_shot_list.append({"bug_id": bug_id, "code_len": code_len})
+                    if code_len > 0:
+                        n_shot_list.append({"bug_id": bug_id, "code_len": code_len})
             
             n_shot_list = sorted(n_shot_list, key=lambda k: k['code_len'])
 
