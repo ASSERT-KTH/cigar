@@ -104,6 +104,30 @@ class TestFramework(unittest.TestCase):
         test_result, _, _ = framework.validate_patch(bug, code_fixed_should_pass, mode)
         self.assertEqual(test_result, "PASS")
 
+    def test_validate_patch_chart_10(self):
+        framework = Framework(test_framework="defects4j",
+                              list_of_bugs=[("Closure", [10])],
+                              d4j_path=user_params.D4J_PATH,
+                              tmp_dir=user_params.TMP_DIR)
+
+        bug = framework.get_bug_details("Closure", 10) # Single Function Bug (fixed by the authors)
+
+        test_result, _, _ = framework.validate_patch(bug, bug.fixed_lines, mode="SL")
+        self.assertEqual(test_result, "PASS")
+
+    def test_validate_patch_closure_10(self):
+        framework = Framework(test_framework="defects4j",
+                              list_of_bugs=[("Chart", [10])],
+                              d4j_path=user_params.D4J_PATH,
+                              tmp_dir=user_params.TMP_DIR)
+
+        bug = framework.get_bug_details("Chart", 10) # Single Function Bug, solution contains escape characters
+
+        sf_patch_fix = bug.fixed_code
+
+        test_result, _, _ = framework.validate_patch(bug, sf_patch_fix, mode="SF")
+        self.assertEqual(test_result, "PASS")
+
     def test_validate_patch_lang_16(self):
         framework = Framework(test_framework="defects4j",
                               list_of_bugs=[("Lang", [16])],
@@ -145,17 +169,15 @@ class TestFramework(unittest.TestCase):
         test_result, _, _ = framework.validate_patch(bug, code_fixed_should_pass, mode="SH")
         self.assertEqual(test_result, "PASS")
 
-    def test_validate_patch_chart_10(self):
+    def test_validate_patch_math_10(self):
         framework = Framework(test_framework="defects4j",
-                              list_of_bugs=[("Chart", [10])],
+                              list_of_bugs=[("Math", [10])],
                               d4j_path=user_params.D4J_PATH,
                               tmp_dir=user_params.TMP_DIR)
 
-        bug = framework.get_bug_details("Chart", 10) # Single Function Bug, solution contains escape characters
+        bug = framework.get_bug_details("Math", 10) # Single Function Bug (fixed by the authors)
 
-        sf_patch_fix = bug.fixed_code
-
-        test_result, _, _ = framework.validate_patch(bug, sf_patch_fix, mode="SF")
+        test_result, _, _ = framework.validate_patch(bug, bug.fixed_lines, mode="SL")
         self.assertEqual(test_result, "PASS")
 
     def test_validate_patch_time_18(self):
