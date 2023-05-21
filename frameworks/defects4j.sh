@@ -193,9 +193,10 @@ function get_test_line {
     test_line_count=${test_line_count%%)*} # trim test_line_count to remove everything after )
 
     test_file_name=${log_line_at_test_suite#*at} # trim log_line_at_test_suite to remove everything before at
-    test_file_name=${test_file_name%%(*} # trim log_line_at_test_suite to remove everything after (
-    test_file_name=${test_file_name%.*} # trim log_line_at_test_suite to remove everything after the last .
-    test_file_name=${test_file_name##*.} # trim log_line_at_test_suite to remove everything before last .
+    test_file_name=${test_file_name%%(*} # trim test_file_name to remove everything after (
+    test_file_name=${test_file_name%.*} # trim test_file_name to remove everything after the last .
+    test_file_name=${test_file_name##*.} # trim test_file_name to remove everything before last .
+    test_file_name=$(echo "$test_file_name" | sed 's/[$].*//') # remove everything from the first $ sign
 
     test_file_path=$(exec find $work_dir | grep "/${test_file_name}.java")
     test_file_path=$(echo "$test_file_path" | awk '{ print length, $0 }' | sort -n | cut -d" " -f2- | sed '1!d') # Order each line in test_file_path by length and get the first line
