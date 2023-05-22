@@ -11,34 +11,32 @@ from user_params import UserParams as user_params
 def main():
     logging.basicConfig(level=user_params.logging_level, format='%(funcName)s :: %(levelname)s :: %(message)s')
 
-    framework = Framework(test_framework="defects4j",
-                          list_of_bugs = prog_params.list_of_d4j_bugs, 
-                          d4j_path=user_params.D4J_PATH,
-                          tmp_dir=user_params.TMP_DIR,
+    framework = Framework(test_framework="defects4j", list_of_bugs = prog_params.list_of_d4j_bugs, 
+                          d4j_path=user_params.D4J_PATH, tmp_dir=user_params.TMP_DIR,
                           validate_patch_cache_folder=prog_params.validate_patch_cache_folder,
                           n_shot_cache_folder=prog_params.n_shot_cache_folder,
                           bug_details_cache_folder=prog_params.bug_details_cache_folder)
-    chatgpt = ChatGPT(model=prog_params.model, 
-                      api_key=user_params.API_KEY,
+    chatgpt = ChatGPT(model=prog_params.model, api_key=user_params.API_KEY,
                       cache_folder=prog_params.chatgpt_cache_folder,
-                      load_from_cache=True,
-                      save_to_cache=True)
+                      load_from_cache=True, save_to_cache=True)
     capr = CAPR(chatgpt=chatgpt, 
                 framework=framework)
     
-    summary_file_path = Path(__file__).parent / 'data' / 'output' / 'summary.csv'
     plausible_patches_folder = Path(__file__).parent / 'data' / 'output' / 'plausible_patches'
 
-    fieldnames = ['framework', 'project', 'bug_id', 'bug_type',
-                  'SL_ppc', 'SL_rc', 'SL_fppt', 'SL_fppcl', 'SL_uts', 'SL_mts', 'SL_errtf', 'SL_errce',
-                  'SH_ppc', 'SH_rc', 'SH_fppt', 'SH_fppcl', 'SH_uts', 'SH_mts', 'SH_errtf', 'SH_errce',
-                  'SF_ppc', 'SF_rc', 'SF_fppt', 'SF_fppcl', 'SF_uts', 'SF_mts', 'SF_errtf', 'SF_errce',
-                  'max_conv_length', 'comment']
-    with open(summary_file_path, 'w', newline='') as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-
     for project, ids in user_params.list_of_bugs_to_fix:
+
+        summary_file_path = Path(__file__).parent / 'data' / 'output' / f'{project}_summary.csv'
+
+        fieldnames = ['framework', 'project', 'bug_id', 'bug_type',
+                    'SL_ppc', 'SL_rc', 'SL_fppt', 'SL_fppcl', 'SL_uts', 'SL_mts', 'SL_errtf', 'SL_errce',
+                    'SH_ppc', 'SH_rc', 'SH_fppt', 'SH_fppcl', 'SH_uts', 'SH_mts', 'SH_errtf', 'SH_errce',
+                    'SF_ppc', 'SF_rc', 'SF_fppt', 'SF_fppcl', 'SF_uts', 'SF_mts', 'SF_errtf', 'SF_errce',
+                    'max_conv_length', 'comment']
+        with open(summary_file_path, 'w', newline='') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+
         for bug_id in ids:
             logging.info(f" ---------- Reproducing {project}-{bug_id} ----------")
             bug = framework.get_bug_details(project, bug_id)
