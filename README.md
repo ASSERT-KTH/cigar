@@ -17,6 +17,17 @@ Make sure defects4j is setup on your computer properly and you can checkout any 
 sudo apt-get install subversion
 ```
 
+- For Mockito bugs you may need to export JAVA_HOME before running the python script, you can find your java path with the following command
+
+```
+# Find your java path
+/usr/libexec/java_home -V
+
+# Export it & run the script
+export JAVA_HOME="/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home"
+$(pwd)/venv/bin/python3 "$(pwd)/main.py"
+```
+
 ### Setup CAPR
 
 Steps to reproduce the results:
