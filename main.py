@@ -12,7 +12,7 @@ def main():
     logging.basicConfig(level=user_params.logging_level, format='%(funcName)s :: %(levelname)s :: %(message)s')
 
     framework = Framework(test_framework="defects4j", list_of_bugs = prog_params.list_of_d4j_bugs, 
-                          d4j_path=user_params.D4J_PATH, tmp_dir=user_params.TMP_DIR,
+                          d4j_path=user_params.D4J_PATH, java_home=user_params.JAVA_HOME, tmp_dir=user_params.TMP_DIR,
                           validate_patch_cache_folder=prog_params.validate_patch_cache_folder,
                           n_shot_cache_folder=prog_params.n_shot_cache_folder,
                           bug_details_cache_folder=prog_params.bug_details_cache_folder)
