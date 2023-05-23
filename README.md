@@ -17,17 +17,6 @@ Make sure defects4j is setup on your computer properly and you can checkout any 
 sudo apt-get install subversion
 ```
 
-- For Mockito bugs you may need to export JAVA_HOME before running the python script, you can find your java path with the following command
-
-```
-# Find your java path
-/usr/libexec/java_home -V
-
-# Export it & run the script
-export JAVA_HOME="/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home"
-$(pwd)/venv/bin/python3 "$(pwd)/main.py"
-```
-
 ### Setup CAPR
 
 Steps to reproduce the results:
@@ -51,7 +40,7 @@ pip install -r requirements.txt
 
 - Duplicate the `user_params.py.template` file in root folder, name the duplicate file `user_params.py`
 
-- Set the `TMP_DIR` (path to checkout the bugs to), `D4J_PATH` (path that points to your defects4j/framework/bin) and `API_KEY` (your openai api key) in the `user_params.py` file
+- Set the `TMP_DIR` (path to checkout the bugs to), `JAVA_HOME` (path to Java home directory) `D4J_PATH` (path that points to your defects4j/framework/bin) and `API_KEY` (your openai api key) in the `user_params.py` file
 
 - Now you can run capr.py with the following command
 ```
@@ -64,16 +53,18 @@ To test your `TMP_DIR` and `D4J_PATH` settings, you can run the following comman
 
 ```
 TMP_DIR=$(grep TMP_DIR user_params.py | grep -o '".*"' | sed 's/"//g')
+JAVA_HOME=$(grep JAVA_HOME user_params.py | grep -o '".*"' | sed 's/"//g')
 D4J_PATH=$(grep D4J_PATH user_params.py | grep -o '".*"' | sed 's/"//g')
 
 bug_id=1
 project="Time"
 command="checkout_bug"
 work_dir="$TMP_DIR/$project-$bug_id/"
+java_home="$JAVA_HOME"
 d4j_path="$D4J_PATH"
 
 cd frameworks
-bash defects4j.sh "$command" "$project" "$bug_id" "$work_dir" "$d4j_path"
+bash defects4j.sh "$command" "$project" "$bug_id" "$work_dir" "$java_home" "$d4j_path"
 cd -
 ```
 After running the command above you should see the following console output:

@@ -4,7 +4,7 @@ function checkout_bug {
     project_id=$1
     bug_id=$2
     work_dir=$3
-    d4j_path=$4
+    d4j_path=$5
 
     rm -rf $work_dir
     export PATH=$PATH:$d4j_path
@@ -18,10 +18,12 @@ function compile_and_run_tests {
     project_id=$1
     bug_id=$2
     work_dir=$3
-    d4j_path=$4
+    java_home=$4
+    d4j_path=$5
     
     cd $work_dir
     
+    export JAVA_HOME=$java_home
     export PATH=$PATH:$d4j_path
     defects4j compile
     defects4j test -r
@@ -267,9 +269,9 @@ function validate_patch {
     set -e
 
     work_dir=$3
-    d4j_path=$4
-    patch=$5
-    mode=$6
+    d4j_path=$5
+    patch=$6
+    mode=$7
 
     IFS='∫' # preserve white spaces in code
     cd $work_dir
@@ -317,7 +319,7 @@ function get_patch_git_diff {
     set -e
 
     work_dir=$3
-    d4j_path=$4
+    d4j_path=$5
 
     IFS='∫' # preserve white spaces in code
     cd $work_dir

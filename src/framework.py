@@ -7,7 +7,7 @@ from src.bug import Bug
 from prog_params import ProgParams as prog_params
 
 class Framework(object):
-    def __init__(self, test_framework, list_of_bugs, d4j_path, tmp_dir, 
+    def __init__(self, test_framework, list_of_bugs, d4j_path, java_home, tmp_dir, 
                  bug_details_cache_folder=None, validate_patch_cache_folder=None, n_shot_cache_folder=None):
         assert test_framework in ["defects4j", "quixbugs"]
         self.test_framework = test_framework
@@ -15,6 +15,7 @@ class Framework(object):
         self.validate_patch_cache_folder = validate_patch_cache_folder
         self.n_shot_cache_folder = n_shot_cache_folder
         self.d4j_path = d4j_path
+        self.java_home = java_home
         self.tmp_dir = tmp_dir
         self.bug_details_cache_folder = bug_details_cache_folder
 
@@ -161,7 +162,7 @@ class Framework(object):
         return test_result, result_reason, patch_diff
     
     def run_bash(self, function, work_dir, project, bug_id, extra_arg1=None, extra_arg2=None):
-        command = ['bash', f'{self.shell_script_folder}/{self.test_framework}.sh', function, f"{project}", f"{bug_id}", f"{work_dir}", f"{self.d4j_path}", f"{extra_arg1}", f"{extra_arg2}"]
+        command = ['bash', f'{self.shell_script_folder}/{self.test_framework}.sh', function, f"{project}", f"{bug_id}", f"{work_dir}", f"{self.java_home}", f"{self.d4j_path}", f"{extra_arg1}", f"{extra_arg2}"]
         result = run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True)
         if len(result.stdout) > 0:
             if result.stdout[-1] == "\n":

@@ -5,21 +5,23 @@ from user_params import UserParams as user_params
 
 class TestFramework(unittest.TestCase):
 
+    def __init__(self, methodName: str = "runTest") -> None:
+        super().__init__(methodName)
+        self.d4j_path = user_params.D4J_PATH
+        self.java_home = user_params.JAVA_HOME
+        self.tmp_dir = user_params.TMP_DIR
+
     def test_get_bug_type(self):
-        framework = Framework(test_framework="defects4j",
-                              list_of_bugs=None,
-                              d4j_path=user_params.D4J_PATH,
-                              tmp_dir=user_params.TMP_DIR)
+        framework = Framework(test_framework="defects4j", list_of_bugs=None,
+                              d4j_path=self.d4j_path, java_home=self.java_home, tmp_dir=self.tmp_dir)
 
         bug_time_6 = framework.get_bug_details("Time", 6) # Caused a bug because git show --no-prefix was too small
         
         self.assertEqual(bug_time_6.bug_type, "OT")
 
     def test_get_buggy_lines(self):
-        framework = Framework(test_framework="defects4j",
-                              list_of_bugs=None,
-                              d4j_path=user_params.D4J_PATH,
-                              tmp_dir=user_params.TMP_DIR)
+        framework = Framework(test_framework="defects4j", list_of_bugs=None,
+                              d4j_path=self.d4j_path, java_home=self.java_home, tmp_dir=self.tmp_dir)
 
         bug_time_58 = framework.get_bug_details("Lang", 58) # Edge case, multiple buggy lines
 
@@ -29,10 +31,8 @@ class TestFramework(unittest.TestCase):
         self.assertEqual(bug_time_58.buggy_lines, expected_buggy_lines)
 
     def test_get_fixed_lines(self):
-        framework = Framework(test_framework="defects4j",
-                              list_of_bugs=None,
-                              d4j_path=user_params.D4J_PATH,
-                              tmp_dir=user_params.TMP_DIR)
+        framework = Framework(test_framework="defects4j", list_of_bugs=None,
+                              d4j_path=self.d4j_path, java_home=self.java_home, tmp_dir=self.tmp_dir)
 
         bug_time_54 = framework.get_bug_details("Lang", 54) # Edge case, multiple fixed lines
 
@@ -43,10 +43,8 @@ class TestFramework(unittest.TestCase):
         self.assertEqual(bug_time_54.fixed_lines, expected_fixed_lines)
 
     def test_get_test_line_time_22(self):
-        framework = Framework(test_framework="defects4j",
-                              list_of_bugs=None,
-                              d4j_path=user_params.D4J_PATH,
-                              tmp_dir=user_params.TMP_DIR)
+        framework = Framework(test_framework="defects4j", list_of_bugs=None,
+                              d4j_path=self.d4j_path, java_home=self.java_home, tmp_dir=self.tmp_dir)
 
         bug_time_22 = framework.get_bug_details("Time", 22) # Edge case, has multiple test files with same name
 
@@ -55,10 +53,8 @@ class TestFramework(unittest.TestCase):
         self.assertEqual(bug_time_22.test_line, expected_test_line)
 
     def test_get_test_line_math_34(self):
-        framework = Framework(test_framework="defects4j",
-                              list_of_bugs=None,
-                              d4j_path=user_params.D4J_PATH,
-                              tmp_dir=user_params.TMP_DIR)
+        framework = Framework(test_framework="defects4j", list_of_bugs=None,
+                              d4j_path=self.d4j_path, java_home=self.java_home, tmp_dir=self.tmp_dir)
 
         bug_math_34 = framework.get_bug_details("Math", 34) # Contained a bug, test_line was never found
 
@@ -67,10 +63,8 @@ class TestFramework(unittest.TestCase):
         self.assertEqual(bug_math_34.test_line, expected_test_line)
 
     def test_get_code(self):
-        framework = Framework(test_framework="defects4j",
-                              list_of_bugs=None,
-                              d4j_path=user_params.D4J_PATH,
-                              tmp_dir=user_params.TMP_DIR)
+        framework = Framework(test_framework="defects4j", list_of_bugs=None,
+                              d4j_path=self.d4j_path, java_home=self.java_home, tmp_dir=self.tmp_dir)
         
         bug_time_4 = framework.get_bug_details("Time", 4) # Edge case containing keywords in comments
         bug_time_24 = framework.get_bug_details("Time", 24) # Edge case, selects 2 functions
@@ -80,10 +74,8 @@ class TestFramework(unittest.TestCase):
         self.assertEqual(bug_time_24.code.count("public") + bug_time_24.code.count("private"), 1)
 
     def test_get_masked_code(self):
-        framework = Framework(test_framework="defects4j",
-                              list_of_bugs=None,
-                              d4j_path=user_params.D4J_PATH,
-                              tmp_dir=user_params.TMP_DIR)
+        framework = Framework(test_framework="defects4j", list_of_bugs=None,
+                              d4j_path=self.d4j_path, java_home=self.java_home, tmp_dir=self.tmp_dir)
         
         bug_chart_10 = framework.get_bug_details("Chart", 10) # SH Bug, 2 line addition, 2 line deletion
 
@@ -95,10 +87,8 @@ class TestFramework(unittest.TestCase):
         self.assertEqual(bug_chart_10.masked_code, expected_masked_code)
 
     def test_validate_patch_gson_15(self):
-        framework = Framework(test_framework="defects4j",
-                              list_of_bugs=[("Gson", [15])],
-                              d4j_path=user_params.D4J_PATH,
-                              tmp_dir=user_params.TMP_DIR)
+        framework = Framework(test_framework="defects4j", list_of_bugs=None,
+                              d4j_path=self.d4j_path, java_home=self.java_home, tmp_dir=self.tmp_dir)
 
         bug = framework.get_bug_details("Gson", 15)
         mode = "SL"
@@ -117,10 +107,8 @@ class TestFramework(unittest.TestCase):
         self.assertEqual(test_result, "PASS")
 
     def test_validate_patch_chart_10(self):
-        framework = Framework(test_framework="defects4j",
-                              list_of_bugs=[("Closure", [10])],
-                              d4j_path=user_params.D4J_PATH,
-                              tmp_dir=user_params.TMP_DIR)
+        framework = Framework(test_framework="defects4j", list_of_bugs=None,
+                              d4j_path=self.d4j_path, java_home=self.java_home, tmp_dir=self.tmp_dir)
 
         bug = framework.get_bug_details("Closure", 10) # Single Function Bug (fixed by the authors)
 
@@ -128,10 +116,8 @@ class TestFramework(unittest.TestCase):
         self.assertEqual(test_result, "PASS")
 
     def test_validate_patch_closure_10(self):
-        framework = Framework(test_framework="defects4j",
-                              list_of_bugs=[("Chart", [10])],
-                              d4j_path=user_params.D4J_PATH,
-                              tmp_dir=user_params.TMP_DIR)
+        framework = Framework(test_framework="defects4j", list_of_bugs=None,
+                              d4j_path=self.d4j_path, java_home=self.java_home, tmp_dir=self.tmp_dir)
 
         bug = framework.get_bug_details("Chart", 10) # Single Function Bug, solution contains escape characters
 
@@ -141,10 +127,8 @@ class TestFramework(unittest.TestCase):
         self.assertEqual(test_result, "PASS")
 
     def test_validate_patch_lang_16(self):
-        framework = Framework(test_framework="defects4j",
-                              list_of_bugs=[("Lang", [16])],
-                              d4j_path=user_params.D4J_PATH,
-                              tmp_dir=user_params.TMP_DIR)
+        framework = Framework(test_framework="defects4j", list_of_bugs=None,
+                              d4j_path=self.d4j_path, java_home=self.java_home, tmp_dir=self.tmp_dir)
 
         bug = framework.get_bug_details("Lang", 16)
         mode = "SL"
@@ -167,10 +151,8 @@ class TestFramework(unittest.TestCase):
         self.assertEqual(test_result, "PASS")
 
     def test_validate_patch_lang_54(self):
-        framework = Framework(test_framework="defects4j",
-                              list_of_bugs=[("Lang", [54])],
-                              d4j_path=user_params.D4J_PATH,
-                              tmp_dir=user_params.TMP_DIR)
+        framework = Framework(test_framework="defects4j", list_of_bugs=None,
+                              d4j_path=self.d4j_path, java_home=self.java_home, tmp_dir=self.tmp_dir)
 
         bug = framework.get_bug_details("Lang", 54) # Single Hunk Bug
 
@@ -182,21 +164,27 @@ class TestFramework(unittest.TestCase):
         self.assertEqual(test_result, "PASS")
 
     def test_validate_patch_math_10(self):
-        framework = Framework(test_framework="defects4j",
-                              list_of_bugs=[("Math", [10])],
-                              d4j_path=user_params.D4J_PATH,
-                              tmp_dir=user_params.TMP_DIR)
+        framework = Framework(test_framework="defects4j", list_of_bugs=None,
+                              d4j_path=self.d4j_path, java_home=self.java_home, tmp_dir=self.tmp_dir)
 
         bug = framework.get_bug_details("Math", 10) # Single Function Bug (fixed by the authors)
 
         test_result, _, _ = framework.validate_patch(bug, bug.fixed_lines, mode="SL")
         self.assertEqual(test_result, "PASS")
 
+    def test_validate_patch_mockito_24(self):
+        framework = Framework(test_framework="defects4j", list_of_bugs=None,
+                              d4j_path=self.d4j_path, java_home=self.java_home, tmp_dir=self.tmp_dir)
+
+        mode = "SL"
+        bug = framework.get_bug_details("Mockito", 24)
+
+        test_result, _, _ = framework.validate_patch(bug, bug.fixed_lines, mode)
+        self.assertEqual(test_result, "PASS")
+
     def test_validate_patch_time_18(self):
-        framework = Framework(test_framework="defects4j",
-                              list_of_bugs=[("Time", [18])],
-                              d4j_path=user_params.D4J_PATH,
-                              tmp_dir=user_params.TMP_DIR)
+        framework = Framework(test_framework="defects4j", list_of_bugs=None,
+                              d4j_path=self.d4j_path, java_home=self.java_home, tmp_dir=self.tmp_dir)
 
         mode = "SF"
         bug = framework.get_bug_details("Time", 18)
@@ -279,10 +267,8 @@ class TestFramework(unittest.TestCase):
         self.assertEqual(test_result, "FAIL")
 
     def test_validate_patch_time_16_compilation_error_reason(self):
-        framework = Framework(test_framework="defects4j",
-                              list_of_bugs=[("Time", [16])],
-                              d4j_path=user_params.D4J_PATH,
-                              tmp_dir=user_params.TMP_DIR)
+        framework = Framework(test_framework="defects4j", list_of_bugs=None,
+                              d4j_path=self.d4j_path, java_home=self.java_home, tmp_dir=self.tmp_dir)
 
         bug = framework.get_bug_details("Time", 16) # Single Function Bug, Compilation Error doesn't contain 'error' in stderr
 
@@ -324,10 +310,8 @@ class TestFramework(unittest.TestCase):
 
 
     def test_n_shot_examples(self):
-        framework = Framework(test_framework="defects4j",
-                              list_of_bugs=[("Time", [1, 4, 16, 19])],
-                              d4j_path=user_params.D4J_PATH,
-                              tmp_dir=user_params.TMP_DIR)
+        framework = Framework(test_framework="defects4j", list_of_bugs=[("Time", [1, 4, 16, 19])],
+                              d4j_path=self.d4j_path, java_home=self.java_home, tmp_dir=self.tmp_dir)
         
         bug = framework.get_bug_details("Time", 1)
 
@@ -339,10 +323,8 @@ class TestFramework(unittest.TestCase):
         self.assertEqual(n_shot_bug_ids, expected_n_shot_bug_ids)
 
     def test_n_shot_examples_excludes_target_bug(self):
-        framework = Framework(test_framework="defects4j",
-                              list_of_bugs=[("Time", [1, 4, 16, 19])],
-                              d4j_path=user_params.D4J_PATH,
-                              tmp_dir=user_params.TMP_DIR)
+        framework = Framework(test_framework="defects4j", list_of_bugs=[("Time", [1, 4, 16, 19])],
+                              d4j_path=self.d4j_path, java_home=self.java_home, tmp_dir=self.tmp_dir)
         
         bug_id = 16
         project = "Time"
@@ -356,10 +338,8 @@ class TestFramework(unittest.TestCase):
         self.assertEqual(n_shot_bug_ids, expected_n_shot_bug_ids)
 
     def test_reproduce_bug(self):
-        framework = Framework(test_framework="defects4j",
-                              list_of_bugs=[("Time", [1, 4, 16, 19])],
-                              d4j_path=user_params.D4J_PATH,
-                              tmp_dir=user_params.TMP_DIR)
+        framework = Framework(test_framework="defects4j", list_of_bugs=None,
+                              d4j_path=self.d4j_path, java_home=self.java_home, tmp_dir=self.tmp_dir)
         
         bug1 = framework.get_bug_details("Time", 19)
         bug2 = framework.get_bug_details("Time", 5)
