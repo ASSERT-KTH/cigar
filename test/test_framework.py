@@ -42,7 +42,7 @@ class TestFramework(unittest.TestCase):
         
         self.assertEqual(bug_time_54.fixed_lines, expected_fixed_lines)
 
-    def test_get_test_line(self):
+    def test_get_test_line_time_22(self):
         framework = Framework(test_framework="defects4j",
                               list_of_bugs=None,
                               d4j_path=user_params.D4J_PATH,
@@ -53,6 +53,18 @@ class TestFramework(unittest.TestCase):
         expected_test_line = """            assertEquals(0, test.getWeeks());"""
         
         self.assertEqual(bug_time_22.test_line, expected_test_line)
+
+    def test_get_test_line_math_34(self):
+        framework = Framework(test_framework="defects4j",
+                              list_of_bugs=None,
+                              d4j_path=user_params.D4J_PATH,
+                              tmp_dir=user_params.TMP_DIR)
+
+        bug_math_34 = framework.get_bug_details("Math", 34) # Contained a bug, test_line was never found
+
+        expected_test_line = "" # Test line cannot be found
+        
+        self.assertEqual(bug_math_34.test_line, expected_test_line)
 
     def test_get_code(self):
         framework = Framework(test_framework="defects4j",

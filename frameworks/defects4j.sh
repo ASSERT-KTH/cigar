@@ -201,7 +201,10 @@ function get_test_line {
     test_file_path=$(exec find $work_dir | grep "/${test_file_name}.java")
     test_file_path=$(echo "$test_file_path" | awk '{ print length, $0 }' | sort -n | cut -d" " -f2- | sed '1!d') # Order each line in test_file_path by length and get the first line
 
-    test_line=$(exec sed "${test_line_count}!d" $test_file_path)
+    # if test_file_path is not empty and test_line_count is not empty
+    if [ ! -z "$test_file_path" ] && [ ! -z "$test_line_count" ]; then
+        test_line=$(exec sed "${test_line_count}!d" $test_file_path)
+    fi
 
     echo $test_line
 }
