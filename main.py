@@ -8,7 +8,7 @@ from src.framework import Framework
 from prog_params import ProgParams as prog_params
 from user_params import UserParams as user_params
 
-def main():
+def main(project=None, bug_ids=None):
     logging.basicConfig(level=user_params.logging_level, format='%(funcName)s :: %(levelname)s :: %(message)s')
 
     framework = Framework(test_framework="defects4j", list_of_bugs = prog_params.list_of_d4j_bugs, 
@@ -24,7 +24,14 @@ def main():
     
     plausible_patches_folder = Path(__file__).parent / 'data' / 'output' / 'plausible_patches'
 
-    for project, ids in user_params.list_of_bugs_to_fix:
+    if project is not None and bug_ids is not None:
+        list_of_bugs_to_fix = [(project, bug_ids)]
+    elif project is not None:
+        list_of_bugs_to_fix = [(project, [ids for proj, ids in prog_params.list_of_d4j_bugs if proj == project][0])]
+    else:
+        list_of_bugs_to_fix = user_params.list_of_bugs_to_fix
+
+    for project, ids in list_of_bugs_to_fix:
 
         summary_file_path = Path(__file__).parent / 'data' / 'output' / f'{project}_summary.csv'
 
@@ -86,5 +93,16 @@ def main():
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                 writer.writerow(row)
 
-if __name__ == "__main__": 
-    main()
+if __name__ == '__main__':
+    import argparse
+
+    project_choices = [p for p, _ in prog_params.list_of_d4j_bugs]
+
+    parser = argparse.ArgumentParser(description='Run CAPR on D4J Bugs')
+
+    parser.add_argument('--proj', metavar='path', required=False, help='Project name', 
+                        choices=project_choices)
+    parser.add_argument('--bug_ids', metavar='path', required=False, help='List of bug_ids to repair', type=int, nargs='+')
+    
+    args = parser.parse_args()
+    main(project=args.proj, bug_ids=args.bug_ids)
