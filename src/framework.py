@@ -132,7 +132,7 @@ class Framework(object):
             result = self.run_bash("validate_patch", project, bug_id, proposed_patch, mode)
             patch_diff = self.run_bash("get_patch_git_diff", bug.project, bug.bug_id).stdout
             
-            if result.returncode == 1:
+            if result.returncode != 0:
                 if result.stderr.find("error: ") > 0:
                     result_reason = result.stderr
                     result_reason = result_reason[result_reason.find("error: "):]
