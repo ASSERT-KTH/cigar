@@ -100,9 +100,9 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Run CAPR on D4J Bugs')
 
-    parser.add_argument('--proj', metavar='path', required=False, help='Project name', 
+    parser.add_argument('-p', '--proj', metavar='path', required=False, help='Project name', 
                         choices=project_choices)
-    parser.add_argument('--bug_ids', metavar='path', required=False, help='List of bug_ids to repair', type=int, nargs='+')
+    parser.add_argument('-bs', '--bug_ids', metavar='path', required=False, help='List of bug_ids to repair', type=int, nargs='+')
     
     args = parser.parse_args()
     main(project=args.proj, bug_ids=args.bug_ids)
