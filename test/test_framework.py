@@ -11,13 +11,26 @@ class TestFramework(unittest.TestCase):
         self.java_home = user_params.JAVA_HOME
         self.tmp_dir = user_params.TMP_DIR
 
-    def test_get_bug_type(self):
+    def test_get_bug_type_time_6(self):
         framework = Framework(test_framework="defects4j", list_of_bugs=None,
                               d4j_path=self.d4j_path, java_home=self.java_home, tmp_dir=self.tmp_dir)
 
         bug_time_6 = framework.get_bug_details("Time", 6) # Caused a bug because git show --no-prefix was too small
         
         self.assertEqual(bug_time_6.bug_type, "OT")
+
+    def test_get_bug_type_mockito_5(self):
+        framework = Framework(test_framework="defects4j", list_of_bugs=None,
+                              d4j_path=self.d4j_path, java_home=self.java_home, tmp_dir=self.tmp_dir)
+
+        project = "Mockito"
+        bug_id = "5"
+
+        framework.run_bash("checkout_bug", project, bug_id)
+
+        bug_mockito_5_bug_type = framework.run_bash("get_bug_type", project, bug_id).stdout
+        
+        self.assertEqual(bug_mockito_5_bug_type, "SL SH SF")
 
     def test_get_buggy_lines(self):
         framework = Framework(test_framework="defects4j", list_of_bugs=None,

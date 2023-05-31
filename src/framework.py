@@ -30,34 +30,32 @@ class Framework(object):
                     bug_details = json.load(f)
                 return Bug(**bug_details)
 
-        work_dir = f"{self.tmp_dir}/{project}-{bug_id}"
-
         logging.debug(f"Checking out bug (project={project}, bug_id={bug_id}))")
-        self.run_bash("checkout_bug", work_dir, project, bug_id)
-        logging.debug(f"Compiling and running tests")
-        self.run_bash("compile_and_run_tests", work_dir, project, bug_id)
+        self.run_bash("checkout_bug", project, bug_id)
 
-        bug_type = self.run_bash("get_bug_type", work_dir, project, bug_id).stdout
+        bug_type = self.run_bash("get_bug_type", project, bug_id).stdout
         test_suite, test_name, test_error, test_line, buggy_lines, fixed_lines, code, masked_code, fixed_code = None, None, None, None, None, None, None, None, None
         if bug_type != "OT":
+            logging.debug(f"Compiling and running tests")
+            self.run_bash("compile_and_run_tests", project, bug_id)
             logging.debug(f"Retreiving test suite")
-            test_suite = self.run_bash("get_test_suite", work_dir, project, bug_id).stdout
+            test_suite = self.run_bash("get_test_suite", project, bug_id).stdout
             logging.debug(f"Retreiving test name")
-            test_name = self.run_bash("get_test_name", work_dir, project, bug_id).stdout
+            test_name = self.run_bash("get_test_name", project, bug_id).stdout
             logging.debug(f"Retreiving test error message")
-            test_error = self.run_bash("get_test_error", work_dir, project, bug_id).stdout
+            test_error = self.run_bash("get_test_error", project, bug_id).stdout
             logging.debug(f"Retreiving test line")
-            test_line = self.run_bash("get_test_line", work_dir, project, bug_id).stdout
+            test_line = self.run_bash("get_test_line", project, bug_id).stdout
             logging.debug(f"Retreiving buggy lines")
-            buggy_lines = self.run_bash("get_buggy_lines", work_dir, project, bug_id).stdout
+            buggy_lines = self.run_bash("get_buggy_lines", project, bug_id).stdout
             logging.debug(f"Retreiving fixed lines")
-            fixed_lines = self.run_bash("get_fixed_lines", work_dir, project, bug_id).stdout
+            fixed_lines = self.run_bash("get_fixed_lines", project, bug_id).stdout
             logging.debug(f"Retreiving code")
-            code = self.run_bash("get_code", work_dir, project, bug_id).stdout
+            code = self.run_bash("get_code", project, bug_id).stdout
             logging.debug(f"Retreiving masked code")
-            masked_code = self.run_bash("get_masked_code", work_dir, project, bug_id).stdout
+            masked_code = self.run_bash("get_masked_code", project, bug_id).stdout
             logging.debug(f"Retreiving fixed code")
-            fixed_code = self.run_bash("get_fixed_code", work_dir, project, bug_id).stdout
+            fixed_code = self.run_bash("get_fixed_code", project, bug_id).stdout
 
         bug = Bug(test_suite=test_suite, test_name=test_name, test_line=test_line, test_error_message=test_error,
                   buggy_lines=buggy_lines, fixed_lines=fixed_lines, code=code, masked_code=masked_code, fixed_code=fixed_code,
@@ -129,10 +127,10 @@ class Framework(object):
             work_dir = f"{self.tmp_dir}/{project}-{bug_id}"
 
             if not Path(f"{work_dir}/.git").is_dir():
-                self.run_bash("checkout_bug", work_dir, bug.project, bug.bug_id)
+                self.run_bash("checkout_bug", bug.project, bug.bug_id)
 
-            result = self.run_bash("validate_patch", work_dir, project, bug_id, proposed_patch, mode)
-            patch_diff = self.run_bash("get_patch_git_diff", work_dir, bug.project, bug.bug_id).stdout
+            result = self.run_bash("validate_patch", project, bug_id, proposed_patch, mode)
+            patch_diff = self.run_bash("get_patch_git_diff", bug.project, bug.bug_id).stdout
             
             if result.returncode == 1:
                 if result.stderr.find("error: ") > 0:
@@ -153,7 +151,7 @@ class Framework(object):
                     test_result, result_reason = "PASS", "all tests passed" # test pass
                 else:
                     test_result = "FAIL" # test fail
-                    result_reason = self.run_bash("get_test_error", work_dir, project, bug_id).stdout
+                    result_reason = self.run_bash("get_test_error", project, bug_id).stdout
 
             if self.validate_patch_cache_folder is not None:
                 with open(cache_file_path, "w") as file:
@@ -161,7 +159,8 @@ class Framework(object):
             
         return test_result, result_reason, patch_diff
     
-    def run_bash(self, function, work_dir, project, bug_id, extra_arg1=None, extra_arg2=None):
+    def run_bash(self, function, project, bug_id, extra_arg1=None, extra_arg2=None):
+        work_dir = f"{self.tmp_dir}/{project}-{bug_id}"
         command = ['bash', f'{self.shell_script_folder}/{self.test_framework}.sh', function, f"{project}", f"{bug_id}", f"{work_dir}", f"{self.java_home}", f"{self.d4j_path}", f"{extra_arg1}", f"{extra_arg2}"]
         result = run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True)
         if len(result.stdout) > 0:
