@@ -26,7 +26,9 @@ function compile_and_run_tests {
     export JAVA_HOME=$java_home
     export PATH=$PATH:$d4j_path
     defects4j compile
-    defects4j test -r
+
+    timeout_seconds=300
+    timeout $timeout_seconds "defects4j test -r"
 }
 
 function get_bug_type {
@@ -473,6 +475,30 @@ function get_git_show_function_code {
 
     echo ${code_block}
 }
+
+# From https://unix.stackexchange.com/questions/43340/how-to-introduce-timeout-for-shell-scripting
+################################################################################
+# Executes command with a timeout
+# Params:
+#   $1 timeout in seconds
+#   $2 command
+# Returns 1 if timed out 0 otherwise
+function timeout {
+
+    time=$1
+
+    # start the command in a subshell to avoid problem with pipes
+    # (spawn accepts one command)
+    command="/bin/bash -c \"$2\""
+
+    expect -c "set echo \"-noecho\"; set timeout $time; spawn -noecho $command; expect timeout { exit 1 } eof { exit 0 }"    
+
+    if [ $? = 1 ] ; then
+        exit 1
+    fi
+
+}
+
 
 # ------------------------------
 

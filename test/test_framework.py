@@ -321,6 +321,59 @@ class TestFramework(unittest.TestCase):
         self.assertEqual(test_result, "ERROR")
         self.assertEqual(test_reason, expected_test_reason)
 
+    def test_validate_patch_timeout_lang_22(self):
+        framework = Framework(test_framework="defects4j", list_of_bugs=None,
+                              d4j_path=self.d4j_path, java_home=self.java_home, tmp_dir=self.tmp_dir)
+
+        bug = framework.get_bug_details("Lang", 22) # Single Function Bug, ChatGPT proposed a patch that has infinite while loop
+
+        proposed_patch = '''private static int greatestCommonDivisor(int a, int b) {
+    if (Math.abs(a) <= 1 || Math.abs(b) <= 1) { // either operand is abs 1, return 1
+        return 1;
+    }
+    int gcd = 1;
+    if (a == 0 || b == 0) { // if one operand is 0, return the other
+        return Math.abs(a) + Math.abs(b);
+    }
+    // keep a and b negative, as negative integers range down to
+    // -2^31, while positive numbers can only be as large as 2^31-1
+    if (a > 0) {
+        a = -a;
+    }
+    if (b > 0) {
+        b = -b;
+    }
+
+    // extract common factors of 2
+    int k = 0;
+    while ((a & 1) == 0 && (b & 1) == 0) {
+        a /= 2;
+        b /= 2;
+        k++;
+    }
+
+    // reduce a and b
+    while (a != 0 && b != 0) {
+        while ((a & 1) == 0) {
+            a /= 2;
+        }
+        while ((b & 1) == 0) {
+            b /= 2;
+        }
+        if (Math.abs(a) >= Math.abs(b)) {
+            a = a + b;
+        } else {
+            b = a + b;
+        }
+    }
+    gcd = (a == 0) ? b : a;
+
+    return gcd * (1 << k); // gcd is gcd * 2^k
+}'''
+
+        test_result, test_reason, _ = framework.validate_patch(bug, proposed_patch, mode="SF")
+        self.assertEqual(test_result, "ERROR")
+        self.assertEqual(test_reason, "Test timed out after 300 seconds")
 
     def test_n_shot_examples(self):
         framework = Framework(test_framework="defects4j", list_of_bugs=[("Time", [1, 4, 16, 19])],

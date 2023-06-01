@@ -135,11 +135,13 @@ class Framework(object):
                     result_reason = result.stderr
                     result_reason = result_reason[result_reason.find("error: "):]
                     result_reason = result_reason[:result_reason.find("\n")]
-                else:
+                elif "BUILD FAILED" in result.stderr:
                     stderr_lines = result.stderr.split("\n")
                     build_failed_line_i = next((i for i, line in enumerate(stderr_lines) if "BUILD FAILED" in line), None) # line number of line that contains "BUILD FAILED"
                     result_reason = stderr_lines[build_failed_line_i+1]
                     result_reason = result_reason[result_reason.find(' '):]
+                else:
+                    result_reason = "Test timed out after 300 seconds"
 
                 test_result, result_reason = "ERROR", result_reason # compilation error
             else:
