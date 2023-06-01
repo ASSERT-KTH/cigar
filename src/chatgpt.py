@@ -2,6 +2,7 @@ import json
 import openai
 import hashlib
 from pathlib import Path
+from prog_params import ProgParams as prog_params
 
 class ChatGPT(object):
     def __init__(self, model="gpt-3.5-turbo", api_key=None,
@@ -26,12 +27,24 @@ class ChatGPT(object):
                     response = json_to_load['response']
 
         if response is None:
-            response = openai.ChatCompletion.create(**call_params)
+            try:
+                response = openai.ChatCompletion.create(**call_params)
+            except openai.error.InvalidRequestError as e:
+                response = {
+                    'error': "context_length_exceeded",
+                    'error_message': e.error.message,
+                    'choices': [ {'message': {'content': ""}} ],
+                    'usage': {'total_tokens': prog_params.model_token_limit}
+                    }
 
         if self.save_to_cache and self.cache_folder is not None:
             with open(cache_file_path, "w") as file:
                 json_to_save = self.get_json_to_save(call_params, response)
                 file.write(json.dumps(json_to_save, indent=4, sort_keys=True))
+
+        if 'error' in response:
+            if response['error'] == "context_length_exceeded":
+                raise openai.error.InvalidRequestError(response['error_message'], None)
             
         response_message = response['choices'][0]['message']['content']
         response_token_usage = response['usage']['total_tokens']
