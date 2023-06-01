@@ -97,7 +97,10 @@ Using GNU Parallel you can run multiple instances of the script in parallel. You
 ```
 project="Lang" 
 bug_ids=(24 26 27 28)
-parallel --jobs 4 --delay 1 --bar --joblog parallel.log --results parallel_results/ --resume --resume-failed $(pwd)/venv/bin/python3 $(pwd)/main.py -p $project -bs {} ::: "${bug_ids[@]}"
+
+num_of_parallel_jobs=4
+
+parallel --jobs $num_of_parallel_jobs --delay 1 --bar --joblog parallel.log --results parallel_results/ --resume --resume-failed $(pwd)/venv/bin/python3 $(pwd)/main.py -p $project -bs {} ::: "${bug_ids[@]}"
 ```
 
 Reference: Tange, O. (2023, May 22). GNU Parallel 20230522 ('Charles'). Zenodo. https://doi.org/10.5281/zenodo.7958356
