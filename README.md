@@ -75,6 +75,8 @@ And you should find the bug in the `$TMP_DIR` folder, that you've set.
 
 ## Continuous Running
 
+### Run in a loop
+
 As explained [here](https://stackoverflow.com/questions/696839/how-do-i-write-a-bash-script-to-restart-a-process-if-it-dies) you can start the script in a loop, so that it restarts if it crashes. (Which happens often with the openai api)
 
 ```
@@ -87,3 +89,15 @@ until run_capr; do
     sleep 1
 done
 ```
+
+### Running in parallel
+
+Using GNU Parallel you can run multiple instances of the script in parallel. You can install it with `sudo apt-get install parallel`
+
+```
+project="Lang" 
+bug_ids=(24 26 27 28)
+parallel --jobs 4 --delay 1 --bar --joblog parallel.log --results parallel_results/ --resume --resume-failed $(pwd)/venv/bin/python3 $(pwd)/main.py -p $project -bs {} ::: "${bug_ids[@]}"
+```
+
+Reference: Tange, O. (2023, May 22). GNU Parallel 20230522 ('Charles'). Zenodo. https://doi.org/10.5281/zenodo.7958356

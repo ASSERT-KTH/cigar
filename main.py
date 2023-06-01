@@ -40,9 +40,10 @@ def main(project=None, bug_ids=None):
                     'SH_ppc', 'SH_rc', 'SH_fppt', 'SH_fppcl', 'SH_uts', 'SH_mts', 'SH_errtf', 'SH_errce',
                     'SF_ppc', 'SF_rc', 'SF_fppt', 'SF_fppcl', 'SF_uts', 'SF_mts', 'SF_errtf', 'SF_errce',
                     'max_conv_length', 'comment']
-        with open(summary_file_path, 'w', newline='') as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            writer.writeheader()
+        if bug_ids is None:
+            with open(summary_file_path, 'w', newline='') as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                writer.writeheader()
 
         for bug_id in ids:
             logging.info(f" ---------- Reproducing {project}-{bug_id} ----------")
@@ -89,9 +90,10 @@ def main(project=None, bug_ids=None):
                 logging.info(f" --- Skipping {project}-{bug_id}, not SL, SH or SF bug. --- ")
                 row['comment'] += "Not SL, SH or SF bug. "
 
-            with open(summary_file_path, 'a', newline='') as csvfile:
-                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-                writer.writerow(row)
+            if bug_ids is None:
+                with open(summary_file_path, 'a', newline='') as csvfile:
+                    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                    writer.writerow(row)
 
 if __name__ == '__main__':
     import argparse
