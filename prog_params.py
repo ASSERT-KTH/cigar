@@ -10,6 +10,7 @@ class ProgParams:
 
     ## ChatGPT related
     model = "gpt-3.5-turbo-0301"
+    model_token_limit = 4097
     chatgpt_cache_folder=Path(__file__).parent / 'data' / 'chatgpt_cache'
 
     ## CAPR related

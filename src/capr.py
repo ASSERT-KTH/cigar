@@ -1,8 +1,11 @@
 import logging
+
+import openai
 from src.chatgpt import ChatGPT
 from src.framework import Framework
 from src.bug import Bug
 from src.prompts import Prompts as prompts
+from prog_params import ProgParams as prog_params
 
 class CAPR(object):
     def __init__(self, chatgpt: ChatGPT, framework: Framework):
@@ -32,7 +35,14 @@ class CAPR(object):
                 current_conversation_length += 1
 
                 logging.info(f"Repairing attempt of {bug.project}-{bug.bug_id} ({mode}), try {current_tries} (ccl: {current_conversation_length})")
-                response, cost = self.chatgpt.call(prompt, num_of_samples=sample_per_try, prefix=f"{prefix}_{current_tries}")
+                try:
+                    response, cost = self.chatgpt.call(prompt, num_of_samples=sample_per_try, prefix=f"{prefix}_{current_tries}")
+                except openai.error.InvalidRequestError as e:
+                    print(e)
+                    err_ce += 1 # Count token exceeded limit as error
+                    total_cost += prog_params.model_token_limit # Exceeded Token limit
+                    continue
+
                 total_cost += cost
 
                 patch = self.extract_patch_from_response(response)
