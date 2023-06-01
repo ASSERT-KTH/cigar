@@ -31,7 +31,7 @@ class CAPR(object):
                 current_tries += 1
                 current_conversation_length += 1
 
-                logging.debug(f"Repairing attempt of {bug.project}-{bug.bug_id} ({mode}), try {current_tries} (ccl: {current_conversation_length})")
+                logging.info(f"Repairing attempt of {bug.project}-{bug.bug_id} ({mode}), try {current_tries} (ccl: {current_conversation_length})")
                 response, cost = self.chatgpt.call(prompt, num_of_samples=sample_per_try, prefix=f"{prefix}_{current_tries}")
                 total_cost += cost
 
