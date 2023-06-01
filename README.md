@@ -96,9 +96,9 @@ Using GNU Parallel you can run multiple instances of the script in parallel. You
 
 ```
 project="Lang" 
-bug_ids=(24 26 27 28)
+bug_ids=(24 26 27 28 29 31 33 37 38 39 40 42 43 44 45 48 51 52 54 55 57 58 59 61)
 
-num_of_parallel_jobs=4
+num_of_parallel_jobs=8
 
 parallel --jobs $num_of_parallel_jobs --delay 1 --bar --joblog parallel.log --results parallel_results/ --resume --resume-failed $(pwd)/venv/bin/python3 $(pwd)/main.py -p $project -bs {} ::: "${bug_ids[@]}"
 ```
