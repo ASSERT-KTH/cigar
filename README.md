@@ -104,3 +104,18 @@ parallel --jobs $num_of_parallel_jobs --delay 1 --bar --joblog parallel.log --re
 ```
 
 Reference: Tange, O. (2023, May 22). GNU Parallel 20230522 ('Charles'). Zenodo. https://doi.org/10.5281/zenodo.7958356
+
+```
+@software{tange_2023_7958356,
+      author       = {Tange, Ole},
+      title        = {GNU Parallel 20230522 ('Charles')},
+      month        = May,
+      year         = 2023,
+      note         = {{GNU Parallel is a general parallelizer to run
+                       multiple serial command line programs in parallel
+                       without changing them.}},
+      publisher    = {Zenodo},
+      doi          = {10.5281/zenodo.7958356},
+      url          = {https://doi.org/10.5281/zenodo.7958356}
+}
+```
