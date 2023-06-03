@@ -1,0 +1,47 @@
+{
+    "call": {
+        "messages": [
+            {
+                "content": "You are an automated program repair tool.",
+                "role": "system"
+            },
+            {
+                "content": "The following code contains a bug\n```java\n    protected BasePeriod(long duration) {\n        this(duration, null, null);\n        // bug [3264409]\n    }\n```\nThe code fails on this test:\n```\ntestToPeriod_fixedZone\n```\non this test line:\n```java\n            assertEquals(0, test.getWeeks());\n```\nwith the following test error:\n```\njunit.framework.AssertionFailedError: expected:<0> but was:<64>\n```\nPlease provide the correct function.\n\nIt can be fixed by the following function:\n```java\n    protected BasePeriod(long duration) {\n        super();\n        // bug [3264409]\n        iType = PeriodType.time();\n        int[] values = ISOChronology.getInstanceUTC().get(this, duration);\n        iType = PeriodType.standard();\n        iValues = new int[8];\n        System.arraycopy(values, 0, iValues, 4, 4);\n    }\n```\n\nThe following code contains a bug\n```java\n    public int getOffsetFromLocal(long instantLocal) {\n        // get the offset at instantLocal (first estimate)\n        final int offsetLocal = getOffset(instantLocal);\n        // adjust instantLocal using the estimate and recalc the offset\n        final long instantAdjusted = instantLocal - offsetLocal;\n        final int offsetAdjusted = getOffset(instantAdjusted);\n        // if the offsets differ, we must be near a DST boundary\n        if (offsetLocal != offsetAdjusted) {\n            // we need to ensure that time is always after the DST gap\n            // this happens naturally for positive offsets, but not for negative\n            if ((offsetLocal - offsetAdjusted) < 0) {\n                // if we just return offsetAdjusted then the time is pushed\n                // back before the transition, whereas it should be\n                // on or after the transition\n                long nextLocal = nextTransition(instantAdjusted);\n                long nextAdjusted = nextTransition(instantLocal - offsetAdjusted);\n                if (nextLocal != nextAdjusted) {\n                    return offsetLocal;\n                }\n            }\n        }\n        return offsetAdjusted;\n    }\n```\nThe code fails on this test:\n```\ntest_DateTime_constructor_Moscow_Autumn\n```\non this test line:\n```java\n        assertEquals(\"2007-10-28T02:30:00.000+04:00\", dt.toString());\n```\nwith the following test error:\n```\njunit.framework.ComparisonFailure: expected:<...10-28T02:30:00.000+0[4]:00> but was:<...10-28T02:30:00.000+0[3]:00>\n```\nPlease provide the correct function.",
+                "role": "user"
+            },
+            {
+                "content": "The following function should fix the bug:\n```java\n    public int getOffsetFromLocal(long instantLocal) {\n        final int offsetLocal = getOffset(instantLocal);\n        final long millisAtOffsetLocal = instantLocal + offsetLocal;\n        final int offsetAdjusted = getOffset(millisAtOffsetLocal);\n        return offsetLocal == offsetAdjusted ? offsetLocal :\n            invalidOffsetHandling(offsetLocal, offsetAdjusted);\n    }\n    \n    private int invalidOffsetHandling(int offsetLocal, int offsetAdjusted) {\n        final boolean dstAtStartOfDay = offsetLocal > offsetAdjusted;\n        long nextLocal = nextTransition(instantLocal + offsetLocal);\n        long nextAdjusted = nextTransition(instantLocal + offsetAdjusted);\n        if (nextLocal == nextAdjusted) {\n            // Duplicated transition.\n            // We need to compare offsets to determine the best course of action.\n            return dstAtStartOfDay ? offsetLocal : offsetAdjusted;\n        } else {\n            // Dst gap or overlap.\n            // We need to determine whether the time lies within the DST interval or outside of it.\n            final long millisAtGapStartLocal = previousTransition(nextAdjusted);\n            final long millisAtGapEndLocal = nextTransition(nextAdjusted);\n            if (dstAtStartOfDay) {\n                // We are in the DST interval.\n                long transitionMillis = nextTransition(millisAtGapEndLocal + offsetLocal);\n                if (instantLocal + offsetLocal < transitionMillis) {\n                    return offsetLocal;\n                } else {\n                    return offsetAdjusted;\n                }\n            } else {\n                // We are outside the DST interval.\n                long transitionMillis = previousTransition(millisAtGapStartLocal + offsetAdjusted);\n                if (instantLocal + offsetAdjusted >= transitionMillis) {\n                    return offsetAdjusted;\n                } else {\n                    return offsetLocal;\n                }\n            }\n        }\n    }\n```",
+                "role": "assistant"
+            },
+            {
+                "content": "The fixed version is still not correct. code has the following compilation error:\n```\nerror: cannot find symbol\n```\nPlease provide the correct function.",
+                "role": "user"
+            }
+        ],
+        "model": "gpt-3.5-turbo-0301",
+        "n": 1,
+        "temperature": 1,
+        "top_p": 1
+    },
+    "response": {
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "index": 0,
+                "message": {
+                    "content": "I apologize for the error in my previous response. The following corrected implementation should fix the bug and pass the failing test case:\n\n```java\npublic int getOffsetFromLocal(long instantLocal) {\n    final int offsetLocal = getOffset(instantLocal);\n    final long millisAtOffsetLocal = instantLocal + offsetLocal;\n    final int offsetAdjusted = getOffset(millisAtOffsetLocal);\n    if (offsetLocal == offsetAdjusted) {\n        return offsetLocal;\n    }\n\n    // We need to either fall back to the previous offset or advance to the next one.\n    final long instantAdjusted;\n    if (offsetAdjusted > offsetLocal) { // Gap\n        final long nextTransition = nextTransition(millisAtOffsetLocal);\n        if (nextTransition == millisAtOffsetLocal) {\n            // There are two transitions happening at the same time.\n            // This may happen during a repeated set of DST transitions.\n            // We need to compare offsets to determine the best course of action.\n            return offsetLocal >= 0 ? offsetLocal : offsetAdjusted;\n        } else {\n            // We are in the gap period.\n            instantAdjusted = nextTransition - offsetAdjusted;\n        }\n    } else { // Overlap\n        final long previousTransition = previousTransition(millisAtOffsetLocal);\n        if (instantLocal >= previousTransition + offsetLocal) {\n            // We are in the overlap period.\n            instantAdjusted = previousTransition + offsetLocal;\n        } else {\n            // The local wall time is ambiguous.\n            // We need to compare offsets to determine the best course of action.\n            return offsetLocal >= 0 ? offsetLocal : offsetAdjusted;\n        }\n    }\n\n    final int offsetAdjustedNew = getOffset(instantAdjusted);\n    if (offsetAdjusted != offsetAdjustedNew) {\n        // The adjusted offset has changed.\n        // This may happen during a repeated set of DST transitions.\n        // We need to compare offsets to determine the best course of action.\n        return offsetAdjusted >= 0 ? offsetAdjusted : offsetLocal;\n    } else {\n        return offsetAdjusted;\n    }\n}\n```",
+                    "role": "assistant"
+                }
+            }
+        ],
+        "created": 1685811660,
+        "id": "chatcmpl-7NOuan5Vs3H7lSzDkJvh419Y6UxsD",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion",
+        "usage": {
+            "completion_tokens": 426,
+            "prompt_tokens": 1004,
+            "total_tokens": 1430
+        }
+    }
+}

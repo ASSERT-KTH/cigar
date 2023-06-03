@@ -1,0 +1,47 @@
+{
+    "call": {
+        "messages": [
+            {
+                "content": "You are an automated program repair tool.",
+                "role": "system"
+            },
+            {
+                "content": "The following code contains a bug\n```java\n    protected BasePeriod(long duration) {\n        this(duration, null, null);\n        // bug [3264409]\n    }\n```\nThe code fails on this test:\n```\ntestToPeriod_fixedZone\n```\non this test line:\n```java\n            assertEquals(0, test.getWeeks());\n```\nwith the following test error:\n```\njunit.framework.AssertionFailedError: expected:<0> but was:<64>\n```\nPlease provide the correct function.\n\nIt can be fixed by the following function:\n```java\n    protected BasePeriod(long duration) {\n        super();\n        // bug [3264409]\n        iType = PeriodType.time();\n        int[] values = ISOChronology.getInstanceUTC().get(this, duration);\n        iType = PeriodType.standard();\n        iValues = new int[8];\n        System.arraycopy(values, 0, iValues, 4, 4);\n    }\n```\n\nThe following code contains a bug\n```java\n    public int getOffsetFromLocal(long instantLocal) {\n        // get the offset at instantLocal (first estimate)\n        final int offsetLocal = getOffset(instantLocal);\n        // adjust instantLocal using the estimate and recalc the offset\n        final long instantAdjusted = instantLocal - offsetLocal;\n        final int offsetAdjusted = getOffset(instantAdjusted);\n        // if the offsets differ, we must be near a DST boundary\n        if (offsetLocal != offsetAdjusted) {\n            // we need to ensure that time is always after the DST gap\n            // this happens naturally for positive offsets, but not for negative\n            if ((offsetLocal - offsetAdjusted) < 0) {\n                // if we just return offsetAdjusted then the time is pushed\n                // back before the transition, whereas it should be\n                // on or after the transition\n                long nextLocal = nextTransition(instantAdjusted);\n                long nextAdjusted = nextTransition(instantLocal - offsetAdjusted);\n                if (nextLocal != nextAdjusted) {\n                    return offsetLocal;\n                }\n            }\n        }\n        return offsetAdjusted;\n    }\n```\nThe code fails on this test:\n```\ntest_DateTime_constructor_Moscow_Autumn\n```\non this test line:\n```java\n        assertEquals(\"2007-10-28T02:30:00.000+04:00\", dt.toString());\n```\nwith the following test error:\n```\njunit.framework.ComparisonFailure: expected:<...10-28T02:30:00.000+0[4]:00> but was:<...10-28T02:30:00.000+0[3]:00>\n```\nPlease provide the correct function.",
+                "role": "user"
+            },
+            {
+                "content": "The following function should fix the bug:\n```java\n    public int getOffsetFromLocal(long instantLocal) {\n        // get the offset at instantLocal (first estimate)\n        final int offsetLocal = getOffset(instantLocal);\n        // adjust instantLocal using the estimate and recalc the offset\n        final long instantAdjusted = instantLocal - offsetLocal;\n        final int offsetAdjusted = getOffset(instantAdjusted);\n        // if the offsets differ, we must be near a DST boundary\n        if (offsetLocal != offsetAdjusted) {\n            // we need to ensure that time is always after the DST gap\n            // this happens naturally for positive offsets, but not for negative\n            if ((offsetLocal - offsetAdjusted) < 0) {\n                // if we just return offsetAdjusted then the time is pushed\n                // back before the transition, whereas it should be\n                // on or after the transition\n                long nextLocal = nextTransition(instantAdjusted - 1);\n                long nextAdjusted = nextTransition(instantLocal - offsetLocal - 1);\n                if (nextLocal != nextAdjusted) {\n                    return offsetLocal;\n                }\n            }\n        }\n        return offsetAdjusted;\n    }\n```",
+                "role": "assistant"
+            },
+            {
+                "content": "The fixed version is still not correct. code has the following test error:\n```\njunit.framework.ComparisonFailure: expected:<2007-0[4-01T01:00:00.000-04]:00> but was:<2007-0[3-31T23:00:00.000-05]:00>\n```\nPlease provide the correct function.",
+                "role": "user"
+            }
+        ],
+        "model": "gpt-3.5-turbo-0301",
+        "n": 1,
+        "temperature": 1,
+        "top_p": 1
+    },
+    "response": {
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "index": 0,
+                "message": {
+                    "content": "Apologies for the mistake in my earlier response. Here's an updated fix:\n\n```java\npublic int getOffsetFromLocal(long instantLocal) {\n    final int initialLocalOffset = getOffset(instantLocal);\n\n    long start = instantLocal - MAX_SECONDS_MILLIS;\n    long end = instantLocal + MAX_SECONDS_MILLIS;\n    if (start / DateTimeConstants.MILLIS_PER_SECOND != end / DateTimeConstants.MILLIS_PER_SECOND) {\n        // If the interest range spans a transition point, then we need to be assertive about\n        // picking a specific standard offset.\n        long transition = nextTransition(start);\n        if (transition != start && getOffset(transition - 1) != initialLocalOffset) {\n            // The previous long was an overlap, and the instant we seek lies within the overlap.\n            // We need to refer to the standard offset for the instant by choosing the later offset.\n            return getOffset(transition);\n        }\n        transition = previousTransition(end);\n        if (instantLocal >= transition && getOffset(transition - 1) != initialLocalOffset) {\n            // The next long is a gap, and the instant we seek lies within that gap.\n            // We need to refer to the standard offset for the instant by choosing the earlier offset.\n            return getOffset(transition - 1);\n        }\n    }\n\n    int offsetAdjusted = getOffset(instantLocal - initialLocalOffset);\n    if (offsetAdjusted != initialLocalOffset) {\n        long next = nextTransition(instantLocal - initialLocalOffset);\n        long next2 = nextTransition(instantLocal - offsetAdjusted);\n\n        if (next != next2) {\n            return initialLocalOffset;\n        }\n    }\n    return offsetAdjusted;\n}\n```\nThis should fix the issue you're encountering. Let me know if there's anything else I can do for you!",
+                    "role": "assistant"
+                }
+            }
+        ],
+        "created": 1685813536,
+        "id": "chatcmpl-7NPOqb6iqPqsAASwPzR6nYEdALWvS",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion",
+        "usage": {
+            "completion_tokens": 382,
+            "prompt_tokens": 922,
+            "total_tokens": 1304
+        }
+    }
+}

@@ -1,0 +1,47 @@
+{
+    "call": {
+        "messages": [
+            {
+                "content": "You are an automated program repair tool.",
+                "role": "system"
+            },
+            {
+                "content": "The following code contains a buggy hunk that has been removed.\n```java\n    public static long safeMultiply(long val1, int val2) {\n        switch (val2) {\n            case -1:\n>>> [ INFILL ] <<<\n                return -val1;\n            case 0:\n                return 0L;\n            case 1:\n                return val1;\n        }\n        long total = val1 * val2;\n        if (total / val2 != val1) {\n          throw new ArithmeticException(\"Multiplication overflows a long: \" + val1 + \" * \" + val2);\n        }\n        return total;\n    }\n```\nThis was the original buggy hunk which was removed by the infill location:\n```java\n\n```\nThe code fails on this test:\n```\ntestSafeMultiplyLongInt\n```\non this test line:\n```java\n            fail();\n```\nwith the following test error:\n```\njunit.framework.AssertionFailedError\n```\nPlease provide the correct hunk at the infill location.\n\nIt can be fixed by the following hunk:\n```java\n                if (val1 == Long.MIN_VALUE) {\n                    throw new ArithmeticException(\"Multiplication overflows a long: \" + val1 + \" * \" + val2);\n                }\n```\n\nThe following code contains a buggy hunk that has been removed.\n```java\n    public long computeMillis(boolean resetFields, String text) {\n        SavedField[] savedFields = iSavedFields;\n        int count = iSavedFieldsCount;\n        if (iSavedFieldsShared) {\n            iSavedFields = savedFields = (SavedField[])iSavedFields.clone();\n            iSavedFieldsShared = false;\n        }\n        sort(savedFields, count);\n        if (count > 0) {\n            // alter base year for parsing if first field is month or day\n            DurationField months = DurationFieldType.months().getField(iChrono);\n            DurationField days = DurationFieldType.days().getField(iChrono);\n            DurationField first = savedFields[0].iField.getDurationField();\n            if (compareReverse(first, months) >= 0 && compareReverse(first, days) <= 0) {\n                saveField(DateTimeFieldType.year(), iDefaultYear);\n                return computeMillis(resetFields, text);\n            }\n        }\n\n        long millis = iMillis;\n        try {\n            for (int i = 0; i < count; i++) {\n                millis = savedFields[i].set(millis, resetFields);\n            }\n>>> [ INFILL ] <<<\n        } catch (IllegalFieldValueException e) {\n            if (text != null) {\n                e.prependMessage(\"Cannot parse \\\"\" + text + '\"');\n            }\n            throw e;\n        }\n        \n        if (iZone == null) {\n            millis -= iOffset;\n        } else {\n            int offset = iZone.getOffsetFromLocal(millis);\n            millis -= offset;\n            if (offset != iZone.getOffset(millis)) {\n                String message =\n                    \"Illegal instant due to time zone offset transition (\" + iZone + ')';\n                if (text != null) {\n                    message = \"Cannot parse \\\"\" + text + \"\\\": \" + message;\n                }\n                throw new IllegalArgumentException(message);\n            }\n        }\n        \n        return millis;\n    }\n```\nThis was the original buggy hunk which was removed by the infill location:\n```java\n\n```\nThe code fails on this test:\n```\ntestParseLocalDate_weekyear_month_week_2010\n```\non this test line:\n```java\n        assertEquals(new LocalDate(2010, 1, 4, chrono), f.parseLocalDate(\"2010-01-01\"));\n```\nwith the following test error:\n```\njunit.framework.AssertionFailedError: expected:<2010-01-04> but was:<2008-12-29>\n```\nPlease provide the correct hunk at the infill location.",
+                "role": "user"
+            },
+            {
+                "content": "It can be fixed by the following hunk:\n```java\nfor (int i = 0; i < count; i++) {\n    SavedField savedField = savedFields[i];\n    try {\n        millis = savedField.set(millis, resetFields);\n    } catch (IllegalFieldValueException e) {\n        if (text != null) {\n            e.prependMessage(\"Cannot parse \\\"\" + text + '\"');\n        }\n        throw e;\n    }\n}\n```",
+                "role": "assistant"
+            },
+            {
+                "content": "The fixed version is still not correct. It still does not fix the original test failure.",
+                "role": "user"
+            }
+        ],
+        "model": "gpt-3.5-turbo-0301",
+        "n": 1,
+        "temperature": 1,
+        "top_p": 1
+    },
+    "response": {
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "index": 0,
+                "message": {
+                    "content": "I apologize for the previous fix not solving the issue. Upon further investigation, the issue seems to be that the code is not properly accounting for the transition between week-based year and regular year around the boundary. This can be fixed by the following hunk:\n```java\nif (count > 0) {\n    // alter base year for parsing if first field is month or day\n    DurationField months = DurationFieldType.months().getField(iChrono);\n    DurationField days = DurationFieldType.days().getField(iChrono);\n    DurationField first = savedFields[0].iField.getDurationField();\n    if (compareReverse(first, months) >= 0 && compareReverse(first, days) <= 0) {\n        int year = iDefaultYear;\n        DateTimeField wbyearField = iChrono.weekyear();\n        DateTimeField yearField = iChrono.year();\n        \n        // Transition from weekyear to year around year boundary\n        // Week 1 of year 2 is the same as week 52 or 53 of year 1\n        // Week 1 of year 1 is the same as week 52 or 53 of the previous year\n        //\n        // We will try to determine if this is the case and adjust the year accordingly\n        SavedField wbyearFieldSaved = null;\n        int wbyear = 0;\n        boolean wbyearSet = false;\n        for (int i = 0; i < count; i++) {\n            SavedField savedField = savedFields[i];\n            DateTimeField field = savedField.iField;\n            if (field == wbyearField) {\n                wbyearFieldSaved = savedField;\n                wbyear = savedField.iValue;\n                wbyearSet = true;\n                continue;\n            }\n            if (!wbyearSet) {\n                continue;\n            }\n            // Check if there is a change in the weekyear field value - this indicates week-based year\n            if (field == yearField) {\n                int yearVal = yearField.remainder(millis);\n                if (yearVal == year - 1 || yearVal == year + 1) {\n                    int weekyear = wbyear;\n                    if (yearVal == year + 1 && compareReverse(first, days) <= 0) {\n                        weekyear--;\n                    } else if (yearVal == year - 1 && compareReverse(first, days) >= 0) {\n                        weekyear++;\n                    }\n                    saveField(wbyearField, weekyear);\n                    millis = wbyearFieldSaved.set(millis, false);\n                }\n                break;\n            }\n        }\n        if (compareReverse(first, months) >= 0 && compareReverse(first, days) <= 0) {\n            saveField(yearField, year);\n        }\n    }\n}\n```\n\n\n",
+                    "role": "assistant"
+                }
+            }
+        ],
+        "created": 1685787881,
+        "id": "chatcmpl-7NIj3gzkJzxsujG5thtXJd65iScPy",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion",
+        "usage": {
+            "completion_tokens": 584,
+            "prompt_tokens": 958,
+            "total_tokens": 1542
+        }
+    }
+}
