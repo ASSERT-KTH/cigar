@@ -1,0 +1,39 @@
+{
+    "call": {
+        "messages": [
+            {
+                "content": "You are an automated program repair tool.",
+                "role": "system"
+            },
+            {
+                "content": "The following code contains a bug\n```java\n  private boolean hasExceptionHandler(Node cfgNode) {\n    return false;\n  }\n```\nThe code fails on this test:\n```\ntestIssue794b\n```\non this test line:\n```java\n    test(EXTERN_FUNCTIONS, \"function _func() {\" + input + \"}\",\n```\nwith the following test error:\n```\njunit.framework.AssertionFailedError:\n```\nPlease provide the correct function.\n\nIt can be fixed by the following function:\n```java\n  private boolean hasExceptionHandler(Node cfgNode) {\n    List<DiGraphEdge<Node, Branch>> branchEdges = getCfg().getOutEdges(cfgNode);\n    for (DiGraphEdge<Node, Branch> edge : branchEdges) {\n      if (edge.getValue() == Branch.ON_EX) {\n        return true;\n      }\n    }\n    return false;\n  }\n```\n\nThe following code contains a bug\n```java\n    private boolean isInlinableObject(List<Reference> refs) {\n      boolean ret = false;\n      for (Reference ref : refs) {\n        Node name = ref.getNode();\n        Node parent = ref.getParent();\n        Node gramps = ref.getGrandparent();\n\n        // Ignore indirect references, like x.y (except x.y(), since\n        // the function referenced by y might reference 'this').\n        //\n        if (parent.isGetProp()) {\n          Preconditions.checkState(parent.getFirstChild() == name);\n          // A call target maybe using the object as a 'this' value.\n          if (gramps.isCall()\n              && gramps.getFirstChild() == parent) {\n            return false;\n          }\n\n          // NOTE(nicksantos): This pass's object-splitting algorithm has\n          // a blind spot. It assumes that if a property isn't defined on an\n          // object, then the value is undefined. This is not true, because\n          // Object.prototype can have arbitrary properties on it.\n          //\n          // We short-circuit this problem by bailing out if we see a reference\n          // to a property that isn't defined on the object literal. This\n          // isn't a perfect algorithm, but it should catch most cases.\n          continue;\n        }\n\n        // Only rewrite VAR declarations or simple assignment statements\n        if (!isVarOrAssignExprLhs(name)) {\n           return false;\n        }\n\n        Node val = ref.getAssignedValue();\n        if (val == null) {\n          // A var with no assignment.\n          continue;\n        }\n\n        // We're looking for object literal assignments only.\n        if (!val.isObjectLit()) {\n          return false;\n        }\n\n        // Make sure that the value is not self-refential. IOW,\n        // disallow things like x = {b: x.a}.\n        //\n        // TODO: Only exclude unorderable self-referential\n        // assignments. i.e. x = {a: x.b, b: x.a} is not orderable,\n        // but x = {a: 1, b: x.a} is.\n        //\n        // Also, ES5 getters/setters aren't handled by this pass.\n        for (Node child = val.getFirstChild(); child != null;\n             child = child.getNext()) {\n          if (child.isGetterDef() ||\n              child.isSetterDef()) {\n            // ES5 get/set not supported.\n            return false;\n          }\n\n\n          Node childVal = child.getFirstChild();\n          // Check if childVal is the parent of any of the passed in\n          // references, as that is how self-referential assignments\n          // will happen.\n          for (Reference t : refs) {\n            Node refNode = t.getParent();\n            while (!NodeUtil.isStatementBlock(refNode)) {\n              if (refNode == childVal) {\n                // There's a self-referential assignment\n                return false;\n              }\n              refNode = refNode.getParent();\n            }\n          }\n        }\n\n\n        // We have found an acceptable object literal assignment. As\n        // long as there are no other assignments that mess things up,\n        // we can inline.\n        ret = true;\n      }\n      return ret;\n    }\n```\nThe code fails on this test:\n```\ntestObject10\n```\non this test line:\n```java\n    test(LOCAL_PREFIX + code + LOCAL_POSTFIX,\n```\nwith the following test error:\n```\njunit.framework.AssertionFailedError:\n```\nPlease provide the correct function.",
+                "role": "user"
+            }
+        ],
+        "model": "gpt-3.5-turbo-0301",
+        "n": 1,
+        "temperature": 1,
+        "top_p": 1
+    },
+    "response": {
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "index": 0,
+                "message": {
+                    "content": "The bug in the `isInlinableObject` function is that it returns `false` prematurely when encountering a non-self-referential object literal. This can cause legitimate code to be incorrectly rejected. To fix this, we need to move the `ret = true` statement outside of the loop checking the object literal properties and only return `false` if we detect any invalid case within the loop. Here's the corrected function:\n\n```java\nprivate boolean isInlinableObject(List<Reference> refs) {\n  for (Reference ref : refs) {\n    Node name = ref.getNode();\n    Node parent = ref.getParent();\n    Node gramps = ref.getGrandparent();\n    \n    if (parent.isGetProp()) {\n      // Ignore indirect getprop references\n      if (gramps.isCall() && gramps.getFirstChild() == parent) {\n        return false;\n      }\n      // Ignore object literal properties that aren't defined on the object\n      continue;\n    }\n    \n    // Only rewrite VAR declarations or simple assignment statements\n    if (!isVarOrAssignExprLhs(name)) {\n      return false;\n    }\n    \n    Node val = ref.getAssignedValue();\n    if (val == null || !val.isObjectLit()) {\n      return false;\n    }\n    \n    // Make sure that the value is not self-referential\n    for (Node child = val.getFirstChild(); child != null; child = child.getNext()) {\n      if (child.isGetterDef() || child.isSetterDef()) {\n        // ES5 get/set not supported.\n        return false;\n      }\n      Node childVal = child.getFirstChild();\n      for (Reference t : refs) {\n        Node refNode = t.getParent();\n        while (!NodeUtil.isStatementBlock(refNode)) {\n          if (refNode == childVal) {\n            // There's a self-referential assignment\n            return false;\n          }\n          refNode = refNode.getParent();\n        }\n      }\n    }\n  }\n  // No invalid case found, can inline\n  return true;\n}\n```",
+                    "role": "assistant"
+                }
+            }
+        ],
+        "created": 1685808230,
+        "id": "chatcmpl-7NO1GdUWfTEjJo3lssnJ3hAZYO1vQ",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion",
+        "usage": {
+            "completion_tokens": 418,
+            "prompt_tokens": 944,
+            "total_tokens": 1362
+        }
+    }
+}

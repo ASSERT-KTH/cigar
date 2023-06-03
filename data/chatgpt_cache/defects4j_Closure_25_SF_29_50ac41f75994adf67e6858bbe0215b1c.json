@@ -1,0 +1,47 @@
+{
+    "call": {
+        "messages": [
+            {
+                "content": "You are an automated program repair tool.",
+                "role": "system"
+            },
+            {
+                "content": "The following code contains a bug\n```java\n  private boolean hasExceptionHandler(Node cfgNode) {\n    return false;\n  }\n```\nThe code fails on this test:\n```\ntestIssue794b\n```\non this test line:\n```java\n    test(EXTERN_FUNCTIONS, \"function _func() {\" + input + \"}\",\n```\nwith the following test error:\n```\njunit.framework.AssertionFailedError:\n```\nPlease provide the correct function.\n\nIt can be fixed by the following function:\n```java\n  private boolean hasExceptionHandler(Node cfgNode) {\n    List<DiGraphEdge<Node, Branch>> branchEdges = getCfg().getOutEdges(cfgNode);\n    for (DiGraphEdge<Node, Branch> edge : branchEdges) {\n      if (edge.getValue() == Branch.ON_EX) {\n        return true;\n      }\n    }\n    return false;\n  }\n```\n\nThe following code contains a bug\n```java\n  private FlowScope traverseNew(Node n, FlowScope scope) {\n\n    Node constructor = n.getFirstChild();\n    scope = traverse(constructor, scope);\n    JSType constructorType = constructor.getJSType();\n    JSType type = null;\n    if (constructorType != null) {\n      constructorType = constructorType.restrictByNotNullOrUndefined();\n      if (constructorType.isUnknownType()) {\n        type = getNativeType(UNKNOWN_TYPE);\n      } else {\n        FunctionType ct = constructorType.toMaybeFunctionType();\n        if (ct == null && constructorType instanceof FunctionType) {\n          // If constructorType is a NoObjectType, then toMaybeFunctionType will\n          // return null. But NoObjectType implements the FunctionType\n          // interface, precisely because it can validly construct objects.\n          ct = (FunctionType) constructorType;\n        }\n        if (ct != null && ct.isConstructor()) {\n          type = ct.getInstanceType();\n        }\n      }\n    }\n    n.setJSType(type);\n    for (Node arg = constructor.getNext(); arg != null; arg = arg.getNext()) {\n      scope = traverse(arg, scope);\n    }\n    return scope;\n  }\n```\nThe code fails on this test:\n```\ntestBackwardsInferenceNew\n```\non this test line:\n```java\n    assertEquals(\"{foo: (number|undefined)}\", getType(\"y\").toString());\n```\nwith the following test error:\n```\njunit.framework.ComparisonFailure: expected:<{[foo: (number|undefined)]}> but was:<{[]}>\n```\nPlease provide the correct function.",
+                "role": "user"
+            },
+            {
+                "content": "The following function should fix the bug:\n```java\nprivate FlowScope traverseNew(Node n, FlowScope scope) {\n    boolean wasInConstructorContext = inConstructorContext;\n    inConstructorContext = true;\n    Node constructor = n.getFirstChild();\n    scope = traverse(constructor, scope);\n    JSType constructorType = constructor.getJSType();\n    JSType type = null;\n    if (constructorType != null) {\n      constructorType = constructorType.restrictByNotNullOrUndefined();\n      if (constructorType.isUnknownType()) {\n        type = getNativeType(UNKNOWN_TYPE);\n      } else {\n        FunctionType ct = constructorType.toMaybeFunctionType();\n        if (ct == null && constructorType instanceof FunctionType) {\n          // If constructorType is a NoObjectType, then toMaybeFunctionType will\n          // return null. But NoObjectType implements the FunctionType\n          // interface, precisely because it can validly construct objects.\n          ct = (FunctionType) constructorType;\n        }\n        if (ct != null && ct.isConstructor()) {\n          type = ct.getInstanceType();\n          Node enclosingScript = NodeUtil.getEnclosingScript(n);\n          if (NodeUtil.isFunctionExpression(enclosingScript)) {\n            // We can't attach instance properties to a function expression, so don't bother\n            // inferring type information for constructor calls in that context.\n            JSType constructorThisType = ct.getTypeOfThis();\n            if (JSType.isFunctionType(constructorThisType)) {\n              FunctionType constructorThisFunctionType = constructorThisType.toMaybeFunctionType();\n              if (constructorThisFunctionType.hasInstanceType()) {\n                ObjectType singletonInstance =\n                    ObjectType.fromFunction(constructorThisFunctionType).createInitialInstance();\n                scope = scope.inferQualifiedNames(singletonInstance);\n              }\n            }\n          }\n        }\n      }\n    }\n    n.setJSType(type);\n    for (Node arg = constructor.getNext(); arg != null; arg = arg.getNext()) {\n      scope = traverse(arg, scope);\n    }\n    inConstructorContext = wasInConstructorContext;\n    return scope;\n  }\n```",
+                "role": "assistant"
+            },
+            {
+                "content": "The fixed version is still not correct. code has the following compilation error:\n```\nerror: cannot find symbol\n```\nPlease provide the correct function.",
+                "role": "user"
+            }
+        ],
+        "model": "gpt-3.5-turbo-0301",
+        "n": 1,
+        "temperature": 1,
+        "top_p": 1
+    },
+    "response": {
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "index": 0,
+                "message": {
+                    "content": "Apologies for the mistake. Here is the corrected function:\n\n```java\nprivate FlowScope traverseNew(Node n, FlowScope scope) {\n  boolean wasInConstructorContext = inConstructorContext;\n  inConstructorContext = true;\n  Node constructor = n.getFirstChild();\n  scope = traverse(constructor, scope);\n  JSType constructorType = constructor.getJSType();\n  JSType type = null;\n  if (constructorType != null) {\n    constructorType = constructorType.restrictByNotNullOrUndefined();\n    if (constructorType.isUnknownType()) {\n      type = getNativeType(UNKNOWN_TYPE);\n    } else {\n      FunctionType ct = constructorType.toMaybeFunctionType();\n      if (ct == null && constructorType instanceof FunctionType) {\n        // If constructorType is a NoObjectType, then toMaybeFunctionType will\n        // return null. But NoObjectType implements the FunctionType\n        // interface, precisely because it can validly construct objects.\n        ct = (FunctionType) constructorType;\n      }\n      if (ct != null && ct.isConstructor()) {\n        type = ct.getInstanceType();\n        Node enclosingScript = NodeUtil.getEnclosingScript(n);\n        if (NodeUtil.isFunctionDeclaration(enclosingScript)) {\n          // constructor is a function declaration, so it has a scope and can\n          // attach instance properties to its prototype object.\n          ObjectType instanceType = ObjectType.fromNominalType(ct.getInstanceType());\n          if (instanceType != null) {\n            scope = scope.inferQualifiedNames(instanceType.propagateToAllKnownPropertyNames());\n          }\n        } else if (NodeUtil.isFunctionExpression(enclosingScript)\n            && !NodeUtil.isFunctionExpressionJoist(enclosingScript)) {\n          // constructor is a function expression that isn't in a Joist, so we \n          // can attach instance properties to a singleton instance.\n          if (ct.getTypeOfThis().isFunctionType()) {\n            FunctionType thisFn = ct.getTypeOfThis().toMaybeFunctionType();\n            if (thisFn != null && thisFn.hasInstanceType()) {\n              ObjectType objectType = ObjectType.fromFunction(thisFn);\n              ObjectType singletonInstance = objectType.createInitialInstance();\n              scope = scope.inferQualifiedNames(singletonInstance.propagateToAllKnownPropertyNames());\n            }\n          }\n        }\n      }\n    }\n  }\n  n.setJSType(type);\n  for (Node arg = constructor.getNext(); arg != null; arg = arg.getNext()) {\n    scope = traverse(arg, scope);\n  }\n  inConstructorContext = wasInConstructorContext;\n  return scope;\n}\n```\n\nThis version should compile without errors and fix the bug that caused the assertion failure.",
+                    "role": "assistant"
+                }
+            }
+        ],
+        "created": 1685808120,
+        "id": "chatcmpl-7NNzU86JwSgx1wM2vUaH7SmcOH2GN",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion",
+        "usage": {
+            "completion_tokens": 546,
+            "prompt_tokens": 1025,
+            "total_tokens": 1571
+        }
+    }
+}

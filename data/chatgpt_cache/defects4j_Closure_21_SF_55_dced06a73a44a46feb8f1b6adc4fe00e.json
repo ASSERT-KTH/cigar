@@ -1,0 +1,39 @@
+{
+    "call": {
+        "messages": [
+            {
+                "content": "You are an automated program repair tool.",
+                "role": "system"
+            },
+            {
+                "content": "The following code contains a bug\n```java\n  private boolean hasExceptionHandler(Node cfgNode) {\n    return false;\n  }\n```\nThe code fails on this test:\n```\ntestIssue794b\n```\non this test line:\n```java\n    test(EXTERN_FUNCTIONS, \"function _func() {\" + input + \"}\",\n```\nwith the following test error:\n```\njunit.framework.AssertionFailedError:\n```\nPlease provide the correct function.\n\nIt can be fixed by the following function:\n```java\n  private boolean hasExceptionHandler(Node cfgNode) {\n    List<DiGraphEdge<Node, Branch>> branchEdges = getCfg().getOutEdges(cfgNode);\n    for (DiGraphEdge<Node, Branch> edge : branchEdges) {\n      if (edge.getValue() == Branch.ON_EX) {\n        return true;\n      }\n    }\n    return false;\n  }\n```\n\nThe following code contains a bug\n```java\n  public void visit(NodeTraversal t, Node n, Node parent) {\n    // VOID nodes appear when there are extra semicolons at the BLOCK level.\n    // I've been unable to think of any cases where this indicates a bug,\n    // and apparently some people like keeping these semicolons around,\n    // so we'll allow it.\n    if (n.isEmpty() ||\n        n.isComma()) {\n      return;\n    }\n\n    if (parent == null) {\n      return;\n    }\n\n    // Do not try to remove a block or an expr result. We already handle\n    // these cases when we visit the child, and the peephole passes will\n    // fix up the tree in more clever ways when these are removed.\n    if (n.isExprResult()) {\n      return;\n    }\n\n    // This no-op statement was there so that JSDoc information could\n    // be attached to the name. This check should not complain about it.\n    if (n.isQualifiedName() && n.getJSDocInfo() != null) {\n      return;\n    }\n\n    boolean isResultUsed = NodeUtil.isExpressionResultUsed(n);\n    boolean isSimpleOp = NodeUtil.isSimpleOperatorType(n.getType());\n    if (parent.getType() == Token.COMMA) {\n      if (isResultUsed) {\n        return;\n      }\n      if (n == parent.getLastChild()) {\n        for (Node an : parent.getAncestors()) {\n          int ancestorType = an.getType();\n          if (ancestorType == Token.COMMA) continue;\n          if (ancestorType != Token.EXPR_RESULT && ancestorType != Token.BLOCK) return;\n          else break;\n        }\n      }\n    } else if (parent.getType() != Token.EXPR_RESULT && parent.getType() != Token.BLOCK) {\n      if (! (parent.getType() == Token.FOR && parent.getChildCount() == 4 && (n == parent.getFirstChild() || n == parent.getFirstChild().getNext().getNext()))) {\n        return;\n      }\n    }\n    if (\n        (isSimpleOp || !NodeUtil.mayHaveSideEffects(n, t.getCompiler()))) {\n      String msg = \"This code lacks side-effects. Is there a bug?\";\n      if (n.isString()) {\n        msg = \"Is there a missing '+' on the previous line?\";\n      } else if (isSimpleOp) {\n        msg = \"The result of the '\" + Token.name(n.getType()).toLowerCase() +\n            \"' operator is not being used.\";\n      }\n\n      t.getCompiler().report(\n          t.makeError(n, level, USELESS_CODE_ERROR, msg));\n      // TODO(johnlenz): determine if it is necessary to\n      // try to protect side-effect free statements as well.\n      if (!NodeUtil.isStatement(n)) {\n        problemNodes.add(n);\n      }\n    }\n  }\n```\nThe code fails on this test:\n```\ntestUselessCode\n```\non this test line:\n```java\n    test(js, expected, null, warning);\n```\nwith the following test error:\n```\njunit.framework.AssertionFailedError: There should be one warning, repeated 1 time(s). expected:<1> but was:<0>\n```\nPlease provide the correct function.",
+                "role": "user"
+            }
+        ],
+        "model": "gpt-3.5-turbo-0301",
+        "n": 1,
+        "temperature": 1,
+        "top_p": 1
+    },
+    "response": {
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "index": 0,
+                "message": {
+                    "content": "The bug in the code is that the function is always returning early and is not considering all the cases where a warning should be generated. It can be fixed by the following function:\n\n```java\npublic void visit(NodeTraversal t, Node n, Node parent) {\n  // VOID nodes appear when there are extra semicolons at the BLOCK level.\n  // I've been unable to think of any cases where this indicates a bug,\n  // and apparently some people like keeping these semicolons around,\n  // so we'll allow it.\n  if (n.isEmpty() || n.isComma()) {\n    return;\n  }\n\n  boolean isWithinFor;\n\n  switch (parent.getType()) {\n    case Token.BLOCK:\n    case Token.SCRIPT:\n    case Token.FUNCTION:\n      break;\n    case Token.EXPR_RESULT:\n      if (parent.getFirstChild() != n) {\n        break;\n      }\n      //$FALL-THROUGH$\n    default:\n      if (NodeUtil.mayEffectMutableState(n)) {\n        break;\n      }\n      isWithinFor = NodeUtil.isWithinFor(parent, n);\n      if (isWithinFor && NodeUtil.isIncrementOrDecrement(parent.getParent())) {\n        break;\n      }\n      if (isWithinFor && parent.getChildCount() > 1 && parent.getFirstChild() == n) {\n        break;\n      }\n      String msg;\n      // Don't warn about optional chaining operators.\n      if (n.isOptionalChain()) {\n        return;\n      } else if (n.isString()) {\n        msg = \"Is there a missing '+' on the previous line?\";\n      } else if (NodeUtil.isAssignmentOp(n)) {\n        msg = \"This code is pointless. The left-hand side \" + \"will never be anything but undefined.\";\n      } else {\n        msg = \"The result of the expression is unused.\";\n      }\n      t.reportCodeChange();\n      t.getCompiler().report(t.makeError(n, USELESS_CODE_ERROR, msg));\n  }\n\n  if (NodeUtil.isStatement(n)) {\n    // Traverse the children that are statements (function declarations\n    // are not, for example) so that we find function calls inside them.\n    super.visit(t, n, parent);\n  }\n}\n```",
+                    "role": "assistant"
+                }
+            }
+        ],
+        "created": 1685813517,
+        "id": "chatcmpl-7NPOXRZgwHiDsuuCLAMGTqoBtBkRm",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion",
+        "usage": {
+            "completion_tokens": 460,
+            "prompt_tokens": 886,
+            "total_tokens": 1346
+        }
+    }
+}
