@@ -1,0 +1,55 @@
+{
+    "call": {
+        "messages": [
+            {
+                "content": "You are an automated program repair tool.",
+                "role": "system"
+            },
+            {
+                "content": "The following code contains a buggy hunk that has been removed.\n```java\n  private boolean hasExceptionHandler(Node cfgNode) {\n>>> [ INFILL ] <<<\n    return false;\n  }\n```\nThis was the original buggy hunk which was removed by the infill location:\n```java\n\n```\nThe code fails on this test:\n```\ntestIssue794b\n```\non this test line:\n```java\n    test(EXTERN_FUNCTIONS, \"function _func() {\" + input + \"}\",\n```\nwith the following test error:\n```\njunit.framework.AssertionFailedError:\n```\nPlease provide the correct hunk at the infill location.\n\nIt can be fixed by the following hunk:\n```java\n    List<DiGraphEdge<Node, Branch>> branchEdges = getCfg().getOutEdges(cfgNode);\n    for (DiGraphEdge<Node, Branch> edge : branchEdges) {\n      if (edge.getValue() == Branch.ON_EX) {\n        return true;\n      }\n    }\n```\n\nThe following code contains a buggy hunk that has been removed.\n```java\n  void tryMinimizeExits(Node n, int exitType, String labelName) {\n\n    // Just an 'exit'.\n    if (matchingExitNode(n, exitType, labelName)) {\n      NodeUtil.removeChild(n.getParent(), n);\n      compiler.reportCodeChange();\n      return;\n    }\n\n    // Just an 'if'.\n    if (n.isIf()) {\n      Node ifBlock = n.getFirstChild().getNext();\n      tryMinimizeExits(ifBlock, exitType, labelName);\n      Node elseBlock = ifBlock.getNext();\n      if (elseBlock != null) {\n        tryMinimizeExits(elseBlock, exitType, labelName);\n      }\n      return;\n    }\n\n    // Just a 'try/catch/finally'.\n    if (n.isTry()) {\n      Node tryBlock = n.getFirstChild();\n      tryMinimizeExits(tryBlock, exitType, labelName);\n      Node allCatchNodes = NodeUtil.getCatchBlock(n);\n      if (NodeUtil.hasCatchHandler(allCatchNodes)) {\n        Preconditions.checkState(allCatchNodes.hasOneChild());\n        Node catchNode = allCatchNodes.getFirstChild();\n        Node catchCodeBlock = catchNode.getLastChild();\n        tryMinimizeExits(catchCodeBlock, exitType, labelName);\n      }\n      /* Don't try to minimize the exits of finally blocks, as this\n       * can cause problems if it changes the completion type of the finally\n       * block. See ECMA 262 Sections 8.9 & 12.14\n       */\n>>> [ INFILL ] <<<\n    }\n\n    // Just a 'label'.\n    if (n.isLabel()) {\n      Node labelBlock = n.getLastChild();\n      tryMinimizeExits(labelBlock, exitType, labelName);\n    }\n\n    // TODO(johnlenz): The last case of SWITCH statement?\n\n    // The rest assumes a block with at least one child, bail on anything else.\n    if (!n.isBlock() || n.getLastChild() == null) {\n      return;\n    }\n\n    // Multiple if-exits can be converted in a single pass.\n    // Convert \"if (blah) break;  if (blah2) break; other_stmt;\" to\n    // become \"if (blah); else { if (blah2); else { other_stmt; } }\"\n    // which will get converted to \"if (!blah && !blah2) { other_stmt; }\".\n    for (Node c : n.children()) {\n\n      // An 'if' block to process below.\n      if (c.isIf()) {\n        Node ifTree = c;\n        Node trueBlock, falseBlock;\n\n        // First, the true condition block.\n        trueBlock = ifTree.getFirstChild().getNext();\n        falseBlock = trueBlock.getNext();\n        tryMinimizeIfBlockExits(trueBlock, falseBlock,\n            ifTree, exitType, labelName);\n\n        // Now the else block.\n        // The if blocks may have changed, get them again.\n        trueBlock = ifTree.getFirstChild().getNext();\n        falseBlock = trueBlock.getNext();\n        if (falseBlock != null) {\n          tryMinimizeIfBlockExits(falseBlock, trueBlock,\n              ifTree, exitType, labelName);\n        }\n      }\n\n      if (c == n.getLastChild()) {\n        break;\n      }\n    }\n\n    // Now try to minimize the exits of the last child, if it is removed\n    // look at what has become the last child.\n    for (Node c = n.getLastChild(); c != null; c = n.getLastChild()) {\n      tryMinimizeExits(c, exitType, labelName);\n      // If the node is still the last child, we are done.\n      if (c == n.getLastChild()) {\n        break;\n      }\n    }\n  }\n```\nThis was the original buggy hunk which was removed by the infill location:\n```java\n      if (NodeUtil.hasFinally(n)) {\n        Node finallyBlock = n.getLastChild();\n        tryMinimizeExits(finallyBlock, exitType, labelName);\n      }\n```\nThe code fails on this test:\n```\ntestDontRemoveBreakInTryFinally\n```\non this test line:\n```java\n    testSame(js);\n```\nwith the following test error:\n```\njunit.framework.AssertionFailedError:\n```\nPlease provide the correct hunk at the infill location.",
+                "role": "user"
+            },
+            {
+                "content": "The correct hunk at the infill location is:\n```java\n      if (n.isTry()) {\n        Node tryBlock = n.getFirstChild();\n        tryMinimizeExits(tryBlock, exitType, labelName);\n        Node allCatchNodes = NodeUtil.getCatchBlock(n);\n        if (NodeUtil.hasCatchHandler(allCatchNodes)) {\n          Preconditions.checkState(allCatchNodes.hasOneChild());\n          Node catchNode = allCatchNodes.getFirstChild();\n          Node catchCodeBlock = catchNode.getLastChild();\n          tryMinimizeExits(catchCodeBlock, exitType, labelName);\n        }\n        Node finallyBlock = NodeUtil.getFinallyBlock(n);\n        if (finallyBlock != null) {\n          tryMinimizeExits(finallyBlock, exitType, labelName);\n        }\n        return;\n      }\n```",
+                "role": "assistant"
+            },
+            {
+                "content": "The fixed version is still not correct. code has the following compilation error:\n```\nerror: variable tryBlock is already defined in method tryMinimizeExits(Node,int,String)\n```\nPlease provide the correct hunk at the infill location.",
+                "role": "user"
+            },
+            {
+                "content": "Apologies for the mistake. Here's the corrected hunk:\n\n```java\nif (n.isTry()) {\n  Node tryBlock = n.getFirstChild();\n  tryMinimizeExits(tryBlock, exitType, labelName);\n  Node catchBlocks = NodeUtil.getCatchBlock(n);\n  if (NodeUtil.hasCatchHandler(catchBlocks)) {\n    Preconditions.checkState(catchBlocks.hasOneChild());\n    Node catchBlock = catchBlocks.getFirstChild().getLastChild();\n    tryMinimizeExits(catchBlock, exitType, labelName);\n  }\n  Node finallyBlock = NodeUtil.getFinallyBlock(n);\n  if (finallyBlock != null) {\n    tryMinimizeExits(finallyBlock, exitType, labelName);\n  }\n  return;\n}\n```",
+                "role": "assistant"
+            },
+            {
+                "content": "The fixed version is still not correct. code has the following compilation error:\n```\nerror: variable tryBlock is already defined in method tryMinimizeExits(Node,int,String)\n```\nPlease provide the correct hunk at the infill location.",
+                "role": "user"
+            }
+        ],
+        "model": "gpt-3.5-turbo-0301",
+        "n": 1,
+        "temperature": 1,
+        "top_p": 1
+    },
+    "response": {
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "index": 0,
+                "message": {
+                    "content": "I apologize for the mistake yet again. Here's the correct hunk:\n\n```java\nif (n.isTry()) {\n  Node tryBlk = n.getFirstChild();\n  tryMinimizeExits(tryBlk, exitType, labelName);\n  Node allCatchNodes = NodeUtil.getCatchBlock(n);\n  if (NodeUtil.hasCatchHandler(allCatchNodes)) {\n    Preconditions.checkState(allCatchNodes.hasOneChild());\n    Node catchNode = allCatchNodes.getFirstChild();\n    Node catchCodeBlk = catchNode.getLastChild();\n    tryMinimizeExits(catchCodeBlk, exitType, labelName);\n  }\n  Node finallyBlk = NodeUtil.getFinallyBlock(n);\n  if (finallyBlk != null) {\n    tryMinimizeExits(finallyBlk, exitType, labelName);\n  }\n  return;\n}\n```",
+                    "role": "assistant"
+                }
+            }
+        ],
+        "created": 1685622294,
+        "id": "chatcmpl-7MbeIp2xNtjFxMdVhEL61bDIsSgIk",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion",
+        "usage": {
+            "completion_tokens": 179,
+            "prompt_tokens": 1610,
+            "total_tokens": 1789
+        }
+    }
+}
