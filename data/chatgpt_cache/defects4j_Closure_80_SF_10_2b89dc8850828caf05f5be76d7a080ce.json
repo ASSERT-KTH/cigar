@@ -1,0 +1,39 @@
+{
+    "call": {
+        "messages": [
+            {
+                "content": "You are an automated program repair tool.",
+                "role": "system"
+            },
+            {
+                "content": "The following code contains a bug\n```java\n  private boolean hasExceptionHandler(Node cfgNode) {\n    return false;\n  }\n```\nThe code fails on this test:\n```\ntestIssue794b\n```\non this test line:\n```java\n    test(EXTERN_FUNCTIONS, \"function _func() {\" + input + \"}\",\n```\nwith the following test error:\n```\njunit.framework.AssertionFailedError:\n```\nPlease provide the correct function.\n\nIt can be fixed by the following function:\n```java\n  private boolean hasExceptionHandler(Node cfgNode) {\n    List<DiGraphEdge<Node, Branch>> branchEdges = getCfg().getOutEdges(cfgNode);\n    for (DiGraphEdge<Node, Branch> edge : branchEdges) {\n      if (edge.getValue() == Branch.ON_EX) {\n        return true;\n      }\n    }\n    return false;\n  }\n```\n\nThe following code contains a bug\n```java\n  static boolean evaluatesToLocalValue(Node value, Predicate<Node> locals) {\n    switch (value.getType()) {\n      case Token.ASSIGN:\n        // A result that is aliased by a non-local name, is the effectively the\n        // same as returning a non-local name, but this doesn't matter if the\n        // value is immutable.\n        return NodeUtil.isImmutableValue(value.getLastChild())\n            || (locals.apply(value)\n                && evaluatesToLocalValue(value.getLastChild(), locals));\n      case Token.COMMA:\n        return evaluatesToLocalValue(value.getLastChild(), locals);\n      case Token.AND:\n      case Token.OR:\n        return evaluatesToLocalValue(value.getFirstChild(), locals)\n           && evaluatesToLocalValue(value.getLastChild(), locals);\n      case Token.HOOK:\n        return evaluatesToLocalValue(value.getFirstChild().getNext(), locals)\n           && evaluatesToLocalValue(value.getLastChild(), locals);\n      case Token.INC:\n      case Token.DEC:\n        if (value.getBooleanProp(Node.INCRDECR_PROP)) {\n          return evaluatesToLocalValue(value.getFirstChild(), locals);\n        } else {\n          return true;\n        }\n      case Token.THIS:\n        return locals.apply(value);\n      case Token.NAME:\n        return isImmutableValue(value) || locals.apply(value);\n      case Token.GETELEM:\n      case Token.GETPROP:\n        // There is no information about the locality of object properties.\n        return locals.apply(value);\n      case Token.CALL:\n        return callHasLocalResult(value)\n            || isToStringMethodCall(value)\n            || locals.apply(value);\n      case Token.NEW:\n        return newHasLocalResult(value)\n               || locals.apply(value);\n      case Token.FUNCTION:\n      case Token.REGEXP:\n      case Token.ARRAYLIT:\n      case Token.OBJECTLIT:\n        // Literals objects with non-literal children are allowed.\n        return true;\n      case Token.IN:\n        // TODO(johnlenz): should IN operator be included in #isSimpleOperator?\n        return true;\n      default:\n        // Other op force a local value:\n        //  x = '' + g (x is now an local string)\n        //  x -= g (x is now an local number)\n        if (isAssignmentOp(value)\n            || isSimpleOperator(value)\n            || isImmutableValue(value)) {\n          return true;\n        }\n\n        throw new IllegalStateException(\n            \"Unexpected expression node\" + value +\n            \"\\n parent:\" + value.getParent());\n    }\n  }\n```\nThe code fails on this test:\n```\ntestIsBooleanResult\n```\non this test line:\n```java\n    assertTrue(NodeUtil.isBooleanResult(getNode(\"delete a\")));\n```\nwith the following test error:\n```\njunit.framework.AssertionFailedError\n```\nPlease provide the correct function.",
+                "role": "user"
+            }
+        ],
+        "model": "gpt-3.5-turbo-0301",
+        "n": 1,
+        "temperature": 1,
+        "top_p": 1
+    },
+    "response": {
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "index": 0,
+                "message": {
+                    "content": "The following function should fix the bug:\n```java\n/**\n * Returns whether a given node evaluates to a boolean result.\n *\n * <p>The method does not check if the expression is pure or if the result is always\n * a boolean. It only checks whether in cases where a boolean is expected, the result\n * will be a boolean.\n *\n * <p>For example, {@code !/a/.test(str)} is considered a boolean result, even though\n * it returns an object.\n *\n * @param node The node to test.\n */\nstatic boolean isBooleanResult(Node node) {\n  if (node == null) {\n    return false;\n  }\n  switch (node.getToken()) {\n    case Token.FALSE:\n    case Token.TRUE:\n      return true;\n    case Token.AND:\n    case Token.OR:\n      return isBooleanResult(node.getFirstChild())\n          && isBooleanResult(node.getLastChild());\n    case Token.NOT:\n      Node child = node.getFirstChild();\n      Node grandchild;\n      return child.isBoolean() ||\n          (child.isTypeOf() &&\n              (grandchild = child.getFirstChild()).isName() &&\n              \"undefined\".equals(grandchild.getString()));\n    case Token.HOOK:\n      return isBooleanResult(node.getFirstChild().getNext())\n          && isBooleanResult(node.getLastChild());\n    case Token.EQ:\n    case Token.NE:\n      Node left = node.getFirstChild();\n      Node right = node.getLastChild();\n      boolean leftIsObjectOrEnumKey = NodeUtil.isObjectType(left) || isEnumKey(left);\n      boolean rightIsObjectOrEnumKey = NodeUtil.isObjectType(right) || isEnumKey(right);\n      if (leftIsObjectOrEnumKey && rightIsObjectOrEnumKey) {\n        // The '==' operator will only return true if both operands\n        // reference the same object.\n        // We can treat this like a call to Object.is. If we're comparing\n        // the same object-reference, return TRUE; otherwise, calculate the\n        // usual object comparison result.\n        return left == right || !isObjectPropertiesOrEnumValuesComparisonHelper(left, right);\n      } else if (leftIsObjectOrEnumKey || rightIsObjectOrEnumKey) {\n        // Comparing an object/enum-key and a non-(object/enum-key)\n        // with '==' can never result in a boolean value.\n        return false;\n      } else if (left.isString() && right.isString()\n          && (node.getToken() == Token.EQ || node.getToken() == Token.NE)) {\n        return true;\n      } else if (left.isNumber() && right.isNumber()\n          && (node.getToken() == Token.EQ || node.getToken() == Token.NE)) {\n        return true;\n      } else {\n        return false;\n      }\n    case Token.LT:\n    case Token.GT:\n    case Token.LE:\n    case Token.GE:\n    case Token.INSTANCEOF:\n      return false;\n    case Token.TYPEOF:\n      // typeof always returns a string.\n      return true;\n    case Token.ZERO:\n      return false;\n    case Token.NAME:\n      // Names can be bools if they were created in a context that requested\n      // a boolean.\n      return node.getBooleanProp(Node.IS_BOOLEAN_FUNCTION);\n    default:\n      // All other operators known to return something truthy.\n      return isTruthy(node);\n  }\n}\n```",
+                    "role": "assistant"
+                }
+            }
+        ],
+        "created": 1685889527,
+        "id": "chatcmpl-7NjAV4wRKkuIhUOtlhaNnoXJMo9Ja",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion",
+        "usage": {
+            "completion_tokens": 698,
+            "prompt_tokens": 786,
+            "total_tokens": 1484
+        }
+    }
+}
