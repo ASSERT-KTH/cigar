@@ -37,10 +37,10 @@ class ChatGPT(object):
                     'usage': {'total_tokens': prog_params.model_token_limit}
                     }
 
-        if self.save_to_cache and self.cache_folder is not None:
-            with open(cache_file_path, "w") as file:
-                json_to_save = self.get_json_to_save(call_params, response)
-                file.write(json.dumps(json_to_save, indent=4, sort_keys=True))
+            if self.save_to_cache and self.cache_folder is not None:
+                with open(cache_file_path, "w") as file:
+                    json_to_save = self.get_json_to_save(call_params, response)
+                    file.write(json.dumps(json_to_save, indent=4, sort_keys=True))
 
         if 'error' in response:
             if response['error'] == "context_length_exceeded":
