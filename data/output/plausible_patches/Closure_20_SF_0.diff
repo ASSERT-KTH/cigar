@@ -1,0 +1,56 @@
+diff --git a/src/com/google/javascript/jscomp/PeepholeSubstituteAlternateSyntax.java b/src/com/google/javascript/jscomp/PeepholeSubstituteAlternateSyntax.java
+index bfa17074..ab0b6dc3 100644
+--- a/src/com/google/javascript/jscomp/PeepholeSubstituteAlternateSyntax.java
++++ b/src/com/google/javascript/jscomp/PeepholeSubstituteAlternateSyntax.java
+@@ -204,31 +204,30 @@ class PeepholeSubstituteAlternateSyntax
+       }
+     }
+   }
++private Node tryFoldSimpleFunctionCall(Node n) {
++  Preconditions.checkState(n.isCall());
++  Node callTarget = n.getFirstChild();
++  
++  if (callTarget == null || !callTarget.isName() || !callTarget.getString().equals("String")) {
++    return n;
++  }
+ 
+-  private Node tryFoldSimpleFunctionCall(Node n) {
+-    Preconditions.checkState(n.isCall());
+-    Node callTarget = n.getFirstChild();
+-    if (callTarget != null && callTarget.isName() &&
+-          callTarget.getString().equals("String")) {
+-      // Fold String(a) to '' + (a) on immutable literals,
+-      // which allows further optimizations
+-      //
+-      // We can't do this in the general case, because String(a) has
+-      // slightly different semantics than '' + (a). See
+-      // http://code.google.com/p/closure-compiler/issues/detail?id=759
+-      Node value = callTarget.getNext();
+-      if (value != null) {
+-        Node addition = IR.add(
+-            IR.string("").srcref(callTarget),
+-            value.detachFromParent());
+-        n.getParent().replaceChild(n, addition);
+-        reportCodeChange();
+-        return addition;
+-      }
+-    }
++  Node arg = callTarget.getNext();
++
++  if (arg == null || arg.getNext() != null) {
++    return n;
++  }
++
++  if (!NodeUtil.isImmutableValue(arg)) {
+     return n;
+   }
+ 
++  Node addition = IR.add(IR.string("").srcref(callTarget), arg.detachFromParent());
++  n.getParent().replaceChild(n, addition);
++  reportCodeChange();
++  return addition;
++}
++
+   private Node tryFoldImmediateCallToBoundFunction(Node n) {
+     // Rewriting "(fn.bind(a,b))()" to "fn.call(a,b)" makes it inlinable
+     Preconditions.checkState(n.isCall());
