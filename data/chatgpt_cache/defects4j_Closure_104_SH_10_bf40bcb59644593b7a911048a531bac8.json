@@ -1,0 +1,39 @@
+{
+    "call": {
+        "messages": [
+            {
+                "content": "You are an automated program repair tool.",
+                "role": "system"
+            },
+            {
+                "content": "The following code contains a buggy hunk that has been removed.\n```java\n  private boolean hasExceptionHandler(Node cfgNode) {\n>>> [ INFILL ] <<<\n    return false;\n  }\n```\nThis was the original buggy hunk which was removed by the infill location:\n```java\n\n```\nThe code fails on this test:\n```\ntestIssue794b\n```\non this test line:\n```java\n    test(EXTERN_FUNCTIONS, \"function _func() {\" + input + \"}\",\n```\nwith the following test error:\n```\njunit.framework.AssertionFailedError:\n```\nPlease provide the correct hunk at the infill location.\n\nIt can be fixed by the following hunk:\n```java\n    List<DiGraphEdge<Node, Branch>> branchEdges = getCfg().getOutEdges(cfgNode);\n    for (DiGraphEdge<Node, Branch> edge : branchEdges) {\n      if (edge.getValue() == Branch.ON_EX) {\n        return true;\n      }\n    }\n```\n\nThe following code contains a buggy hunk that has been removed.\n```java\n      for (JSType otherAlternate : ((UnionType) that).alternates) {\n        if (otherAlternate.isSubtype(this)) {\n          builder.addAlternate(otherAlternate);\n        }\n      }\n    } else if (that.isSubtype(this)) {\n      builder.addAlternate(that);\n    }\n    JSType result = builder.build();\n>>> [ INFILL ] <<<\n      return result;\n    } else if (this.isObject() && that.isObject()) {\n      return getNativeType(JSTypeNative.NO_OBJECT_TYPE);\n    } else {\n      return getNativeType(JSTypeNative.NO_TYPE);\n    }\n  }\n\n  /**\n   * Two union types are equal if they have the same number of alternates\n   * and all alternates are equal.\n   */\n  @Override\n  public boolean equals(Object object) {\n    if (object instanceof UnionType) {\n      UnionType that = (UnionType) object;\n      return alternates.equals(that.alternates);\n    } else {\n      return false;\n    }\n  }\n\n  @Override\n  public int hashCode() {\n    return alternates.hashCode();\n  }\n\n  @Override\n  public boolean isUnionType() {\n    return true;\n  }\n\n  @Override\n  public boolean isObject() {\n    for (JSType alternate : alternates) {\n      if (!alternate.isObject()) {\n        return false;\n      }\n```\nThis was the original buggy hunk which was removed by the infill location:\n```java\n    if (result != null) {\n```\nThe code fails on this test:\n```\ntestGreatestSubtypeUnionTypes5\n```\non this test line:\n```java\n    assertEquals(NO_OBJECT_TYPE,\n```\nwith the following test error:\n```\njunit.framework.AssertionFailedError: expected:<NoObject> but was:<None>\n```\nPlease provide the correct hunk at the infill location.",
+                "role": "user"
+            }
+        ],
+        "model": "gpt-3.5-turbo-0301",
+        "n": 1,
+        "temperature": 1,
+        "top_p": 1
+    },
+    "response": {
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "index": 0,
+                "message": {
+                    "content": "It can be fixed by the following hunk:\n```java\n    if (result != null && !result.isBottom()) {\n      return result;\n    } else if (this.isObject() && that.isObject()) {\n      return getNativeType(JSTypeNative.NO_OBJECT_TYPE);\n    } else {\n      return getNativeType(JSTypeNative.NO_TYPE);\n    }\n  }\n\n  /**\n   * Two union types are equal if they have the same number of alternates\n   * and all alternates are equal.\n   */\n  @Override\n  public boolean equals(Object object) {\n    if (object instanceof UnionType) {\n      UnionType that = (UnionType) object;\n      return alternates.equals(that.alternates);\n    } else {\n      return false;\n    }\n  }\n\n  @Override\n  public int hashCode() {\n    return alternates.hashCode();\n  }\n\n  @Override\n  public boolean isUnionType() {\n    return true;\n  }\n\n  @Override\n  public boolean isObject() {\n    for (JSType alternate : alternates) {\n      if (!alternate.isObject()) {\n        return false;\n      }\n      }\n    return true;\n  }\n\n  @Override\n  UnionType flatten() {\n    UnionType.Builder builder = new UnionType.Builder();\n    for (JSType alternate : alternates) {\n      if (alternate.isUnionType()) {\n        builder.addFromUnionType((UnionType) alternate);\n      } else if (!alternate.isBottom()) {\n        builder.addAlternate(alternate);\n      }\n    }\n    return builder.build();\n  }\n\n  @Override\n  JSType getGreatestSubtypeHelper(\n      Set<Pair<JSType, JSType>> cache,\n      JSType other,\n      SubtypeCache subSuperMap) {\n    // The greatest subtype of an empty union type is bottom.\n    if (alternates.isEmpty()) {\n      return JSType.bottom();\n    }\n    JSType result = null;\n    boolean sawBottom = false;\n    for (JSType alternate : alternates) {\n      if (alternate.isBottom()) {\n        sawBottom = true;\n      } else if (result == null) {\n        result = alternate.getGreatestSubtype(other, cache, subSuperMap);\n      } else {\n        result = result.getGreatestSubtype(alternate, cache, subSuperMap);\n        if (result.isBottom()) {\n          break;\n        }\n      }\n    }\n    if (result != null && !result.isBottom()) {\n      return result;\n    } else if (sawBottom) {\n      return JSType.bottom();\n    } else {\n      return null;\n    }\n  }\n\n  @Override\n  JSType getLeastSupertypeHelper(\n      Set<Pair<JSType, JSType>> cache,\n      JSType other,\n      SubtypeCache subSuperMap) {\n    // The least supertype of an empty union type is `unknown`.\n    if (alternates.isEmpty()) {\n      return JSType.top();\n    }\n\n    // If this type is a union with a subtype of `other`, return this type.\n    if (other.isUnionType()) {\n      for (JSType alternate : ((UnionType) other).alternates) {\n        JSType leastSupertype = getLeastSupertypeHelper(cache, alternate, subSuperMap);\n        if (leastSupertype != null) {\n          return this;\n        }\n      }\n    } else if (isTop()) {\n      return other;\n    }\n\n    JSType result = null;\n    boolean sawTop = false;\n    for (JSType alternate : alternates) {\n      if (alternate.isTop()) {\n        sawTop = true;\n      } else if (result == null) {\n        result = alternate.getLeastSupertype(other, cache, subSuperMap);\n      } else {\n        result = result.getLeastSupertype(alternate, cache, subSuperMap);\n        if (result.isTop()) {\n          break;\n        }\n      }\n    }\n\n    if (result != null && !result.isTop()) {\n      return result;\n    } else if (sawTop) {\n      return JSType.top();\n    } else {\n      return null;\n    }\n  }\n```",
+                    "role": "assistant"
+                }
+            }
+        ],
+        "created": 1685871192,
+        "id": "chatcmpl-7NeOm0NsPNrVXaC3C2iiatYbSYvic",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion",
+        "usage": {
+            "completion_tokens": 880,
+            "prompt_tokens": 638,
+            "total_tokens": 1518
+        }
+    }
+}
