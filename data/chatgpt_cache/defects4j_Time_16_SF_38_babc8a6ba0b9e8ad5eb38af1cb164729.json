@@ -1,0 +1,47 @@
+{
+    "call": {
+        "messages": [
+            {
+                "content": "You are an automated program repair tool.",
+                "role": "system"
+            },
+            {
+                "content": "The following code contains a bug\n```java\n    protected BasePeriod(long duration) {\n        this(duration, null, null);\n        // bug [3264409]\n    }\n```\nThe code fails on this test:\n```\ntestToPeriod_fixedZone\n```\non this test line:\n```java\n            assertEquals(0, test.getWeeks());\n```\nwith the following test error:\n```\njunit.framework.AssertionFailedError: expected:<0> but was:<64>\n```\nPlease provide the correct function.\n\nIt can be fixed by the following function:\n```java\n    protected BasePeriod(long duration) {\n        super();\n        // bug [3264409]\n        iType = PeriodType.time();\n        int[] values = ISOChronology.getInstanceUTC().get(this, duration);\n        iType = PeriodType.standard();\n        iValues = new int[8];\n        System.arraycopy(values, 0, iValues, 4, 4);\n    }\n```\n\nThe following code contains a bug\n```java\n    public int parseInto(ReadWritableInstant instant, String text, int position) {\n        DateTimeParser parser = requireParser();\n        if (instant == null) {\n            throw new IllegalArgumentException(\"Instant must not be null\");\n        }\n        \n        long instantMillis = instant.getMillis();\n        Chronology chrono = instant.getChronology();\n        long instantLocal = instantMillis + chrono.getZone().getOffset(instantMillis);\n        chrono = selectChronology(chrono);\n        \n        DateTimeParserBucket bucket = new DateTimeParserBucket(\n            instantLocal, chrono, iLocale, iPivotYear, iDefaultYear);\n        int newPos = parser.parseInto(bucket, text, position);\n        instant.setMillis(bucket.computeMillis(false, text));\n        if (iOffsetParsed && bucket.getOffsetInteger() != null) {\n            int parsedOffset = bucket.getOffsetInteger();\n            DateTimeZone parsedZone = DateTimeZone.forOffsetMillis(parsedOffset);\n            chrono = chrono.withZone(parsedZone);\n        } else if (bucket.getZone() != null) {\n            chrono = chrono.withZone(bucket.getZone());\n        }\n        instant.setChronology(chrono);\n        if (iZone != null) {\n            instant.setZone(iZone);\n        }\n        return newPos;\n    }\n```\nThe code fails on this test:\n```\ntestParseInto_monthOnly_baseStartYear\n```\non this test line:\n```java\n        assertEquals(new MutableDateTime(2004, 5, 1, 12, 20, 30, 0, TOKYO), result);\n```\nwith the following test error:\n```\njunit.framework.AssertionFailedError: expected:<2004-05-01T12:20:30.000+09:00> but was:<2000-05-01T12:20:30.000+09:00>\n```\nPlease provide the correct function.",
+                "role": "user"
+            },
+            {
+                "content": "The following function should resolve the bug:\n```java\n    public int parseInto(ReadWritableInstant instant, String text, int position) {\n        DateTimeParser parser = requireParser();\n        if (instant == null) {\n            throw new IllegalArgumentException(\"Instant must not be null\");\n        }\n        \n        Chronology chrono = instant.getChronology();\n        long instantMillis = instant.getMillis();\n        long instantLocal = instantMillis + chrono.getZone().getOffset(instantMillis);  \n        chrono = selectChronology(chrono);\n        \n        DateTimeParserBucket bucket = new DateTimeParserBucket(\n            instantLocal, chrono, iLocale, iPivotYear, iDefaultYear);\n  \n        int newPos = parser.parseInto(bucket, text, position);\n        instant.setMillis(bucket.computeMillis(true, text)); // bug fixed - using true instead of false\n        if (iOffsetParsed && bucket.getOffsetInteger() != null) {\n            int parsedOffset = bucket.getOffsetInteger();\n            DateTimeZone parsedZone = DateTimeZone.forOffsetMillis(parsedOffset);\n            chrono = chrono.withZone(parsedZone);\n        } else if (bucket.getZone() != null) {\n            chrono = chrono.withZone(bucket.getZone());\n        }\n        instant.setChronology(chrono);\n        if (iZone != null) {\n            instant.setZone(iZone);\n        }\n        return newPos;\n    }\n```",
+                "role": "assistant"
+            },
+            {
+                "content": "The fixed version is still not correct. code has the following test error:\n```\njunit.framework.AssertionFailedError: expected:<2004-05-01T12:20:30.000+09:00> but was:<2000-05-01T00:00:00.000+09:00>\n```\nPlease provide the correct function.",
+                "role": "user"
+            }
+        ],
+        "model": "gpt-3.5-turbo-0301",
+        "n": 1,
+        "temperature": 1,
+        "top_p": 1
+    },
+    "response": {
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "index": 0,
+                "message": {
+                    "content": "I apologize for the mistake. The following function should fix the bug:\n```java\n    public int parseInto(ReadWritableInstant instant, String text, int position) {\n        DateTimeParser parser = requireParser();\n        if (instant == null) {\n            throw new IllegalArgumentException(\"Instant must not be null\");\n        }\n        \n        Chronology chrono = instant.getChronology();\n        long instantMillis = instant.getMillis();\n        long instantLocal = instantMillis + chrono.getZone().getOffset(instantMillis);  \n        chrono = selectChronology(chrono);\n        \n        DateTimeParserBucket bucket = new DateTimeParserBucket(\n            instantLocal, chrono, iLocale, iPivotYear, iDefaultYear);\n  \n        int newPos = parser.parseInto(bucket, text, position);\n        long parsedMillis = bucket.computeMillis(true, text); // bug fixed - using true instead of false\n        if (parsedMillis == instantMillis) { // bug fixed - even instantMillis is different from parsed millis, still keep it\n            parsedMillis = bucket.computeMillis(false, text);\n        }\n        instant.setMillis(parsedMillis);\n        if (iOffsetParsed && bucket.getOffsetInteger() != null) {\n            int parsedOffset = bucket.getOffsetInteger();\n            DateTimeZone parsedZone = DateTimeZone.forOffsetMillis(parsedOffset);\n            chrono = chrono.withZone(parsedZone);\n        } else if (bucket.getZone() != null) {\n            chrono = chrono.withZone(bucket.getZone());\n        }\n        instant.setChronology(chrono);\n        if (iZone != null) {\n            instant.setZone(iZone);\n        }\n        return newPos;\n    }\n``` \nPlease note that the fix additionally checks whether the computed parsedMillis is the same as the original instantMillis and, if so, still keeps it, otherwise the parsedMillis is placed into the instant.",
+                    "role": "assistant"
+                }
+            }
+        ],
+        "created": 1685873091,
+        "id": "chatcmpl-7NetPiZE3Jq2ebPxIBwvWVUVhpmiW",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion",
+        "usage": {
+            "completion_tokens": 371,
+            "prompt_tokens": 979,
+            "total_tokens": 1350
+        }
+    }
+}
