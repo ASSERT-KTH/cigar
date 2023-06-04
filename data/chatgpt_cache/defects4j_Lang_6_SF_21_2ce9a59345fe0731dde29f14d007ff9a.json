@@ -1,0 +1,55 @@
+{
+    "call": {
+        "messages": [
+            {
+                "content": "You are an automated program repair tool.",
+                "role": "system"
+            },
+            {
+                "content": "The following code contains a bug\n```java\n    public static boolean isAvailableLocale(Locale locale) {\n        return cAvailableLocaleSet.contains(locale);\n    }\n```\nThe code fails on this test:\n```\ntestAvailableLocaleSet\n```\non this test line:\n```java\n        LocaleUtils.isAvailableLocale(Locale.getDefault());\n```\nwith the following test error:\n```\njava.lang.NullPointerException\n```\nPlease provide the correct function.\n\nIt can be fixed by the following function:\n```java\n    public static boolean isAvailableLocale(Locale locale) {\n        return availableLocaleList().contains(locale);\n    }\n```\n\nThe following code contains a bug\n```java\n    public final void translate(CharSequence input, Writer out) throws IOException {\n        if (out == null) {\n            throw new IllegalArgumentException(\"The Writer must not be null\");\n        }\n        if (input == null) {\n            return;\n        }\n        int pos = 0;\n        int len = input.length();\n        while (pos < len) {\n            int consumed = translate(input, pos, out);\n            if (consumed == 0) {\n                char[] c = Character.toChars(Character.codePointAt(input, pos));\n                out.write(c);\n                pos+= c.length;\n                continue;\n            }\n//          // contract with translators is that they have to understand codepoints \n//          // and they just took care of a surrogate pair\n            for (int pt = 0; pt < consumed; pt++) {\n                pos += Character.charCount(Character.codePointAt(input, pos));\n            }\n        }\n    }\n```\nThe code fails on this test:\n```\ntestEscapeSurrogatePairs\n```\non this test line:\n```java\n        assertEquals(\"\\uD83D\\uDE30\", StringEscapeUtils.escapeCsv(\"\\uD83D\\uDE30\"));\n```\nwith the following test error:\n```\njava.lang.StringIndexOutOfBoundsException: String index out of range: 2\n```\nPlease provide the correct function.",
+                "role": "user"
+            },
+            {
+                "content": "The following function should fix the issue:\n```java\n    public final void translate(CharSequence input, Writer out) throws IOException {\n        if (out == null) {\n            throw new IllegalArgumentException(\"The Writer must not be null\");\n        }\n        if (input == null) {\n            return;\n        }\n        int pos = 0;\n        int len = input.length();\n        while (pos < len) {\n            int consumed = translate(input, pos, out);\n            if (consumed == 0) {\n                int codePoint = Character.codePointAt(input, pos);\n                if (Character.isSupplementaryCodePoint(codePoint)) {\n                    out.write(Character.toChars(codePoint));\n                } else {\n                    out.write(codePoint);\n                }\n                pos+= Character.charCount(codePoint);\n                continue;\n            }\n            for (int pt = 0; pt < consumed; pt++) {\n                pos += Character.charCount(Character.codePointAt(input, pos));\n            }\n        }\n    }\n```\nThe issue is that `Character.toChars` returns a length-2 array for supplementary code points, and the function was assuming a single character would be returned. The fix checks whether the code point is supplementary before writing to the output, and handles it appropriately.",
+                "role": "assistant"
+            },
+            {
+                "content": "The fixed version is still not correct. It still does not fix the original test failure.",
+                "role": "user"
+            },
+            {
+                "content": "I'm sorry that my previous solution did not work. I would need more information to understand why it did not work. However, I have another solution that I believe will work.\n\nThe following function should fix the issue:\n```java\n    public final void translate(CharSequence input, Writer out) throws IOException {\n        if (out == null) {\n            throw new IllegalArgumentException(\"The Writer must not be null\");\n        }\n        if (input == null) {\n            return;\n        }\n        int pos = 0;\n        int len = input.length();\n        while (pos < len) {\n            int consumed = translate(input, pos, out);\n            if (consumed == 0) {\n                int codePoint = Character.codePointAt(input, pos);\n                if (Character.charCount(codePoint) > 1) {\n                    out.write(input.subSequence(pos, pos+Character.charCount(codePoint)).toString());\n                } else {\n                    out.write(codePoint);\n                }\n                pos+= Character.charCount(codePoint);\n                continue;\n            }\n            for (int pt = 0; pt < consumed; pt++) {\n                pos += Character.charCount(Character.codePointAt(input, pos));\n            }\n        }\n    }\n```\nThe issue with the original code was that it assumed that each character in the input CharSequence was represented by a single char. This assumption is incorrect for supplementary characters (i.e. characters outside of the Basic Multilingual Plane). Since these characters require two char values to represent them, the original code throws a StringIndexOutOfBoundsException when it tries to access the second char for a supplementary character.\n\nThe fix I provide checks if the current code point is a supplementary character based on the number of char values required to represent it using `Character.charCount(codePoint)`. If it is, I use `subSequence` to get the corresponding substring of the input, convert it to a String using `toString`, and write it to the output using `out.write`. If it's not a supplementary character, then I just write the code point to the output using `out.write(codePoint)`.",
+                "role": "assistant"
+            },
+            {
+                "content": "The fixed version is still not correct. It still does not fix the original test failure.",
+                "role": "user"
+            }
+        ],
+        "model": "gpt-3.5-turbo-0301",
+        "n": 1,
+        "temperature": 1,
+        "top_p": 1
+    },
+    "response": {
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "index": 0,
+                "message": {
+                    "content": "I apologize for my previous solutions not fixing the test failure. It seems like the issue is that the `translate` method in `StringEscapeUtils` assumes that the input is made up of only BMP (Basic Multilingual Plane) characters, and therefore does not correctly handle surrogate pairs.\n\nThe following code should fix the issue by modifying the `translate` method:\n```java\npublic final void translate(CharSequence input, Writer out) throws IOException {\n    if (out == null) {\n        throw new IllegalArgumentException(\"The Writer must not be null\");\n    }\n    if (input == null) {\n        return;\n    }\n    int pos = 0;\n    int len = input.length();\n    while (pos < len) {\n        int consumed = translate(input, pos, out);\n        if (consumed == 0) {\n            /*\n             * If there are any high-surrogate characters remaining in the input,\n             * write them to the output as is since they are invalid characters\n             * in CSV format.\n             */\n            if (Character.isHighSurrogate(input.charAt(pos))) {\n                out.write(input.charAt(pos++));\n                if (pos < len && Character.isLowSurrogate(input.charAt(pos))) {\n                    /*\n                     * If there is also a corresponding low-surrogate character, write\n                     * it to the output as well.\n                     */\n                    out.write(input.charAt(pos++));\n                }\n                continue;\n            }\n            /*\n             * Otherwise, write the current character as is since it is a BMP (Basic\n             * Multilingual Plane) character and valid in CSV format.\n             */\n            out.write(input.charAt(pos++));\n            continue;\n        }\n        pos += consumed;\n    }\n}\n```\n\nThe issue with the previous implementations is that they take the length of each character in the input sequence to determine how many positions to advance the position counter, which doesn't account for the possibility of surrogate pairs. My solution handles surrogate pairs as special cases in which the high surrogate goes to the input as-is and the low surrogate is written to the output as-is, as they are both invalid in CSV format.\n\nUsing this code, the `testEscapeSurrogatePairs` test in `StringEscapeUtilsTest` should pass.",
+                    "role": "assistant"
+                }
+            }
+        ],
+        "created": 1685877526,
+        "id": "chatcmpl-7Ng2wxyFeTvuzFD70BNf2vNl6OImV",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion",
+        "usage": {
+            "completion_tokens": 449,
+            "prompt_tokens": 1161,
+            "total_tokens": 1610
+        }
+    }
+}
