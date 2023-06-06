@@ -112,7 +112,7 @@ class Framework(object):
         patch_hash = hashlib.md5(str(proposed_patch).encode('utf-8')).hexdigest()
 
         if self.validate_patch_cache_folder is not None:
-            cache_file_path = f"{self.validate_patch_cache_folder}/{self.test_framework}_{bug.project}_{bug.bug_id}_{patch_hash}.json"
+            cache_file_path = f"{self.validate_patch_cache_folder}/{self.test_framework}_{bug.project}_{bug.bug_id}_{mode}_{patch_hash}.json"
             if Path(cache_file_path).is_file():
                 with open(cache_file_path, "r") as file:
                     json_to_load = json.load(file)
