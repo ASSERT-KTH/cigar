@@ -64,7 +64,7 @@ def main(project=None, bug_ids=None):
                         repair_results = capr.repair(bug=bug, 
                                                      mode=mode, 
                                                      n_shot_count=user_params.n_shot_count,
-                                                     stop_after_first_plausible_patch=True,
+                                                     stop_after_first_plausible_patch=user_params.stop_after_first_plausible_patch,
                                                      max_tries=max_tries,
                                                      max_conv_length=user_params.max_conv_length)
                         plausible_patches, plausible_patch_diffs, repair_cost, first_plausible_patch_try, first_plausible_patch_conv_len, used_tries, err_tf, err_ce = repair_results
