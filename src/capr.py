@@ -80,7 +80,7 @@ class CAPR(object):
 
                 patch = self.extract_patch_from_response(response)
 
-                test_result, result_reason, patch_diff = self.framework.validate_patch(bug, patch)
+                test_result, result_reason, patch_diff = self.framework.validate_patch(bug=bug, proposed_patch=patch, mode=mode)
                 if test_result == "PASS" and patch not in plausible_patches:
                     plausible_patches.append(patch)
                     plausible_patch_diffs.append(patch_diff)
