@@ -34,7 +34,7 @@ class CAPR(object):
                 current_tries += 1
                 current_conversation_length += 1
 
-                logging.info(f"Repairing attempt of {bug.project}-{bug.bug_id} ({mode}), try {current_tries} (ccl: {current_conversation_length})")
+                logging.info(f"Searching for plausible patch in {bug.project}-{bug.bug_id} ({mode}), try {current_tries} (ccl: {current_conversation_length})")
                 try:
                     response, cost = self.chatgpt.call(prompt, num_of_samples=sample_per_try, prefix=f"{prefix}_{current_tries}")
                 except openai.error.InvalidRequestError as e:
@@ -73,6 +73,8 @@ class CAPR(object):
         if len(plausible_patches) != 0 and not stop_after_first_plausible_patch:
             while (current_tries < max_tries):
                 current_tries += 1
+
+                logging.info(f"Attempt to generate multiple plausible patches in {bug.project}-{bug.bug_id} ({mode}), try {current_tries} (ccl: {current_conversation_length})")
                 prompt = prompts.construct_plausable_path_prompt(bug, plausible_patches, mode)
 
                 response, cost = self.chatgpt.call(prompt, num_of_samples=sample_per_try, prefix=f"{prefix}_{current_tries}")
