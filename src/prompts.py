@@ -58,22 +58,22 @@ with the following test error:\n```\n{bug.test_error_message}\n```
     def test_fail_feedback():
         return {"role": "user", "content": f"The fixed version is still not correct. It still does not fix the original test failure."}
 
-    def construct_plausable_path_prompt(bug: Bug, plausible_patches, mode: str):
+    def construct_plausible_path_prompt(bug: Bug, plausible_patches, mode: str):
 
         initial_prompt_message = Prompts.construct_initial_message(bug, mode, n_shot_bugs=None)
 
-        plausible_patches = ""
+        plausible_patches_list_text = ""
         for i, patch in enumerate(plausible_patches):
-            plausible_patches += f"""{i+1}. ```java\n{patch}\n```\n"""
+            plausible_patches_list_text += f"""{i+1}. ```java\n{patch}\n```\n"""
 
         s = "s" if len(plausible_patches) > 1 else ""
 
         if mode == "SL":
-            more_plausible_patches_text = f"It can be fixed by these possible line{s}:\n{plausible_patches}Please generate an alternative fix line."
+            more_plausible_patches_text = f"It can be fixed by these possible line{s}:\n{plausible_patches_list_text}Please generate an alternative fix line."
         elif mode == "SH":
-            more_plausible_patches_text = f"It can be fixed by the following hunk{s}:\n{plausible_patches}Please generate an alternative fix hunk."
+            more_plausible_patches_text = f"It can be fixed by the following hunk{s}:\n{plausible_patches_list_text}Please generate an alternative fix hunk."
         elif mode == "SF":
-            more_plausible_patches_text = f"It can be fixed by the following function{s}:\n{plausible_patches}Please generate an alternative fix function."
+            more_plausible_patches_text = f"It can be fixed by the following function{s}:\n{plausible_patches_list_text}Please generate an alternative fix function."
 
         return [{"role": "system", "content": "You are an automated program repair tool."},
                 {"role": "user", "content": f"{initial_prompt_message}\n{more_plausible_patches_text}"}]

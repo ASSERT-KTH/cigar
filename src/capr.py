@@ -75,7 +75,7 @@ class CAPR(object):
                 current_tries += 1
 
                 logging.info(f"Attempt to generate multiple plausible patches in {bug.project}-{bug.bug_id} ({mode}), try {current_tries} (pps: {len(plausible_patches)})")
-                prompt = prompts.construct_plausable_path_prompt(bug, plausible_patches, mode)
+                prompt = prompts.construct_plausible_path_prompt(bug, plausible_patches, mode)
 
                 response, cost = self.chatgpt.call(prompt, num_of_samples=sample_per_try, prefix=f"{prefix}_{current_tries}")
                 total_cost += cost
