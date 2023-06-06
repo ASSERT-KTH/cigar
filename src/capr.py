@@ -74,7 +74,7 @@ class CAPR(object):
             while (current_tries < max_tries):
                 current_tries += 1
 
-                logging.info(f"Attempt to generate multiple plausible patches in {bug.project}-{bug.bug_id} ({mode}), try {current_tries} (ccl: {current_conversation_length})")
+                logging.info(f"Attempt to generate multiple plausible patches in {bug.project}-{bug.bug_id} ({mode}), try {current_tries} (pps: {len(plausible_patches)})")
                 prompt = prompts.construct_plausable_path_prompt(bug, plausible_patches, mode)
 
                 response, cost = self.chatgpt.call(prompt, num_of_samples=sample_per_try, prefix=f"{prefix}_{current_tries}")
