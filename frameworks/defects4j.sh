@@ -308,6 +308,12 @@ function validate_patch {
     prefix=$(echo "$full_code_without_buggy_function" | head -n $((code_function_first_line_number - 1)))
     suffix=$(echo "$full_code_without_buggy_function" | tail -n +$((code_function_first_line_number)))
 
+    line_above_code_function_first_line_number=$(echo "$full_code" | sed "$((code_function_first_line_number - 1))!d") # Line above the code_function_first_line_number
+    if [[ $line_above_code_function_first_line_number =~ ^[[:space:]]*$ ]]; then # Check if line contains only white spaces
+        patch_function="
+${patch_function}"
+    fi
+
     patched_full_code="${prefix}
 ${patch_function}
 ${suffix}"
