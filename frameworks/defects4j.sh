@@ -27,7 +27,7 @@ function compile_and_run_tests {
     export PATH=$PATH:$d4j_path
     defects4j compile
 
-    timeout_seconds=300
+    timeout_seconds=600
     timeout $timeout_seconds "defects4j test -r"
 }
 

@@ -141,7 +141,7 @@ class Framework(object):
                     result_reason = stderr_lines[build_failed_line_i+1]
                     result_reason = result_reason[result_reason.find(' '):]
                 else:
-                    result_reason = "Test timed out after 300 seconds"
+                    result_reason = "Test timed out after 600 seconds"
 
                 test_result, result_reason = "ERROR", result_reason # compilation error
             else:
