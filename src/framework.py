@@ -119,6 +119,7 @@ class Framework(object):
                     test_result = json_to_load['test_result']
                     result_reason = json_to_load['result_reason']
                     patch_diff = json_to_load['patch_diff']
+                logging.info(f"Retrieved test result from cache: {patch_hash}")
 
         if test_result is None and result_reason is None:
 
