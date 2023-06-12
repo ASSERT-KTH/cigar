@@ -1,0 +1,39 @@
+{
+    "call": {
+        "messages": [
+            {
+                "content": "You are an automated program repair tool.",
+                "role": "system"
+            },
+            {
+                "content": "The following code contains a bug\n```java\n    public int translate(CharSequence input, int index, Writer out) throws IOException {\n        // TODO: Protect from ArrayIndexOutOfBounds\n        if(input.charAt(index) == '&' && input.charAt(index + 1) == '#') {\n            int start = index + 2;\n            boolean isHex = false;\n\n            char firstChar = input.charAt(start);\n            if(firstChar == 'x' || firstChar == 'X') {\n                start++;\n                isHex = true;\n            }\n\n            int end = start;\n            while(input.charAt(end) != ';') {\n                end++;\n            }\n\n            int entityValue;\n            try {\n                if(isHex) {\n                    entityValue = Integer.parseInt(input.subSequence(start, end).toString(), 16);\n                } else {\n                    entityValue = Integer.parseInt(input.subSequence(start, end).toString(), 10);\n                }\n            } catch(NumberFormatException nfe) {\n                return 0;\n            }\n\n                out.write(entityValue);\n            return 2 + (end - start) + (isHex ? 1 : 0) + 1;\n        }\n        return 0;\n    }\n```\nThe code fails on this test:\n```\ntestSupplementaryUnescaping\n```\non this test line:\n```java\n        assertEquals(\"Failed to unescape numeric entities supplementary characters\", expected, result);\n```\nwith the following test error:\n```\njunit.framework.ComparisonFailure: Failed to unescape numeric entities supplementary characters expected:<[\ud803\udc22]> but was:<[\u0c22]>\n```\nPlease provide the correct function.\nIt can be fixed by the following function:\n1. ```java\n    public int translate(CharSequence input, int index, Writer out) throws IOException {\n        // TODO: Protect from ArrayIndexOutOfBounds\n        if (input.length() <= index + 1) {\n            return 0;\n        }\n        int codePoint;\n        if (input.charAt(index) == '&' && input.charAt(index + 1) == '#') {\n            int start = index + 2;\n            boolean isHex = false;\n\n            char firstChar = input.charAt(start);\n            if (firstChar == 'x' || firstChar == 'X') {\n                start++;\n                isHex = true;\n            }\n\n            int end = start;\n            while (end < input.length() && input.charAt(end) != ';') {\n                end++;\n            }\n            if (end == input.length()) {\n                return 0;\n            }\n\n            int radix = isHex ? 16 : 10;\n            String str = input.subSequence(start, end).toString();\n            try {\n                codePoint = Integer.parseInt(str, radix);\n            } catch (NumberFormatException nfe) {\n                return 0;\n            }\n            if (!Character.isValidCodePoint(codePoint)) {\n                return 0;\n            }\n            char[] utf16 = Character.toChars(codePoint);\n            out.write(utf16);\n            return end - index + 1;\n        }\n        return 0;\n    }\n```\nPlease generate an alternative fix function.",
+                "role": "user"
+            }
+        ],
+        "model": "gpt-3.5-turbo-0301",
+        "n": 1,
+        "temperature": 1,
+        "top_p": 1
+    },
+    "response": {
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "index": 0,
+                "message": {
+                    "content": "Another potential fix for this code could be:\n\n```java\npublic int translate(CharSequence input, int index, Writer out) throws IOException {\n    if (input == null || index < 0 || index >= input.length()) {\n        return 0;\n    }\n\n    int entityEnd = input.toString().indexOf(';', index);\n    if (input.charAt(index) == '&' && entityEnd > index) {\n        int radix = 10;\n        String entity = input.toString().substring(index + 2, entityEnd);\n        if (entity.matches(\"^#x[0-9a-fA-F]+$\")) {\n            radix = 16;\n            entity = entity.substring(2);\n        } else if (entity.matches(\"^#[0-9]+$\")) {\n            entity = entity.substring(1);\n        } else {\n            return 0;\n        }\n\n        int entityValue;\n        try {\n            entityValue = Integer.parseInt(entity, radix);\n        } catch (NumberFormatException e) {\n            return 0;\n        }\n\n        if (entityValue >= Character.MIN_CODE_POINT && entityValue <= Character.MAX_CODE_POINT &&\n                Character.isValidCodePoint(entityValue)) {\n            char[] chars = Character.toChars(entityValue);\n            out.write(chars);\n            return entityEnd - index + 1;\n        }\n    }\n\n    return 0;\n}\n```\n\nThis fix converts the input CharSequence to a String before parsing the entity value, and includes additional input validation to ensure that the index parameter is within bounds and that the entity format is valid. It also checks that the parsed entity value is within the valid range of Unicode code points before writing the corresponding character to the output Writer.",
+                    "role": "assistant"
+                }
+            }
+        ],
+        "created": 1686600236,
+        "id": "chatcmpl-7Qi3YZzaFs1XLvCp0FSeHj93LlNtA",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion",
+        "usage": {
+            "completion_tokens": 334,
+            "prompt_tokens": 654,
+            "total_tokens": 988
+        }
+    }
+}

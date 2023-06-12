@@ -1,0 +1,39 @@
+{
+    "call": {
+        "messages": [
+            {
+                "content": "You are an automated program repair tool.",
+                "role": "system"
+            },
+            {
+                "content": "The following code contains a bug\n```java\n    public void escape(Writer writer, String str) throws IOException {\n        int len = str.length();\n        for (int i = 0; i < len; i++) {\n            char c = str.charAt(i);\n            String entityName = this.entityName(c);\n            if (entityName == null) {\n                if (c > 0x7F) {\n                    writer.write(\"&#\");\n                    writer.write(Integer.toString(c, 10));\n                    writer.write(';');\n                } else {\n                    writer.write(c);\n                }\n            } else {\n                writer.write('&');\n                writer.write(entityName);\n                writer.write(';');\n            }\n        }\n    }\n```\nThe code fails on this test:\n```\ntestEscapeHtmlHighUnicode\n```\non this test line:\n```java\n        assertEquals( \"High unicode was not escaped correctly\", \"&#119650;\", escaped);\n```\nwith the following test error:\n```\njunit.framework.ComparisonFailure: High unicode was not escaped correctly expected:<&#[119650];> but was:<&#[55348;&#57186];>\n```\nPlease provide the correct function.\nIt can be fixed by the following functions:\n1. ```java\npublic void escape(Writer writer, String str) throws IOException {\n    int len = str.length();\n    for (int i = 0; i < len; i++) {\n        char c = str.charAt(i);\n        String entityName = this.entityName(c);\n        if (entityName == null) {\n            if (c < 0x80) {\n                writer.write(c);\n            } else {\n                if (Character.isHighSurrogate(c) && i + 1 < len && Character.isLowSurrogate(str.charAt(i + 1))) {\n                    int codePoint = Character.toCodePoint(c, str.charAt(i + 1));\n                    writer.write(\"&#\");\n                    writer.write(Integer.toString(codePoint, 10));\n                    writer.write(';');\n                    i++;\n                } else {\n                    writer.write(\"&#\");\n                    writer.write(Integer.toString(c, 10));\n                    writer.write(';');\n                }\n            }\n        } else {\n            writer.write('&');\n            writer.write(entityName);\n            writer.write(';');\n        }\n    }\n}\n```\n2. ```java\npublic void escape(Writer writer, String str) throws IOException {\n    int len = str.length();\n    for (int i = 0; i < len; i++) {\n        char c = str.charAt(i);\n        String entityName = this.entityName(c);\n        if (entityName == null) {\n            if (Character.isHighSurrogate(c)) {\n                int codePoint = Character.toCodePoint(c, str.charAt(i + 1));\n                writer.write(\"&#\");\n                writer.write(Integer.toString(codePoint, 10));\n                writer.write(';');\n                i++;\n            } else if (c > 0x7F) {\n                writer.write(\"&#\");\n                writer.write(Integer.toString(c, 10));\n                writer.write(';');\n            } else {\n                writer.write(c);\n            }\n        } else {\n            writer.write('&');\n            writer.write(entityName);\n            writer.write(';');\n        }\n    }\n}\n```\n3. ```java\npublic void escape(Writer writer, String str) throws IOException {\n    int len = str.length();\n    for (int i = 0; i < len; i++) {\n        char c = str.charAt(i);\n        String entityName = this.entityName(c);\n        if (entityName == null) {\n            if (Character.isHighSurrogate(c) && i + 1 < len && Character.isLowSurrogate(str.charAt(i + 1))) {\n                int codePoint = Character.toCodePoint(c, str.charAt(i + 1));\n                writer.write(\"&#\");\n                writer.write(Integer.toString(codePoint, 10));\n                writer.write(';');\n                i++;\n            } else if (c > 0x7F) {\n                if (Character.isSupplementaryCodePoint(c)) {\n                    writer.write(\"&#\");\n                    writer.write(Integer.toString(c, 10));\n                    writer.write(';');\n                } else {\n                    writer.write(\"&#\");\n                    writer.write(Integer.toString(c, 10));\n                    writer.write(';');\n                }\n            } else {\n                writer.write(c);\n            }\n        } else {\n            writer.write('&');\n            writer.write(entityName);\n            writer.write(';');\n        }\n    }\n}\n```\nPlease generate an alternative fix function.",
+                "role": "user"
+            }
+        ],
+        "model": "gpt-3.5-turbo-0301",
+        "n": 1,
+        "temperature": 1,
+        "top_p": 1
+    },
+    "response": {
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "index": 0,
+                "message": {
+                    "content": "Here is an alternative fix function:\n```java\npublic void escape(Writer writer, String str) throws IOException {\n    int len = str.length();\n    for (int i = 0; i < len; i++) {\n        char c = str.charAt(i);\n        String entityName = this.entityName(c);\n        if (entityName == null) {\n            if (Character.isHighSurrogate(c)) {\n                int codePoint = Character.codePointAt(str, i);\n                writer.write(\"&#\");\n                writer.write(Integer.toString(codePoint, 10));\n                writer.write(';');\n                i++;\n            } else if (Character.isSupplementaryCodePoint(c)) {\n                writer.write(\"&#\");\n                writer.write(Integer.toString(c, 10));\n                writer.write(';');\n            } else if (c > 0x7F) {\n                writer.write(\"&#\");\n                writer.write(Integer.toString(c, 10));\n                writer.write(';');\n            } else {\n                writer.write(c);\n            }\n        } else {\n            writer.write('&');\n            writer.write(entityName);\n            writer.write(';');\n        }\n    }\n}\n```\nExplanation:\n1. The function checks if the current character is a high surrogate, and if so, it uses `Character.codePointAt(str, i)` to get the full Unicode code point. This fixes the issue where a high Unicode character was being improperly split into two entities.\n2. Next, the function checks if the current character is a supplementary Unicode code point (i.e. outside the Basic Multilingual Plane) and writes it in the proper format.\n3. The function then checks if the current character is greater than 0x7F (outside the ASCII range) and writes it in the proper format.\n4. Finally, if none of the above conditions apply, the function writes the character as-is.",
+                    "role": "assistant"
+                }
+            }
+        ],
+        "created": 1686600892,
+        "id": "chatcmpl-7QiE8ODakTwfwWhTAdQ9CqYlYFqLU",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion",
+        "usage": {
+            "completion_tokens": 374,
+            "prompt_tokens": 943,
+            "total_tokens": 1317
+        }
+    }
+}
