@@ -1,0 +1,39 @@
+{
+    "call": {
+        "messages": [
+            {
+                "content": "You are an automated program repair tool.",
+                "role": "system"
+            },
+            {
+                "content": "The following code contains a buggy hunk that has been removed.\n```java\n  JSType resolveInternal(ErrorReporter t, StaticScope<JSType> scope) {\n    setResolvedTypeInternal(this);\n\n    call = (ArrowType) safeResolve(call, t, scope);\n    prototype = (FunctionPrototypeType) safeResolve(prototype, t, scope);\n\n    // Warning about typeOfThis if it doesn't resolve to an ObjectType\n    // is handled further upstream.\n    // TODO(nicksantos): Handle this correctly if we have a UnionType.\n>>> [ INFILL ] <<<\n\n    boolean changed = false;\n    ImmutableList.Builder<ObjectType> resolvedInterfaces =\n        ImmutableList.builder();\n    for (ObjectType iface : implementedInterfaces) {\n      ObjectType resolvedIface = (ObjectType) iface.resolve(t, scope);\n      resolvedInterfaces.add(resolvedIface);\n      changed |= (resolvedIface != iface);\n    }\n    if (changed) {\n      implementedInterfaces = resolvedInterfaces.build();\n    }\n\n    if (subTypes != null) {\n      for (int i = 0; i < subTypes.size(); i++) {\n        subTypes.set(i, (FunctionType) subTypes.get(i).resolve(t, scope));\n      }\n    }\n\n    return super.resolveInternal(t, scope);\n  }\n```\nThis was the original buggy hunk which was removed by the infill location:\n```java\n    typeOfThis = (ObjectType) safeResolve(typeOfThis, t, scope);\n```\nThe code fails on this test:\n```\ntestBackwardsTypedefUse1\n```\non this test line:\n```java\n    Scope s = makeTypeCheck().processForTesting(externsNode, n);\n```\nwith the following test error:\n```\njava.lang.ClassCastException: com.google.javascript.rhino.jstype.StringType cannot be cast to com.google.javascript.rhino.jstype.ObjectType\n```\nPlease provide the correct hunk at the infill location.\nIt can be fixed by the following hunk:\n1. ```java\n    JSType typeOfThisResolved = safeResolve(typeOfThis, t, scope);\n    if (typeOfThisResolved instanceof ObjectType) {\n      typeOfThis = (ObjectType) typeOfThisResolved;\n    }\n```\nPlease generate an alternative fix hunk.",
+                "role": "user"
+            }
+        ],
+        "model": "gpt-3.5-turbo-0301",
+        "n": 1,
+        "temperature": 1,
+        "top_p": 1
+    },
+    "response": {
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "index": 0,
+                "message": {
+                    "content": "Alternative fix hunk:\n```java\n    JSType typeOfThisResolved = safeResolve(typeOfThis, t, scope);\n    if (typeOfThisResolved == null) {\n      // Replace with a generic ObjectType to avoid further crashes.\n      typeOfThis = registry.getNativeObjectType(JSTypeNative.OBJECT_TYPE);\n    } else if (typeOfThisResolved instanceof ObjectType) {\n      typeOfThis = (ObjectType) typeOfThisResolved;\n    } else {\n      t.report(typeOfThisResolved.getJSTypeSummary().getSourceName(),\n          getPropName(), RhinoErrorReporter.TYPE_DOES_NOT_CONTAIN_PROPERTY,\n          \"Function\", \"prototype\", typeOfThisResolved.toString());\n    }\n``` \nThis fix tries to handle the case where `typeOfThis` cannot be resolved to an `ObjectType` and instead of trying to cast it anyways, it creates a generic `ObjectType` to prevent further crashes. It also adds an error report in case the resolved type is not an `ObjectType`.",
+                    "role": "assistant"
+                }
+            }
+        ],
+        "created": 1686418988,
+        "id": "chatcmpl-7PwuCPhsH7qbTfuv9w43TOo7M8PKJ",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion",
+        "usage": {
+            "completion_tokens": 205,
+            "prompt_tokens": 498,
+            "total_tokens": 703
+        }
+    }
+}

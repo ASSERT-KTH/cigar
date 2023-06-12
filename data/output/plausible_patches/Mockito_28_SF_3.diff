@@ -1,0 +1,37 @@
+diff --git a/src/org/mockito/internal/configuration/DefaultInjectionEngine.java b/src/org/mockito/internal/configuration/DefaultInjectionEngine.java
+index 213ebf351..9a0584793 100644
+--- a/src/org/mockito/internal/configuration/DefaultInjectionEngine.java
++++ b/src/org/mockito/internal/configuration/DefaultInjectionEngine.java
+@@ -88,11 +88,27 @@ public class DefaultInjectionEngine {
+         }
+     }
+ 
+-    private void injectMockCandidate(Class<?> awaitingInjectionClazz, Set<Object> mocks, Object fieldInstance) {
+-        for(Field field : orderedInstanceFieldsFrom(awaitingInjectionClazz)) {
+-            mockCandidateFilter.filterCandidate(mocks, field, fieldInstance).thenInject();
+-        }
+-    }
++
++private void injectMockCandidate(Class<?> awaitingInjectionClazz, Set<Object> mocks, Object fieldInstance) {
++    for(Field field : orderedInstanceFieldsFrom(awaitingInjectionClazz)) {
++        try {
++            // Get the current value of the field
++            field.setAccessible(true);
++            Object fieldValue = field.get(fieldInstance);
++
++            // Check if the current value is null or has a different type than the expected field type
++            if (fieldValue == null || !fieldValue.getClass().equals(field.getType())) {
++                // Get a candidate mock object, inject it if not null
++                Object mockCandidate = mockCandidateFilter.filterCandidate(mocks, field, fieldInstance).thenInject();
++                if (mockCandidate != null) {
++                    field.set(fieldInstance, mockCandidate);
++                }
++            }
++        } catch (IllegalAccessException e) {
++            throw new RuntimeException("Could not access field " + field.getName(), e);
++        }
++    }
++}
+ 
+     private Field[] orderedInstanceFieldsFrom(Class<?> awaitingInjectionClazz) {
+         Field[] declaredFields = awaitingInjectionClazz.getDeclaredFields();
