@@ -1,0 +1,39 @@
+{
+    "call": {
+        "messages": [
+            {
+                "content": "You are an automated program repair tool.",
+                "role": "system"
+            },
+            {
+                "content": "The following code contains a bug\n```java\n    public TimeSeries createCopy(RegularTimePeriod start, RegularTimePeriod end)\n        throws CloneNotSupportedException {\n\n        if (start == null) {\n            throw new IllegalArgumentException(\"Null 'start' argument.\");\n        }\n        if (end == null) {\n            throw new IllegalArgumentException(\"Null 'end' argument.\");\n        }\n        if (start.compareTo(end) > 0) {\n            throw new IllegalArgumentException(\n                    \"Requires start on or before end.\");\n        }\n        boolean emptyRange = false;\n        int startIndex = getIndex(start);\n        if (startIndex < 0) {\n            startIndex = -(startIndex + 1);\n            if (startIndex == this.data.size()) {\n                emptyRange = true;  // start is after last data item\n            }\n        }\n        int endIndex = getIndex(end);\n        if (endIndex < 0) {             // end period is not in original series\n            endIndex = -(endIndex + 1); // this is first item AFTER end period\n            endIndex = endIndex - 1;    // so this is last item BEFORE end\n        }\n        if (endIndex < 0) {\n            emptyRange = true;\n        }\n        if (emptyRange) {\n            TimeSeries copy = (TimeSeries) super.clone();\n            copy.data = new java.util.ArrayList();\n            return copy;\n        }\n        else {\n            return createCopy(startIndex, endIndex);\n        }\n\n    }\n```\nThe code fails on this test:\n```\ntestBug1864222\n```\non this test line:\n```java\n            s.createCopy(new Day(1, 12, 2005), new Day(18, 1, 2006));\n```\nwith the following test error:\n```\njava.lang.IllegalArgumentException: Requires start <= end.\n```\nPlease provide the correct function.\nIt can be fixed by the following functions:\n1. ```java\n    public TimeSeries createCopy(RegularTimePeriod start, RegularTimePeriod end)\n        throws CloneNotSupportedException {\n\n        if (start == null) {\n            throw new IllegalArgumentException(\"Null 'start' argument.\");\n        }\n        if (end == null) {\n            throw new IllegalArgumentException(\"Null 'end' argument.\");\n        }\n        if (start.compareTo(end) > 0) {\n            throw new IllegalArgumentException(\n                    \"Requires start on or before end.\");\n        }\n        boolean emptyRange = false;\n        int startIndex = getIndex(start);\n        if (startIndex < 0) {\n            startIndex = -(startIndex + 1);\n            if (startIndex >= this.data.size()) {\n                emptyRange = true;  // start is after last data item\n            }\n        }\n        int endIndex = getIndex(end);\n        if (endIndex < 0) {             // end period is not in original series\n            endIndex = -(endIndex + 1); // this is first item AFTER end period\n            endIndex = endIndex - 1;    // so this is last item BEFORE end\n        } else if (endIndex >= this.data.size()) { // end is after last data item\n            endIndex = this.data.size() - 1; // end at last data item\n        }\n        if (endIndex < startIndex) {\n            emptyRange = true;\n        }\n        if (emptyRange) {\n            TimeSeries copy = (TimeSeries) super.clone();\n            copy.data = new java.util.ArrayList();\n            return copy;\n        } else {\n            return createCopy(startIndex, endIndex);\n        }\n    }\n```\n2. ```java\npublic TimeSeries createCopy(RegularTimePeriod start, RegularTimePeriod end)\n        throws CloneNotSupportedException {\n\n    if (start == null) {\n        throw new IllegalArgumentException(\"Start is null.\");\n    }\n    if (end == null) {\n        throw new IllegalArgumentException(\"End is null.\");\n    }\n    if (start.compareTo(end) > 0) {\n        throw new IllegalArgumentException(\"Start is after end.\");\n    }\n\n    int startIndex = getIndex(start);\n    int endIndex = getIndex(end);\n\n    if (startIndex < 0) { // start period is not in original series\n        startIndex = -(startIndex + 1); // this is first item AFTER start period\n        if (startIndex == this.data.size()) { // start is after last data item\n            return new TimeSeries(getDomainDescription());\n        }\n    }\n\n    if (endIndex < 0) { // end period is not in original series\n        endIndex = -(endIndex + 1); // this is first item AFTER end period\n        if (endIndex == 0) { // end is before first data item\n            return new TimeSeries(getDomainDescription());\n        } else {\n            endIndex = endIndex - 1; // so this is last item BEFORE end\n        }\n    }\n\n    if (startIndex > endIndex) { // end is before start\n        return new TimeSeries(getDomainDescription());\n    }\n\n    return createCopy(startIndex, endIndex);\n}\n```\nPlease generate an alternative fix function.",
+                "role": "user"
+            }
+        ],
+        "model": "gpt-3.5-turbo-0301",
+        "n": 1,
+        "temperature": 1,
+        "top_p": 1
+    },
+    "response": {
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "index": 0,
+                "message": {
+                    "content": "Here is another potential fix for the issue:\n\n```java\npublic TimeSeries createCopy(RegularTimePeriod start, RegularTimePeriod end)\n        throws CloneNotSupportedException {\n    if (start == null) {\n        throw new IllegalArgumentException(\"The start time period is null.\");\n    }\n    if (end == null) {\n        throw new IllegalArgumentException(\"The end time period is null.\");\n    }\n    if (start.compareTo(end) > 0) {\n        throw new IllegalArgumentException(\"The start time period is after the end time period.\");\n    }\n    \n    int startIndex = getIndex(start);\n    int endIndex = getIndex(end);\n\n    if (startIndex < 0){\n        startIndex = Math.negateExact(startIndex) - 1;\n        if (startIndex >= data.size()){\n            return new TimeSeries(getDomainDescription());\n        }\n    }\n    if (endIndex < 0) {\n        endIndex = Math.negateExact(endIndex) - 1;\n        if (endIndex < 0) {\n            return new TimeSeries(getDomainDescription());\n        }\n    }\n\n    if (startIndex >= endIndex) {\n        return new TimeSeries(getDomainDescription());\n    }\n\n    return createCopy(startIndex, endIndex);\n}\n```\n\nThis fix first checks if either the start or end time periods are null, and throws an exception if they are. It then checks if the start time period is after the end time period, and throws an exception if it is. \n\nThe function then calculates the start and end indices, and checks if either of them are negative. If the start index is negative, it sets it to the closest data point before the start time period. If it is greater than or equal to the size of the data, it returns an empty time series.\n\nIf the end index is negative, it sets it to the closest data point before the end time period. If it is less than 0, it returns an empty time series.\n\nFinally, it checks if the start index is greater than or equal to the end index, and it returns an empty time series if this is the case. \n\nIf the code does not fail on the given test case, this solution may be a viable fix for the issue.",
+                    "role": "assistant"
+                }
+            }
+        ],
+        "created": 1686610266,
+        "id": "chatcmpl-7QkfK2Lb0o5KRT1xMn2Y6DaXhg7SZ",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion",
+        "usage": {
+            "completion_tokens": 442,
+            "prompt_tokens": 1044,
+            "total_tokens": 1486
+        }
+    }
+}

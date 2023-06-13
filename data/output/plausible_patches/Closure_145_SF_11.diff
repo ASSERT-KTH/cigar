@@ -1,0 +1,53 @@
+diff --git a/src/com/google/javascript/jscomp/CodeGenerator.java b/src/com/google/javascript/jscomp/CodeGenerator.java
+index 42c9ab38..cef35df0 100644
+--- a/src/com/google/javascript/jscomp/CodeGenerator.java
++++ b/src/com/google/javascript/jscomp/CodeGenerator.java
+@@ -705,14 +705,41 @@ class CodeGenerator {
+    * @return Whether the Node is a DO or FUNCTION (with or without
+    * labels).
+    */
+-  private boolean isOneExactlyFunctionOrDo(Node n) {
+-        // For labels with block children, we need to ensure that a
+-        // labeled FUNCTION or DO isn't generated when extraneous BLOCKs 
+-        // are skipped. 
+-          // Either a empty statement or an block with more than one child,
+-          // way it isn't a FUNCTION or DO.
+-      return (n.getType() == Token.FUNCTION || n.getType() == Token.DO);
++private boolean isOneExactlyFunctionOrDo(Node n) {
++  if (n.getType() == Token.FUNCTION || n.getType() == Token.DO) {
++    return true;
++  } else if (n.getType() == Token.EMPTY) {
++    // An empty statement is a valid 'DO' statement
++    return true;
++  } else if (n.getType() == Token.BLOCK) {
++    if (!n.hasChildren()) {
++      // An empty statement is a valid 'DO' statement
++      return true;
++    } else if (n.getFirstChild() == n.getLastChild()) {
++      return isOneExactlyFunctionOrDo(n.getFirstChild());
++    }
++  } else if (n.getType() == Token.LABEL) {
++    Node child = n.getFirstChild().getNext(); // skip the label name
++    if (child.getType() == Token.BLOCK) {
++      for (Node grandChild = child.getFirstChild(); grandChild != null; grandChild = grandChild.getNext()) {
++        if (isOneExactlyFunctionOrDo(grandChild)) {
++          // There should be only one FUNCTION/DO node in the label's block
++          for (grandChild = grandChild.getNext(); grandChild != null; grandChild = grandChild.getNext()) {
++            if (isOneExactlyFunctionOrDo(grandChild)) {
++              return false;
++            }
++          }
++          return true;
++        }
++      }
++      return false;
++    } else {
++      return isOneExactlyFunctionOrDo(child);
++    }
+   }
++  // Anything else is not a FUNCTION or a DO
++  return false;
++}
+ 
+   /**
+    * Adds a node at the left-hand side of an expression. Unlike

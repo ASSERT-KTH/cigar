@@ -1,0 +1,52 @@
+diff --git a/src/com/google/javascript/jscomp/PrepareAst.java b/src/com/google/javascript/jscomp/PrepareAst.java
+index d993bee7..5bfeb6f5 100644
+--- a/src/com/google/javascript/jscomp/PrepareAst.java
++++ b/src/com/google/javascript/jscomp/PrepareAst.java
+@@ -155,26 +155,31 @@ class PrepareAst implements CompilerPass {
+      * There are two types of calls we are interested in calls without explicit
+      * "this" values (what we are call "free" calls) and direct call to eval.
+      */
+-    private void annotateCalls(Node n) {
+-      Preconditions.checkState(n.isCall());
++private void annotateCalls(Node n) {
++  Preconditions.checkState(n.isCall());
+ 
+-      // Keep track of of the "this" context of a call.  A call without an
+-      // explicit "this" is a free call.
+-      Node first = n.getFirstChild();
++  Node first = n.getFirstChild();
+ 
+-      // ignore cast nodes.
++  // Traverse over any cast nodes to get to the actual function call
++  while (first.isCast()) {
++    first = first.getFirstChild();
++  }
+ 
+-      if (!NodeUtil.isGet(first)) {
+-        n.putBooleanProp(Node.FREE_CALL, true);
+-      }
++  // Traverse over any comma expressions, given that they don't affect the "this" context
++  while (first.isComma()) {
++    first = first.getLastChild();
++  }
+ 
+-      // Keep track of the context in which eval is called. It is important
+-      // to distinguish between "(0, eval)()" and "eval()".
+-      if (first.isName() &&
+-          "eval".equals(first.getString())) {
+-        first.putBooleanProp(Node.DIRECT_EVAL, true);
+-      }
+-    }
++  // If the actual function call isn't a GET node, we mark it as a free call
++  if (!NodeUtil.isGet(first)) {
++    n.putBooleanProp(Node.FREE_CALL, true);
++  }
++
++  // Finally, if the function call node is a NAME node with the value "eval", we mark it as a direct eval
++  if (first.isName() && "eval".equals(first.getString())) {
++    first.putBooleanProp(Node.DIRECT_EVAL, true);
++  }
++}
+ 
+     /**
+      * Translate dispatcher info into the property expected node.
