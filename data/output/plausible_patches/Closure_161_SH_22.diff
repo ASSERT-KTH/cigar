@@ -1,0 +1,48 @@
+diff --git a/src/com/google/javascript/jscomp/PeepholeFoldConstants.java b/src/com/google/javascript/jscomp/PeepholeFoldConstants.java
+index 0b2636f4..e6c07194 100644
+--- a/src/com/google/javascript/jscomp/PeepholeFoldConstants.java
++++ b/src/com/google/javascript/jscomp/PeepholeFoldConstants.java
+@@ -1280,6 +1280,43 @@ class PeepholeFoldConstants extends AbstractPeepholeOptimization {
+     // If GETPROP/GETELEM is used as assignment target the array literal is
+     // acting as a temporary we can't fold it here:
+     //    "[][0] += 1"
++// Check that the access is not used as an assignment target
++if (NodeUtil.isLValue(n)) {
++  return n;
++} else if (parent != null && parent.getType() == Token.ASSIGN && parent.getFirstChild().isEquivalentTo(n)) {
++  Node grandParent = parent.getParent();
++  if (grandParent != null && grandParent.getType() == Token.EXPR_RESULT) {
++    return n;
++  }
++
++  // Check if the right hand side of the assignment is an immutable value
++  Node assignRight = parent.getLastChild();
++  if (NodeUtil.isImmutableValue(assignRight)) {
++    return n;
++  }
++
++} else if (parent != null && parent.getType() == Token.ASSIGN_ADD) {
++  // Check that the access is not used as an assignment target in a compound assignment
++  Node assignLeft = parent.getFirstChild();
++  if (assignLeft.getType() == Token.GETELEM && assignLeft.getFirstChild().isEquivalentTo(left)) {
++    Node grandParent = parent.getParent();
++    if (grandParent != null && grandParent.getType() == Token.EXPR_RESULT) {
++      return n;
++    }
++  }
++}
++
++Node gParent = parent.getParent();
++if (gParent != null && gParent.getType() == Token.FOR) {
++  Node assign = gParent.getFirstChild();
++  if (assign.getType() == Token.VAR) {
++    assign = assign.getFirstChild();
++  }
++  Node iterVar = assign.getFirstChild();
++  if (left.isEquivalentTo(iterVar)) {
++    return n;
++  }
++}
+ 
+     if (right.getType() != Token.NUMBER) {
+       // Sometimes people like to use complex expressions to index into
