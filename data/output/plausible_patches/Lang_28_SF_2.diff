@@ -1,0 +1,98 @@
+diff --git a/src/main/java/org/apache/commons/lang3/text/translate/NumericEntityUnescaper.java b/src/main/java/org/apache/commons/lang3/text/translate/NumericEntityUnescaper.java
+index c3cb8695..af0bc3b0 100644
+--- a/src/main/java/org/apache/commons/lang3/text/translate/NumericEntityUnescaper.java
++++ b/src/main/java/org/apache/commons/lang3/text/translate/NumericEntityUnescaper.java
+@@ -33,36 +33,67 @@ public class NumericEntityUnescaper extends CharSequenceTranslator {
+      */
+     @Override
+     public int translate(CharSequence input, int index, Writer out) throws IOException {
+-        // TODO: Protect from ArrayIndexOutOfBounds
+-        if(input.charAt(index) == '&' && input.charAt(index + 1) == '#') {
+-            int start = index + 2;
+-            boolean isHex = false;
++        // Check if the input is null, or if the index is outside the bounds of the input string
++        if (input == null || index < 0 || index >= input.length()) {
++            return 0;
++        }
++
++        // Check if there are at least two more characters after the given index
++        if (input.length() - index < 2) {
++            return 0;
++        }
++
++        // Check if the input contains the "&#" escape sequence
++        if (input.charAt(index) != '&' || input.charAt(index + 1) != '#') {
++            return 0;
++        }
++
++        int start = index + 2;
++        boolean isHex = false;
++
++        // Check if the escape sequence is in hexadecimal format
++        if (start < input.length() && (input.charAt(start) == 'x' || input.charAt(start) == 'X')) {
++            start++;
++            isHex = true;
++        }
+ 
+-            char firstChar = input.charAt(start);
+-            if(firstChar == 'x' || firstChar == 'X') {
+-                start++;
+-                isHex = true;
+-            }
++        // Find the end index of the escape sequence
++        int end = start;
++        while (end < input.length() && input.charAt(end) != ';') {
++            end++;
++        }
++
++        // Check if the escape sequence has an ending semicolon
++        if (end == input.length()) {
++            return 0;
++        }
++
++        // Get the string representation of the escape sequence
++        String entityValue = input.subSequence(start, end).toString();
+ 
+-            int end = start;
+-            while(input.charAt(end) != ';') {
+-                end++;
+-            }
++        // Check if the entity value is empty
++        if (entityValue.isEmpty()) {
++            return 0;
++        }
+ 
+-            int entityValue;
+-            try {
+-                if(isHex) {
+-                    entityValue = Integer.parseInt(input.subSequence(start, end).toString(), 16);
+-                } else {
+-                    entityValue = Integer.parseInt(input.subSequence(start, end).toString(), 10);
+-                }
+-            } catch(NumberFormatException nfe) {
+-                return 0;
+-            }
++        // Parse the entity value to an integer
++        int unicodeValue;
++        try {
++            unicodeValue = Integer.parseInt(entityValue, isHex ? 16 : 10);
++        } catch (NumberFormatException e) {
++            return 0;
++        }
+ 
+-                out.write(entityValue);
+-            return 2 + (end - start) + (isHex ? 1 : 0) + 1;
++        // Check if the unicode value is valid
++        if (!Character.isValidCodePoint(unicodeValue)) {
++            return 0;
+         }
+-        return 0;
++
++        // Write the unicode character to the output writer
++        char[] chars = Character.toChars(unicodeValue);
++        out.write(chars);
++
++        // Return the number of characters processed
++        return end - index + 1;
+     }
+ }
