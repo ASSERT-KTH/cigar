@@ -38,7 +38,7 @@ class CAPR(object):
                 try:
                     response, cost = self.chatgpt.call(prompt, num_of_samples=sample_per_try, prefix=f"{prefix}_{current_tries}")
                 except openai.error.InvalidRequestError as e:
-                    print(e)
+                    logging.info(e)
                     err_ce += 1 # Count token exceeded limit as error
                     total_cost += prog_params.model_token_limit # Exceeded Token limit
                     continue
@@ -77,7 +77,14 @@ class CAPR(object):
                 logging.info(f"Attempt to generate multiple plausible patches in {bug.project}-{bug.bug_id} ({mode}), try {current_tries} (pps: {len(plausible_patches)})")
                 prompt = prompts.construct_plausible_path_prompt(bug, plausible_patches, mode)
 
-                response, cost = self.chatgpt.call(prompt, num_of_samples=sample_per_try, prefix=f"{prefix}_{current_tries}")
+                try:
+                    response, cost = self.chatgpt.call(prompt, num_of_samples=sample_per_try, prefix=f"{prefix}_{current_tries}")
+                except openai.error.InvalidRequestError as e:
+                    logging.info(e)
+                    err_ce += 1 # Count token exceeded limit as error
+                    total_cost += prog_params.model_token_limit # Exceeded Token limit
+                    break
+
                 total_cost += cost
 
                 patch = self.extract_patch_from_response(response)
