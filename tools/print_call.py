@@ -46,8 +46,8 @@ if __name__ == "__main__":
         json_path = Path(args[1])
 
         if json_path.name == json_path.parts[-1]:
-            print_call(Path(__file__).parent.parent / 'data' / 'chatgpt_cache' / json_path)
+            print_call(Path(__file__).parent.parent / 'cache' / 'chatgpt_cache' / json_path)
         else:
             print_call(json_path)
     else:
-        print_calls(Path(__file__).parent.parent / 'data' / 'chatgpt_cache')
+        print_calls(Path(__file__).parent.parent / 'cache' / 'chatgpt_cache')

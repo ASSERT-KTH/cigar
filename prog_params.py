@@ -4,14 +4,14 @@ class ProgParams:
 
     ### Program Specific
     ## Cache related
-    validate_patch_cache_folder=Path(__file__).parent / 'data' / 'validate_patch_cache'
-    n_shot_cache_folder=Path(__file__).parent / 'data' / 'n_shot_cache'
-    bug_details_cache_folder=Path(__file__).parent / 'data' / 'bug_details_cache'
+    validate_patch_cache_folder=Path(__file__).parent / 'cache' / 'validate_patch_cache'
+    n_shot_cache_folder=Path(__file__).parent / 'cache' / 'n_shot_cache'
+    bug_details_cache_folder=Path(__file__).parent / 'cache' / 'bug_details_cache'
+    chatgpt_cache_folder=Path(__file__).parent / 'cache' / 'chatgpt_cache'
 
     ## ChatGPT related
     model = "gpt-3.5-turbo-0301"
     model_token_limit = 4097
-    chatgpt_cache_folder=Path(__file__).parent / 'data' / 'chatgpt_cache'
 
     ## CAPR related
     list_of_d4j_bugs = [("Chart", [i for i in range(1, 27)]),

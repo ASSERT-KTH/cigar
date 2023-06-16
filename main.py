@@ -22,7 +22,7 @@ def main(project=None, bug_ids=None):
     capr = CAPR(chatgpt=chatgpt, 
                 framework=framework)
     
-    plausible_patches_folder = Path(__file__).parent / 'data' / 'output' / 'plausible_patches'
+    plausible_patches_folder = Path(__file__).parent / 'output' / 'plausible_patches'
 
     if project is not None and bug_ids is not None:
         list_of_bugs_to_fix = [(project, bug_ids)]
@@ -33,7 +33,7 @@ def main(project=None, bug_ids=None):
 
     for project, ids in list_of_bugs_to_fix:
 
-        summary_file_path = Path(__file__).parent / 'data' / 'output' / f'{project}_summary.csv'
+        summary_file_path = Path(__file__).parent / 'output' / f'{project}_summary.csv'
 
         fieldnames = ['framework', 'project', 'bug_id', 'bug_type',
                     'SL_ppc', 'SL_rc', 'SL_fppt', 'SL_fppcl', 'SL_uts', 'SL_mts', 'SL_errtf', 'SL_errce',
