@@ -8,7 +8,7 @@ class TestChatGPT(unittest.TestCase):
     def __init__(self, methodName: str = "runTest") -> None:
         super().__init__(methodName)
         self.api_key = user_params.API_KEY
-        self.test_cache_path = Path(__file__).parent / 'test_chatgpt_cache'
+        self.test_cache_path = Path(__file__).parent / 'test_chatgpt_cache' / 'chatgpt_tests'
         self.mocked_prompt = [
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": "Who won the world series in 2020?"},
