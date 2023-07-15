@@ -9,7 +9,7 @@ from user_params import UserParams as user_params
 class TestCAPR(unittest.TestCase):
     def __init__(self, methodName: str = "runTest") -> None:
         super().__init__(methodName)
-        self.chatgpt_model = prog_params.model
+        self.chatgpt_model = prog_params.gpt35_model
         self.chatgpt_api_key = user_params.API_KEY
         self.cache_folder = Path(__file__).parent / 'test_capr_cache'
         self.d4j_path = user_params.D4J_PATH

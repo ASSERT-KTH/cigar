@@ -34,7 +34,7 @@ class ChatGPT(object):
                     'error': "context_length_exceeded",
                     'error_message': e.error.message,
                     'choices': [ {'message': {'content': ""}} ],
-                    'usage': {'total_tokens': prog_params.model_token_limit}
+                    'usage': {'total_tokens': prog_params.gpt35_model_token_limit}
                     }
 
             if self.save_to_cache and self.cache_folder is not None:

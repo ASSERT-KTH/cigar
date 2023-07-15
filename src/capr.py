@@ -12,7 +12,7 @@ class CAPR(object):
         self.chatgpt = chatgpt
         self.framework = framework
 
-    def repair(self, bug: Bug, mode: str, n_shot_count=1, sample_per_try=1, max_conv_length=3, max_tries=1, stop_after_first_plausible_patch=False):
+    def repair(self, bug: Bug, mode: str, n_shot_count=1, sample_per_try=1, max_conv_length=3, max_tries=1):
         assert mode in ["SL", "SH", "SF"]
         n_shot_bugs=self.framework.get_n_shot_bugs(n=n_shot_count, bug=bug, mode=mode)
 
@@ -40,7 +40,7 @@ class CAPR(object):
                 except openai.error.InvalidRequestError as e:
                     logging.info(e)
                     err_ce += 1 # Count token exceeded limit as error
-                    total_cost += prog_params.model_token_limit # Exceeded Token limit
+                    total_cost += prog_params.gpt35_model_token_limit # Exceeded Token limit
                     continue
 
                 total_cost += cost
@@ -70,7 +70,7 @@ class CAPR(object):
                 prompt.append({"role": "assistant", "content": f"""{response}"""})
                 prompt.append(feedback)
         
-        if len(plausible_patches) != 0 and not stop_after_first_plausible_patch:
+        if len(plausible_patches) != 0:
             while (current_tries < max_tries):
                 current_tries += 1
 
@@ -82,7 +82,7 @@ class CAPR(object):
                 except openai.error.InvalidRequestError as e:
                     logging.info(e)
                     err_ce += 1 # Count token exceeded limit as error
-                    total_cost += prog_params.model_token_limit # Exceeded Token limit
+                    total_cost += prog_params.gpt35_model_token_limit # Exceeded Token limit
                     break
 
                 total_cost += cost
