@@ -1,17 +1,15 @@
 import unittest
 from pathlib import Path
-
-from framework import Framework
-from chatgpt import ChatGPT
-from rapidcapr import RapidCapr
+from src.framework import Framework
+from src.chatgpt import ChatGPT
+from src.rapidcapr import RapidCapr
 from prog_params import ProgParams as prog_params
 from user_params import UserParams as user_params
 
 class TestRapidCapr(unittest.TestCase):
-    
+
     def __init__(self, methodName: str = "runTest") -> None:
         super().__init__(methodName)
-        pass
 
     def test_e2e_rapidcapr_improvement_over_capr_with_gpt35_on_d4j_Time(self):
         project = "Time"
