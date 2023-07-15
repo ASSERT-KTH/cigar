@@ -7,12 +7,13 @@ from rapidcapr import RapidCapr
 from prog_params import ProgParams as prog_params
 from user_params import UserParams as user_params
 
-class TestChatGPT(unittest.TestCase):
+class TestRapidCapr(unittest.TestCase):
+    
     def __init__(self, methodName: str = "runTest") -> None:
         super().__init__(methodName)
         pass
 
-    def e2e_test_rapidcapr_improvement_over_capr_with_gpt35_on_d4j_Time(self):
+    def test_e2e_rapidcapr_improvement_over_capr_with_gpt35_on_d4j_Time(self):
         project = "Time"
         # ids = [i for i in range(1, 28) if i != 21]
         ids = [1]
