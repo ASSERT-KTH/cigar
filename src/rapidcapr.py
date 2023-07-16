@@ -1,37 +1,43 @@
 import logging
-
 import openai
+from src.chatgpt import ChatGPT
+from src.framework import Framework
 from src.bug import Bug
 from src.prompts import Prompts as prompts
 from prog_params import ProgParams as prog_params
-from src.capr import CAPR
 
-class RapidCapr(CAPR):
-    def repair(self, bug: Bug, mode: str, n_shot_count=1, sample_per_try=1, max_conv_length=3, max_tries=1, stop_after_first_plausible_patch=False):
-        assert mode is None
-        n_shot_bugs=self.framework.get_n_shot_bugs(n=n_shot_count, bug=bug, mode=mode)
+class RapidCapr(object):
 
-        plausible_patches = []
-        plausible_patch_diffs = []
-        first_plausible_patch_try = 0
-        current_conversation_length = 0
-        current_tries = 0
-        total_cost = 0
-        err_tf = 0
-        err_ce = 0
+    def __init__(self, chatgpt: ChatGPT, framework: Framework):
+        self.chatgpt = chatgpt
+        self.framework = framework
+    
+    def repair(self, bug: Bug, max_fpps_try_per_mode=1, max_mpps_try_per_mode=1):
+
+        plausible_patches, plausible_patch_diffs = [], []
+        first_plausible_patch_try, current_conversation_length = 0, 0
+        current_tries, total_cost = 0, 0
+        err_tf, err_ce = 0, 0
         prefix = f"{self.framework.test_framework}_{bug.project}_{bug.bug_id}"
 
-        while (current_tries < max_tries and len(plausible_patches) == 0):
-            current_conversation_length = 0
-            prompt = prompts.construct_initial_prompt(bug=bug, mode=mode, n_shot_bugs=n_shot_bugs)
+        modes = ["SL", "SF"] if "SL" in bug.bug_type else list(bug.bug_type.split())
+        for mode in modes:
 
-            while (current_conversation_length < max_conv_length and current_tries < max_tries):
+            n_shot_bugs=self.framework.get_n_shot_bugs(n=1, bug=bug, mode=mode)
+            current_fpps_try_in_mode = 0
+            proposed_patches = []
+
+            while (current_fpps_try_in_mode < max_fpps_try_per_mode and len(plausible_patches) == 0):
+                
+                prompt = self.construct_fpps_prompt(bug=bug, mode=mode, proposed_patches=proposed_patches, n_shot_bugs=n_shot_bugs)
+                num_of_samples = 5 # TODO determine later
+
                 current_tries += 1
-                current_conversation_length += 1
+                current_fpps_try_in_mode += 1
 
                 logging.info(f"Searching for plausible patch in {bug.project}-{bug.bug_id} ({mode}), try {current_tries} (ccl: {current_conversation_length})")
                 try:
-                    response, cost = self.chatgpt.call(prompt, num_of_samples=sample_per_try, prefix=f"{prefix}_{current_tries}")
+                    responses, cost = self.chatgpt.call(prompt, num_of_samples=num_of_samples, prefix=f"{prefix}_{current_tries}")
                 except openai.error.InvalidRequestError as e:
                     logging.info(e)
                     err_ce += 1 # Count token exceeded limit as error
@@ -40,63 +46,69 @@ class RapidCapr(CAPR):
 
                 total_cost += cost
 
-                patch = self.extract_patch_from_response(response)
-                logging.debug(f"Validating response of {bug.project}-{bug.bug_id} ({mode})")
-                test_result, result_reason, patch_diff = self.framework.validate_patch(bug=bug, proposed_patch=patch, mode=mode)
+                for response in responses:
+                    patches = self.extract_patches_from_response(response)
+                    for patch, patch_mode in patches:
+                        logging.debug(f"Validating response of {bug.project}-{bug.bug_id} ({mode})")
+                        test_result, result_reason, patch_diff = self.framework.validate_patch(bug=bug, proposed_patch=patch, mode=patch_mode)
 
-                if test_result == "PASS":
-                    plausible_patches.append(patch)
-                    plausible_patch_diffs.append(patch_diff)
-                    first_plausible_patch_try = current_tries
-                    logging.debug(f"Proposed patch of {bug.project}-{bug.bug_id} ({mode}) patch passed all tests")
-                    break
-                elif result_reason == bug.test_error_message:
-                    feedback = prompts.test_fail_feedback()
-                    logging.debug(f"Proposed patch of {bug.project}-{bug.bug_id} ({mode}) failed with same error message as original bug")
-                else:
-                    feedback = prompts.construct_feedback_prompt(test_result, result_reason, mode)
-                    logging.debug(f"Proposed patch of {bug.project}-{bug.bug_id} ({mode}) failed with a different error message than original bug")
+                        if patch not in [p["patch"] for p in proposed_patches]:
+                            proposed_patches.append({"patch": patch, "test_result": test_result, "result_reason": result_reason})
 
-                if test_result == "FAIL":
-                    err_tf += 1
-                elif test_result == "ERROR":
-                    err_ce += 1
-                
-                prompt.append({"role": "assistant", "content": f"""{response}"""})
-                prompt.append(feedback)
-        
-        if len(plausible_patches) != 0 and not stop_after_first_plausible_patch:
-            while (current_tries < max_tries):
-                current_tries += 1
+                        if test_result == "PASS" and patch not in plausible_patches:
+                            plausible_patches.append(patch)
+                            plausible_patch_diffs.append(patch_diff)
 
-                logging.info(f"Attempt to generate multiple plausible patches in {bug.project}-{bug.bug_id} ({mode}), try {current_tries} (pps: {len(plausible_patches)})")
-                prompt = prompts.construct_plausible_path_prompt(bug, plausible_patches, mode)
+                            if first_plausible_patch_try == 0:
+                                first_plausible_patch_try = current_tries
+                            logging.debug(f"Proposed patch of {bug.project}-{bug.bug_id} ({mode}) patch passed all tests")
+                        else:
+                            if test_result == "FAIL":
+                                err_tf += 1
+                            elif test_result == "ERROR":
+                                err_ce += 1
 
-                try:
-                    response, cost = self.chatgpt.call(prompt, num_of_samples=sample_per_try, prefix=f"{prefix}_{current_tries}")
-                except openai.error.InvalidRequestError as e:
-                    logging.info(e)
-                    err_ce += 1 # Count token exceeded limit as error
-                    total_cost += prog_params.gpt35_model_token_limit # Exceeded Token limit
-                    break
+            if len(plausible_patches) != 0:
+                current_mpps_try_in_mode = 0
 
-                total_cost += cost
+                while (current_mpps_try_in_mode < max_mpps_try_per_mode):          
+                    current_tries += 1
+                    current_mpps_try_in_mode += 1
 
-                patch = self.extract_patch_from_response(response)
+                    logging.info(f"Attempt to generate multiple plausible patches in {bug.project}-{bug.bug_id} ({mode}), try {current_tries} (pps: {len(plausible_patches)})")
+                    prompt = self.construct_mpps_prompt(bug=bug, mode=mode, plausible_patches=plausible_patches, n_shot_bugs=n_shot_bugs)
+                    num_of_samples = 5 # TODO determine later
 
-                test_result, result_reason, patch_diff = self.framework.validate_patch(bug=bug, proposed_patch=patch, mode=mode)
-                if test_result == "PASS" and patch not in plausible_patches:
-                    plausible_patches.append(patch)
-                    plausible_patch_diffs.append(patch_diff)
+                    try:
+                        responses, cost = self.chatgpt.call(prompt, num_of_samples=num_of_samples, prefix=f"{prefix}_{current_tries}")
+                    except openai.error.InvalidRequestError as e:
+                        logging.info(e)
+                        err_ce += 1 # Count token exceeded limit as error
+                        total_cost += prog_params.gpt35_model_token_limit # Exceeded Token limit
+                        break
 
-                if test_result == "FAIL":
-                    err_tf += 1
-                elif test_result == "ERROR":
-                    err_ce += 1
+                    total_cost += cost
+
+                    for response in responses:
+                        patches = self.extract_patches_from_response(response)
+                        for patch, patch_mode in patches:
+                            logging.debug(f"Validating response of {bug.project}-{bug.bug_id} ({mode})")
+                            test_result, result_reason, patch_diff = self.framework.validate_patch(bug=bug, proposed_patch=patch, mode=patch_mode)
+
+                            if test_result == "PASS" and patch not in plausible_patches:
+                                plausible_patches.append(patch)
+                                plausible_patch_diffs.append(patch_diff)
+
+                            if test_result == "FAIL":
+                                err_tf += 1
+                            elif test_result == "ERROR":
+                                err_ce += 1
+                                
+                break
         
         return plausible_patches, plausible_patch_diffs, total_cost, first_plausible_patch_try, current_conversation_length, current_tries, err_tf, err_ce
     
-    def extract_patch_from_response(self, response):
+    def extract_patches_from_response(self, response):
 
         if "```java" in response:
             patch = response[response.find("```java")+len("```java")+1:]
@@ -104,5 +116,13 @@ class RapidCapr(CAPR):
         else:
             patch = response
 
-        return patch
+        patch_mode = None
+        return patch, patch_mode
     
+    def construct_fpps_prompt(self, bug, mode, proposed_patches, n_shot_bugs):
+        prompt = prompts.construct_initial_prompt(bug=bug, mode=mode, n_shot_bugs=n_shot_bugs)
+        return prompt
+    
+    def construct_mpps_prompt(self, bug, mode, plausible_patches):
+        prompt = prompts.construct_plausible_path_prompt(bug, plausible_patches, mode)
+        return prompt
