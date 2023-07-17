@@ -25,7 +25,7 @@ def synthetize_and_extract_patch(patch_block, masked_code, buggy_lines):
 
     synthetized_code_lines = None
     synthesized_code_similarity = 0
-    r = (patch_block_num_of_lines - 1) * 2 + 1
+    r = min((patch_block_num_of_lines - 1) * 2 + 1, len(buggy_code_block_lines))
 
     for synthetized_candidate_lines in [c for c in combinations(pre_infill_lines + [patch_block] + post_infill_lines, r) if patch_block in c]:
         synthesized_candidate_code = '\n'.join(synthetized_candidate_lines)
@@ -33,6 +33,9 @@ def synthetize_and_extract_patch(patch_block, masked_code, buggy_lines):
         if candidate_similarity > synthesized_code_similarity:
             synthesized_code_similarity = candidate_similarity
             synthetized_code_lines = synthetized_candidate_lines
+
+    if synthetized_code_lines is None:
+        return patch_block
 
     patch = '\n'.join(synthetized_code_lines).split('\n')
 
