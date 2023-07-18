@@ -5,7 +5,7 @@ from src.framework import Framework
 from src.bug import Bug
 from src.prompts import Prompts as prompts
 from prog_params import ProgParams as prog_params
-from src.utils import synthetize_and_extract_patch, similarity
+from src.utils import *
 
 class RapidCapr(object):
 
@@ -14,7 +14,7 @@ class RapidCapr(object):
         self.framework = framework
         self.similarity_threshold = 0.5
     
-    def repair(self, bug: Bug, max_fpps_try_per_mode=1, max_mpps_try_per_mode=1):
+    def repair(self, bug: Bug, max_fpps_try_per_mode=1, max_mpps_try_per_mode=1, prompt_tokens_limit=1500, completion_tokens_limit=1500):
 
         plausible_patches, plausible_patch_diffs = [], [] ### TODO Should have separate pp for each mode, 
                                                           #        if SF pp is found in SL mode then it should be saved in SF pp, and SL should continue with 0 pp
@@ -32,7 +32,8 @@ class RapidCapr(object):
 
             while (current_fpps_try_in_mode < max_fpps_try_per_mode and len(plausible_patches) == 0):
                 
-                prompt, num_of_samples = self.construct_fpps_prompt(bug=bug, mode=mode, proposed_patches=proposed_patches, n_shot_bugs=n_shot_bugs)
+                prompt, num_of_samples = self.construct_fpps_prompt(bug=bug, mode=mode, proposed_patches=proposed_patches, n_shot_bugs=n_shot_bugs,
+                                                                    prompt_tokens_limit=prompt_tokens_limit, completion_tokens_limit=completion_tokens_limit)
 
                 current_tries += 1
                 current_fpps_try_in_mode += 1
@@ -55,7 +56,7 @@ class RapidCapr(object):
                         test_result, result_reason, patch_diff = self.framework.validate_patch(bug=bug, proposed_patch=patch, mode=patch_mode)
 
                         if patch not in [p["patch"] for p in proposed_patches]:
-                            proposed_patches.append({"patch": patch, "test_result": test_result, "result_reason": result_reason})
+                            proposed_patches.append({"patch": patch, "patch_mode": patch_mode, "test_result": test_result, "result_reason": result_reason, "response": response})
 
                         if test_result == "PASS" and patch not in plausible_patches:
                             plausible_patches.append(patch)
@@ -78,7 +79,8 @@ class RapidCapr(object):
                     current_mpps_try_in_mode += 1
 
                     logging.info(f"Attempt to generate multiple plausible patches in {bug.project}-{bug.bug_id} ({mode}), try {current_tries} (pps: {len(plausible_patches)})")
-                    prompt, num_of_samples = self.construct_mpps_prompt(bug=bug, mode=mode, plausible_patches=plausible_patches, n_shot_bugs=n_shot_bugs)
+                    prompt, num_of_samples = self.construct_mpps_prompt(bug=bug, mode=mode, plausible_patches=plausible_patches, n_shot_bugs=n_shot_bugs,
+                                                                        prompt_tokens_limit=prompt_tokens_limit, completion_tokens_limit=completion_tokens_limit)
 
                     try:
                         responses, cost = self.chatgpt.call(prompt, num_of_samples=num_of_samples, prefix=f"{prefix}_{current_tries}")
@@ -86,7 +88,7 @@ class RapidCapr(object):
                         logging.info(e)
                         err_ce += 1 # Count token exceeded limit as error
                         total_cost += prog_params.gpt35_model_token_limit # Exceeded Token limit
-                        break
+                        continue
 
                     total_cost += cost
 
@@ -136,12 +138,13 @@ class RapidCapr(object):
 
         return patches
     
-    def construct_fpps_prompt(self, bug, mode, proposed_patches, n_shot_bugs):
-        prompt = prompts.construct_initial_prompt(bug=bug, mode=mode, n_shot_bugs=n_shot_bugs)
-        num_of_samples = 5 # TODO determine later
+    def construct_fpps_prompt(self, bug, mode, proposed_patches, n_shot_bugs, prompt_tokens_limit, completion_tokens_limit):
+        prompt = prompts.construct_initial_prompt(bug=bug, mode=mode, n_shot_bugs=n_shot_bugs) # TODO maximize up until prompt_tokens_limit
+        num_of_samples = 5 # TODO maximize up until completion_tokens_limit
         return prompt, num_of_samples
     
-    def construct_mpps_prompt(self, bug, mode, plausible_patches):
-        prompt = prompts.construct_plausible_path_prompt(bug, plausible_patches, mode)
-        num_of_samples = 5 # TODO determine later
+    def construct_mpps_prompt(self, bug, mode, plausible_patches, prompt_tokens_limit, completion_tokens_limit):
+        prompt = prompts.construct_plausible_path_prompt(bug, plausible_patches, mode) # TODO maximize up until prompt_tokens_limit
+        num_of_samples = 5 # TODO maximize up until completion_tokens_limit
         return prompt, num_of_samples
+
