@@ -13,9 +13,8 @@ class RapidCapr(object):
     def __init__(self, chatgpt: ChatGPT, framework: Framework):
         self.chatgpt = chatgpt
         self.framework = framework
-        self.similarity_threshold = 0.5
     
-    def repair(self, bug: Bug, max_fpps_try_per_mode=1, max_mpps_try_per_mode=1, prompt_tokens_limit=1500, completion_tokens_limit=1500):
+    def repair(self, bug: Bug, max_fpps_try_per_mode=1, max_mpps_try_per_mode=1, prompt_tokens_limit=1500, completion_tokens_limit=1500, similarity_threshold=0.5):
 
         modes = ["SL", "SF"] if "SL" in bug.bug_type else list(bug.bug_type.split())
         prefix = f"{self.framework.test_framework}_{bug.project}_{bug.bug_id}"
@@ -45,7 +44,7 @@ class RapidCapr(object):
                         continue
 
                     for response in responses:
-                        patches = extract_patches_from_response(bug=bug, response=response, response_mode=mode)
+                        patches = extract_patches_from_response(bug=bug, response=response, response_mode=mode, similarity_threshold=similarity_threshold)
                         for patch, patch_mode in patches:
                             test_result, result_reason, patch_diff = self.framework.validate_patch(bug=bug, proposed_patch=patch, mode=patch_mode)
                             proposed_patches.add(response=response, test_result=test_result, result_reason=result_reason, patch_mode=patch_mode, 

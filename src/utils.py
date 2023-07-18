@@ -5,7 +5,7 @@ from bug import Bug
 from prog_params import ProgParams as prog_params
 
 
-def extract_patches_from_response(self, bug: Bug, response, response_mode):
+def extract_patches_from_response(bug: Bug, response, response_mode, similarity_threshold):
 
     patches = []
 
@@ -22,7 +22,7 @@ def extract_patches_from_response(self, bug: Bug, response, response_mode):
 
             if response_mode != "SF":
                 buggy_function_and_patch_similarity = similarity(bug.code, patch_block)
-                if (buggy_function_and_patch_similarity > self.similarity_threshold):
+                if (buggy_function_and_patch_similarity > similarity_threshold):
                     patches.append((patch_block, "SF"))
 
             response = response[response.find("\n```")+len("\n```")+1:]
