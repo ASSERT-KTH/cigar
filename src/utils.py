@@ -1,5 +1,7 @@
+import tiktoken as tt
 from difflib import SequenceMatcher
 from itertools import combinations
+from prog_params import ProgParams as prog_params
 
 
 def similarity(a: str, b: str):
@@ -64,4 +66,19 @@ def synthetize_and_extract_patch(patch_block, masked_code, buggy_lines):
             break
 
     return '\n'.join(patch)
-        
+
+
+def get_token_count(prompt):
+    enc = tt.encoding_for_model(prog_params.gpt35_model)
+
+    if isinstance(prompt, list):
+        token_count = 0
+        for d in prompt:
+            token_count += len(enc.encode(d['content']))
+
+        token_count += len(prompt) * 5 + 3 # Special tokens
+
+        return token_count
+    
+    if isinstance(prompt, str):
+        return len(enc.encode(prompt))
