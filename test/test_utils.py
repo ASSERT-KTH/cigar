@@ -1,7 +1,7 @@
 import unittest
 from src.utils import synthetize_and_extract_patch
 
-class TestRapidCapr(unittest.TestCase):
+class TestUtils(unittest.TestCase):
 
     def test_synthetize_and_extract_patch_on_SH_case(self):
         patch_block = """        if (dataset == null) {

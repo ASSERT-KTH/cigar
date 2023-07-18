@@ -1,7 +1,7 @@
 import tiktoken as tt
 from difflib import SequenceMatcher
 from itertools import combinations
-from bug import Bug
+from src.bug import Bug
 from prog_params import ProgParams as prog_params
 
 

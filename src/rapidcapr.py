@@ -1,4 +1,3 @@
-import logging
 import openai
 from prog_params import ProgParams as prog_params
 from src.chatgpt import ChatGPT
@@ -6,7 +5,7 @@ from src.framework import Framework
 from src.bug import Bug
 from src.prompts import Prompts as prompts
 from src.proposed_patches import ProposedPatches
-from src.utils import *
+from src.utils import extract_patches_from_response
 
 class RapidCapr(object):
 
