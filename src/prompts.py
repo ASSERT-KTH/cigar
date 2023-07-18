@@ -77,3 +77,13 @@ with the following test error:\n```\n{bug.test_error_message}\n```
 
         return [{"role": "system", "content": "You are an automated program repair tool."},
                 {"role": "user", "content": f"{initial_prompt_message}\n{more_plausible_patches_text}"}]
+    
+    def construct_fpps_prompt(self, bug, mode, proposed_patches, n_shot_bugs, prompt_tokens_limit, completion_tokens_limit):
+        prompt = self.construct_initial_prompt(bug=bug, mode=mode, n_shot_bugs=n_shot_bugs) # TODO maximize up until prompt_tokens_limit
+        num_of_samples = 5 # TODO maximize up until completion_tokens_limit
+        return prompt, num_of_samples
+    
+    def construct_mpps_prompt(self, bug, mode, proposed_patches, n_shot_bugs, prompt_tokens_limit, completion_tokens_limit):
+        prompt = self.construct_plausible_path_prompt(bug, proposed_patches.get_plausible_patches(mode), mode) # TODO maximize up until prompt_tokens_limit
+        num_of_samples = 5 # TODO maximize up until completion_tokens_limit
+        return prompt, num_of_samples

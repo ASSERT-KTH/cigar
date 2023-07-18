@@ -1,11 +1,36 @@
 import tiktoken as tt
 from difflib import SequenceMatcher
 from itertools import combinations
+from bug import Bug
 from prog_params import ProgParams as prog_params
 
 
-def similarity(a: str, b: str):
-    return SequenceMatcher(None, a, b).ratio()
+def extract_patches_from_response(self, bug: Bug, response, response_mode):
+
+    patches = []
+
+    if "```java" in response:
+
+        code_blocks_in_response = response.count("```java")
+        for _ in range(code_blocks_in_response):
+            patch_block = response[response.find("```java")+len("```java")+1:]
+            patch_block = patch_block[:patch_block.find("\n```")]
+            patches.append((patch_block, response_mode))
+            
+            patch = synthetize_and_extract_patch(patch_block=patch_block, masked_code=bug.masked_code, buggy_lines=bug.buggy_lines)
+            patches.append((patch, response_mode)) if patch not in [p[0] for p in patches] else None
+
+            if response_mode != "SF":
+                buggy_function_and_patch_similarity = similarity(bug.code, patch_block)
+                if (buggy_function_and_patch_similarity > self.similarity_threshold):
+                    patches.append((patch_block, "SF"))
+
+            response = response[response.find("\n```")+len("\n```")+1:]
+
+    else:
+        patches.append((response, response_mode))
+
+    return patches
 
 
 def synthetize_and_extract_patch(patch_block, masked_code, buggy_lines):
@@ -66,6 +91,10 @@ def synthetize_and_extract_patch(patch_block, masked_code, buggy_lines):
             break
 
     return '\n'.join(patch)
+
+
+def similarity(a: str, b: str):
+    return SequenceMatcher(None, a, b).ratio()
 
 
 def get_token_count(prompt):
