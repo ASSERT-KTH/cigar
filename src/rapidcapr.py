@@ -52,5 +52,5 @@ class RapidCapr(object):
                                                  patch=patch, patch_diff=patch_diff)
         
         return (proposed_patches.get_plausible_patches(), proposed_patches.get_plausible_patch_diffs(), 
-                total_cost, None, None, total_call_tries, 
+                total_cost, proposed_patches.get_call_num_of_first_plausible_patch(), None, total_call_tries, 
                 proposed_patches.get_test_failure_count(), proposed_patches.get_test_error_count())

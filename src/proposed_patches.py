@@ -57,3 +57,10 @@ class ProposedPatches(object):
                 count += 1
         return count
     
+    def get_call_num_of_first_plausible_patch(self):
+        unique_calls = []
+        for p in self.proposed_patches:
+            unique_calls[p["response"]] = None
+            if p["test_result"] == "PASS":
+                return len(unique_calls)
+        
