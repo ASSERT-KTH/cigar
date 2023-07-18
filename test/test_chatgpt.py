@@ -8,7 +8,7 @@ class TestChatGPT(unittest.TestCase):
     def __init__(self, methodName: str = "runTest") -> None:
         super().__init__(methodName)
         self.api_key = user_params.API_KEY
-        self.test_cache_path = Path(__file__).parent / 'test_chatgpt_cache' / 'chatgpt_tests'
+        self.test_cache_path = Path(__file__).parent / 'cache' / 'gpt35'
         self.mocked_prompt = [
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": "Who won the world series in 2020?"},
@@ -49,7 +49,8 @@ class TestChatGPT(unittest.TestCase):
 
         with patch('src.chatgpt.openai.ChatCompletion.create') as mock_create:
             mock_create.return_value = mocked_response
-            response_message, _ = chatgpt.call(prompt)
+            response_messages, _ = chatgpt.call(prompt)
+            response_message = response_messages[0]
             mock_create.assert_called_once()
 
         self.assertEqual(response_message, self.test_response_message)
@@ -62,7 +63,7 @@ class TestChatGPT(unittest.TestCase):
 
         with patch('src.chatgpt.openai.ChatCompletion.create') as mock_create:
             mock_create.return_value = mocked_response
-            response_message, _ = chatgpt.call(prompt)
+            response_messages, _ = chatgpt.call(prompt)
 
         path_to_file = chatgpt.get_cache_file_path(prompt=prompt)
         path = Path(path_to_file)
@@ -72,7 +73,8 @@ class TestChatGPT(unittest.TestCase):
         chatgpt = ChatGPT(cache_folder=self.test_cache_path, load_from_cache=True, save_to_cache=False)
         prompt = self.mocked_prompt
 
-        response_message, _ = chatgpt.call(prompt)
+        response_messages, _ = chatgpt.call(prompt)
+        response_message = response_messages[0]
 
         self.assertEqual(response_message, self.test_response_message)
 
@@ -80,7 +82,8 @@ class TestChatGPT(unittest.TestCase):
         chatgpt = ChatGPT(cache_folder=self.test_cache_path, load_from_cache=True, save_to_cache=True)
         prompt = self.mocked_prompt
         
-        response_message, _ = chatgpt.call(prompt)
+        response_messages, _ = chatgpt.call(prompt)
+        response_message = response_messages[0]
 
         self.assertEqual(response_message, self.test_response_message)
 
@@ -95,7 +98,8 @@ class TestChatGPT(unittest.TestCase):
                           load_from_cache=False, 
                           save_to_cache=True)
         prompt = self.live_prompt
-        response_message, response_token_usage = chatgpt.call(prompt)
+        response_messages, response_token_usage = chatgpt.call(prompt)
+        response_message = response_messages[0]
         self.assertIsInstance(response_message, str)
         self.assertIsInstance(response_token_usage, int)
         self.assertGreater(response_token_usage, 0)

@@ -46,7 +46,7 @@ class ChatGPT(object):
             if response['error'] == "context_length_exceeded":
                 raise openai.error.InvalidRequestError(response['error_message'], None)
             
-        response_message = response['choices'][0]['message']['content']
+        response_message = [choice['message']['content'] for choice in response['choices']]
         response_token_usage = response['usage']['total_tokens']
         return (response_message, response_token_usage)
     

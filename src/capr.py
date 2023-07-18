@@ -37,6 +37,7 @@ class CAPR(object):
                 logging.info(f"Searching for plausible patch in {bug.project}-{bug.bug_id} ({mode}), try {current_tries} (ccl: {current_conversation_length})")
                 try:
                     response, cost = self.chatgpt.call(prompt, num_of_samples=sample_per_try, prefix=f"{prefix}_{current_tries}")
+                    response = response[0]
                 except openai.error.InvalidRequestError as e:
                     logging.info(e)
                     err_ce += 1 # Count token exceeded limit as error
@@ -79,6 +80,7 @@ class CAPR(object):
 
                 try:
                     response, cost = self.chatgpt.call(prompt, num_of_samples=sample_per_try, prefix=f"{prefix}_{current_tries}")
+                    response = response[0]
                 except openai.error.InvalidRequestError as e:
                     logging.info(e)
                     err_ce += 1 # Count token exceeded limit as error

@@ -11,7 +11,7 @@ class TestCAPR(unittest.TestCase):
         super().__init__(methodName)
         self.chatgpt_model = prog_params.gpt35_model
         self.chatgpt_api_key = user_params.API_KEY
-        self.cache_folder = Path(__file__).parent / 'test_capr_cache'
+        self.cache_folder = ""
         self.d4j_path = user_params.D4J_PATH
         self.java_home = user_params.JAVA_HOME
         self.tmp_dir = user_params.TMP_DIR
