@@ -15,32 +15,28 @@ class ProposedPatches(object):
                 return True
         return False
     
-    def get_plausible_patches(self):
+    def get_plausible_patches(self, mode=None):
         plausible_patches = []
-        for p in self.proposed_patches:
-            if p["test_result"] == "PASS":
-                plausible_patches.append(p)
+        if mode is None:
+            for p in self.proposed_patches:
+                if p["test_result"] == "PASS":
+                    plausible_patches.append(p)
+        else:
+            for p in self.proposed_patches:
+                if p["test_result"] == "PASS" and p["patch_mode"] == mode:
+                    plausible_patches.append(p)
         return plausible_patches
     
-    def get_plausible_patches(self, mode):
-        plausible_patches = []
-        for p in self.proposed_patches:
-            if p["test_result"] == "PASS" and p["patch_mode"] == mode:
-                plausible_patches.append(p)
-        return plausible_patches
-    
-    def get_plausible_patch_diffs(self):
+    def get_plausible_patch_diffs(self, mode=None):
         plausible_patch_diffs = []
-        for p in self.proposed_patches:
-            if p["test_result"] == "PASS":
-                plausible_patch_diffs.append(p["patch_diff"])
-        return plausible_patch_diffs
-    
-    def get_plausible_patch_diffs(self, mode):
-        plausible_patch_diffs = []
-        for p in self.proposed_patches:
-            if p["test_result"] == "PASS" and p["patch_mode"] == mode:
-                plausible_patch_diffs.append(p["patch_diff"])
+        if mode is None:
+            for p in self.proposed_patches:
+                if p["test_result"] == "PASS":
+                    plausible_patch_diffs.append(p["patch_diff"])
+        else:
+            for p in self.proposed_patches:
+                if p["test_result"] == "PASS" and p["patch_mode"] == mode:
+                    plausible_patch_diffs.append(p["patch_diff"])
         return plausible_patch_diffs
 
     def get_test_failure_count(self):
@@ -60,7 +56,7 @@ class ProposedPatches(object):
     def get_call_num_of_first_plausible_patch(self):
         unique_calls = []
         for p in self.proposed_patches:
-            unique_calls[p["response"]] = None
+            unique_calls.append(p["response"]) if p["response"] not in unique_calls else None
             if p["test_result"] == "PASS":
                 return len(unique_calls)
         
