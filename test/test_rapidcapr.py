@@ -44,7 +44,7 @@ class TestRapidCapr(unittest.TestCase):
 
             if bug.bug_type != "OT":
                 repair_results = rapidcapr.repair(bug=bug, max_fpps_try_per_mode=1, max_mpps_try_per_mode=1, 
-                                                  prompt_tokens_limit=1500, completion_tokens_limit=1500, 
+                                                  prompt_tokens_limit=1500, total_token_limit_target=3000, 
                                                   similarity_threshold=0.5)
                 plausible_patches, _, repair_cost, _, _, _, _, _ = repair_results
 

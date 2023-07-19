@@ -1,6 +1,7 @@
 import tiktoken as tt
 from difflib import SequenceMatcher
 from itertools import combinations
+from src.proposed_patches import ProposedPatches
 from src.bug import Bug
 from prog_params import ProgParams as prog_params
 
@@ -111,3 +112,18 @@ def get_token_count(prompt):
     
     if isinstance(prompt, str):
         return len(enc.encode(prompt))
+
+
+def count_num_of_samples(bug:Bug, prompt, proposed_patches: ProposedPatches, mode, total_token_limit_target):
+    prompt_token_count = get_token_count(prompt)
+    average_response_token_count = 0
+    responses = proposed_patches.get_plausible_patches(mode)
+    if len(responses) > 0:
+        average_response_token_count = int(sum([get_token_count(response) for response in responses]) // len(responses))
+    else:
+        if mode == "SF":
+            average_response_token_count = int(2 * get_token_count(bug.code))
+        else:
+            average_response_token_count = int(get_token_count(bug.buggy_lines) + get_token_count(bug.code) // 2)
+
+    return int((total_token_limit_target - prompt_token_count) // average_response_token_count)
