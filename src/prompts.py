@@ -92,16 +92,27 @@ with the following test error:\n```\n{bug.test_error_message}\n```
         n_shot_bug = n_shot_bugs[0]
         
         if mode == "SL":
-            solution_message += f"It can be fixed by these possible line:\n```java\n{n_shot_bug.fixed_lines}\n```"
+            bug_fix = f"```java\n{n_shot_bug.fixed_lines}\n```"
         elif mode == "SH":
-            solution_message += f"It can be fixed by the following hunk:\n```java\n{n_shot_bug.fixed_lines}\n```"
+            bug_fix = f"```java\n{n_shot_bug.fixed_lines}\n```"
         elif mode == "SF":
-            solution_message += f"It can be fixed by the following function:\n```java\n{n_shot_bug.fixed_code}\n```"
+            bug_fix = f"```java\n{n_shot_bug.fixed_code}\n```"
         
-        return [Prompts.code_introduction_message(bug=n_shot_bug, mode=mode),
-                Prompts.bug_details(bug=n_shot_bug, mode=mode),
-                Prompts.fpps_call_to_action(mode=mode),
-                solution_message]
+        return "\n".join([Prompts.code_introduction_message(bug=n_shot_bug, mode=mode),
+                          Prompts.bug_details(bug=n_shot_bug, mode=mode),
+                          Prompts.fpps_call_to_action(mode=mode),
+                          Prompts.solution_message(mode=mode, solution_list=[n_shot_bug]),
+                          bug_fix])
+
+    def solution_message(mode, solution_list):
+        s = "s" if len(solution_list) > 1 else ""
+        if mode == "SL":
+            solution_message = f"It can be fixed by these possible line{s}:"
+        elif mode == "SH":
+            solution_message = f"It can be fixed by the following hunk{s}:"
+        elif mode == "SF":
+            solution_message = f"It can be fixed by the following function{s}:"
+        return solution_message
 
     def code_introduction_message(bug: Bug, mode):
         if mode == "SL":
@@ -145,10 +156,10 @@ with the following test error:\n```\n{bug.test_error_message}\n```
 
     def feedback_on_response(bug: Bug, proposed_patch: ProposedPatch):
         if proposed_patch.result_reason == bug.test_error_message:
-            return {"role": "user", "content": f"The fixed version is still not correct. It still does not fix the original test failure."}
+            return f"The fixed version is still not correct. It still does not fix the original test failure."
         else:
             error_type = "test error" if proposed_patch.test_result == "FAIL" else "compilation error"
-            return {"role": "user", "content": f"""The fixed version is still not correct. code has the following {error_type}:\n```\n{proposed_patch.result_reason}\n```"""}
+            return f"""The fixed version is still not correct. code has the following {error_type}:\n```\n{proposed_patch.result_reason}\n```"""
     
     def summarize_proposed_patches(ordered_proposed_patches, summary_token_limit):
         included_proposed_patches = []
@@ -193,18 +204,12 @@ with the following test error:\n```\n{bug.test_error_message}\n```
         included_patches = []
         summary_message = ""
 
-        for plausible_patch in plausible_patches.reverse():
+        for plausible_patch in reversed(plausible_patches):
 
             included_patches.append(plausible_patch)
             listed_plausible_patches = "\n".join([f"""{i+1}. ```java\n{pp.patch}\n```""" for i, pp in enumerate(included_patches)])
 
-            s = "s" if len(included_patches) > 1 else ""
-            if mode == "SL":
-                summary_message = "\n".join([f"It can be fixed by these possible line{s}:", listed_plausible_patches])
-            elif mode == "SH":
-                summary_message = "\n".join([f"It can be fixed by the following hunk{s}:", listed_plausible_patches])
-            elif mode == "SF":
-                summary_message = "\n".join([f"It can be fixed by the following function{s}:", listed_plausible_patches])
+            summary_message = "\n".join([Prompts.solution_message(mode=mode, solution_list=included_patches), listed_plausible_patches])
 
             if get_token_count(summary_message) > summary_token_limit:
                 break

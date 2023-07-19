@@ -17,7 +17,7 @@ class TestRapidCapr(unittest.TestCase):
         # ids = [i for i in range(1, 28) if i != 21]
         ids = [4]
 
-        test_validate_patch_cache = Path(__file__).parent.parent / 'cache' / 'validate_patch' # Uses prod cache (insead of test cache)
+        test_validate_patch_cache = Path(__file__).parent.parent / 'cache' / 'validate_patch_cache' # Uses prod cache (insead of test cache)
         test_n_shot_cache = Path(__file__).parent / 'cache' / 'n_shot'
         test_bug_details_cache = Path(__file__).parent / 'cache' / 'bug_details'
         test_gpt35_cache_folder = Path(__file__).parent / 'cache' / 'gpt35'
@@ -43,8 +43,8 @@ class TestRapidCapr(unittest.TestCase):
             bug = framework.get_bug_details(project, bug_id)
 
             if bug.bug_type != "OT":
-                repair_results = rapidcapr.repair(bug=bug, max_fpps_try_per_mode=1, max_mpps_try_per_mode=1, 
-                                                  prompt_tokens_limit=1500, total_token_limit_target=3000, 
+                repair_results = rapidcapr.repair(bug=bug, max_fpps_try_per_mode=2, max_mpps_try_per_mode=2, 
+                                                  prompt_token_limit=1500, total_token_limit_target=3000,
                                                   similarity_threshold=0.5)
                 plausible_patches, _, repair_cost, _, _, _, _, _ = repair_results
 
