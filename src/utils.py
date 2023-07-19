@@ -117,7 +117,7 @@ def get_token_count(prompt):
 def count_num_of_samples(bug:Bug, prompt, proposed_patches: ProposedPatches, mode, total_token_limit_target):
     prompt_token_count = get_token_count(prompt)
     average_response_token_count = 0
-    responses = proposed_patches.get_plausible_patches(mode)
+    responses = proposed_patches.get_responses(mode)
     if len(responses) > 0:
         average_response_token_count = int(sum([get_token_count(response) for response in responses]) // len(responses))
     else:

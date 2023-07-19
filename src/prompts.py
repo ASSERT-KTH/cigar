@@ -100,7 +100,7 @@ with the following test error:\n```\n{bug.test_error_message}\n```
         
         return [Prompts.code_introduction_message(bug=n_shot_bug, mode=mode),
                 Prompts.bug_details(bug=n_shot_bug, mode=mode),
-                Prompts.call_to_action(mode=mode),
+                Prompts.fpps_call_to_action(mode=mode),
                 solution_message]
 
     def code_introduction_message(bug: Bug, mode):
@@ -127,7 +127,7 @@ with the following test error:\n```\n{bug.test_error_message}\n```
         else:
             return bug_details
 
-    def call_to_action(mode):
+    def fpps_call_to_action(mode):
         if mode == "SL":
             return "Please provide the correct line at the infill location."
         elif mode == "SH":
@@ -135,12 +135,20 @@ with the following test error:\n```\n{bug.test_error_message}\n```
         else:
             return "Please provide the correct function."
     
+    def mpps_call_to_action(mode):
+        if mode == "SL":
+            return "Please generate an alternative fix line."
+        elif mode == "SH":
+            return "Please generate an alternative fix hunk."
+        else:
+            return "Please generate an alternative fix function."
+
     def feedback_on_response(bug: Bug, proposed_patch: ProposedPatch):
         if proposed_patch.result_reason == bug.test_error_message:
             return {"role": "user", "content": f"The fixed version is still not correct. It still does not fix the original test failure."}
         else:
             error_type = "test error" if proposed_patch.test_result == "FAIL" else "compilation error"
-            return {"role": "user", "content": f"""The fixed version is still not correct. code has the following {error_type}:\n```\n{proposed_patch.result_reason}\n```\n{Prompts.call_to_action(proposed_patch.mode)}"""}
+            return {"role": "user", "content": f"""The fixed version is still not correct. code has the following {error_type}:\n```\n{proposed_patch.result_reason}\n```"""}
     
     def summarize_proposed_patches(ordered_proposed_patches, summary_token_limit):
         included_proposed_patches = []
@@ -151,31 +159,56 @@ with the following test error:\n```\n{bug.test_error_message}\n```
 
             if any([proposed_patch.patch == included_proposed_patch.patch and proposed_patch.mode == included_proposed_patch.mode for included_proposed_patch in included_proposed_patches]):
                 continue
-            
-            included_proposed_patches.append(proposed_patch)
+            else:
+                included_proposed_patches.append(proposed_patch)
 
-            next_summary_message = "asdasdasdas" # TODO
+            sorted_proposed_patches = {}
+            for included_proposed_patch in included_proposed_patches:
+                if included_proposed_patch.result_reason in sorted_proposed_patches:
+                    sorted_proposed_patches[included_proposed_patch.result_reason].append(included_proposed_patch)
+                else:
+                    sorted_proposed_patches[included_proposed_patch.result_reason] = [included_proposed_patch]
 
-            """
-            
-            The following code(s):
-            proposed_patch1.patch
-            proposed_patch2.patch
-            Failed with the following [test error | compilation error]:
-            proposed_patch1.result_reason
-            ...
-            The following code(s):
-
-            """
-
-
-
+            next_summary_message = ""
+            for result_reason, proposed_patch_list in sorted_proposed_patches.items():
+                mode_solution_name = "line" if proposed_patch_list[0].mode == "SL" else "hunk" if proposed_patch_list[0].mode == "SH" else "function"
+                s = "" if (proposed_patch_list) == 1 else "s"
+                next_summary_message += "\n".join([
+                    f"The following {mode_solution_name}{s}:",
+                    "\n".join([f"```java\n{proposed_patch.patch}\n```" for proposed_patch in proposed_patch_list]),
+                    f"Failed with the following test error:" if proposed_patch_list[0].test_result == "FAIL" else f"Failed with the following compilation error:",
+                    f"```\n{result_reason}\n```",
+                ])
 
             if get_token_count(next_summary_message) > summary_token_limit:
                 break
             else:
                 summary_message = next_summary_message
 
+        return summary_message
+
+    def summarize_plausible_patches(plausible_patches, summary_token_limit):
+        mode = plausible_patches[0].mode
+
+        included_patches = []
+        summary_message = ""
+
+        for plausible_patch in plausible_patches.reverse():
+
+            included_patches.append(plausible_patch)
+            listed_plausible_patches = "\n".join([f"""{i+1}. ```java\n{pp.patch}\n```""" for i, pp in enumerate(included_patches)])
+
+            s = "s" if len(included_patches) > 1 else ""
+            if mode == "SL":
+                summary_message = "\n".join([f"It can be fixed by these possible line{s}:", listed_plausible_patches])
+            elif mode == "SH":
+                summary_message = "\n".join([f"It can be fixed by the following hunk{s}:", listed_plausible_patches])
+            elif mode == "SF":
+                summary_message = "\n".join([f"It can be fixed by the following function{s}:", listed_plausible_patches])
+
+            if get_token_count(summary_message) > summary_token_limit:
+                break
+            
         return summary_message
 
     # RapidCapr Prompts
@@ -197,7 +230,7 @@ with the following test error:\n```\n{bug.test_error_message}\n```
         user_message = "\n".join([Prompts.n_shot_example_message(bug=bug, n_shot_bugs=n_shot_bugs, mode=mode),
                                   Prompts.code_introduction_message(bug=bug, mode=mode),
                                   Prompts.bug_details(bug=bug, mode=mode),
-                                  Prompts.call_to_action(mode=mode)])
+                                  Prompts.fpps_call_to_action(mode=mode)])
             
         return [{"role": "system", "content": system_message}, 
                 {"role": "user", "content": user_message}]
@@ -206,21 +239,18 @@ with the following test error:\n```\n{bug.test_error_message}\n```
         ordered_proposed_patches = proposed_patches.order(mode=mode)
 
         system_message = Prompts.system_message()
-        last_assistant_response_message = ordered_proposed_patches.pop(-1).response
-        user_feedback_message = Prompts.feedback_on_response(bug=bug, proposed_patches=proposed_patches)
+        last_proposed_patch = ordered_proposed_patches.pop(-1)
+        last_assistant_response_message = last_proposed_patch.response
+        user_feedback_message = "\n".join([Prompts.feedback_on_response(bug=bug, proposed_patch=last_proposed_patch), Prompts.fpps_call_to_action(mode)]) 
         
-        proposed_patches_summary = ""
-        user_message = "\n".join([Prompts.code_introduction_message(bug=bug, mode=mode),
-                                  Prompts.bug_details(bug=bug, mode=mode),
-                                  proposed_patches_summary,
-                                  Prompts.call_to_action(mode=mode)])
+        user_message = "\n".join([Prompts.code_introduction_message(bug=bug, mode=mode),Prompts.bug_details(bug=bug, mode=mode), Prompts.fpps_call_to_action(mode=mode)])
         summary_token_limit = prompt_token_limit - get_token_count(system_message) - get_token_count(user_message) - get_token_count(last_assistant_response_message) - get_token_count(user_feedback_message)
         
         proposed_patches_summary = Prompts.summarize_proposed_patches(ordered_proposed_patches=ordered_proposed_patches, summary_token_limit=summary_token_limit)
         user_message = "\n".join([Prompts.code_introduction_message(bug=bug, mode=mode),
                                   Prompts.bug_details(bug=bug, mode=mode),
                                   proposed_patches_summary,
-                                  Prompts.call_to_action(mode=mode)])
+                                  Prompts.fpps_call_to_action(mode=mode)])
         
         return [{"role": "system", "content": system_message}, 
                 {"role": "user", "content": user_message},
@@ -228,8 +258,24 @@ with the following test error:\n```\n{bug.test_error_message}\n```
                 {"role": "user", "content": user_feedback_message}]
     
     def construct_mpps_prompt(bug: Bug, mode, proposed_patches: ProposedPatches, n_shot_bugs, prompt_token_limit, total_token_limit_target):
-        prompt = Prompts.construct_plausible_path_prompt(bug, proposed_patches.get_plausible_patches(mode), mode) # TODO maximize up until prompt_tokens_limit
+        prompt = Prompts.ongoing_mpps_prompt(bug=bug, mode=mode, proposed_patches=proposed_patches, prompt_token_limit=prompt_token_limit)
 
         num_of_samples = count_num_of_samples(bug=bug, prompt=prompt, proposed_patches=proposed_patches, mode=mode, total_token_limit_target=total_token_limit_target)
 
         return prompt, num_of_samples
+    
+    def ongoing_mpps_prompt(bug: Bug, mode, proposed_patches: ProposedPatches, prompt_token_limit):
+        
+        user_message = "\n".join([Prompts.code_introduction_message(bug=bug, mode=mode), Prompts.bug_details(bug=bug, mode=mode), Prompts.mpps_call_to_action(mode=mode)])
+        summary_token_limit = prompt_token_limit - get_token_count(user_message)
+
+        plausible_patch_summary = Prompts.summarize_plausible_patches(plausible_patches=proposed_patches.get_plausible_patches(mode), summary_token_limit=summary_token_limit)
+        
+        user_message = "\n".join([Prompts.code_introduction_message(bug=bug, mode=mode),
+                            Prompts.bug_details(bug=bug, mode=mode), 
+                            plausible_patch_summary, 
+                            Prompts.mpps_call_to_action(mode=mode)])
+
+        return [{"role": "system", "content": "You are an automated program repair tool."},
+                {"role": "user", "content": f"{user_message}"}]
+
