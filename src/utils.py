@@ -39,14 +39,14 @@ def synthetize_and_extract_patch(patch_block, masked_code, buggy_lines):
     
     infill_line_count = None
     for i in range(len(masked_code_lines)):
-        if "INFILL" in masked_code_lines[i]:
+        if 'INFILL' in masked_code_lines[i]:
             infill_line_count = i
             break
 
     patch_block_num_of_lines = len(patch_block.split('\n'))
 
-    pre_infill_lines = masked_code_lines[infill_line_count-patch_block_num_of_lines:infill_line_count]
-    post_infill_lines = masked_code_lines[infill_line_count+1:infill_line_count+patch_block_num_of_lines+1]
+    pre_infill_lines = masked_code_lines[max(0,infill_line_count-patch_block_num_of_lines):infill_line_count]
+    post_infill_lines = masked_code_lines[infill_line_count+1:min(infill_line_count+patch_block_num_of_lines+1, len(masked_code_lines))]
 
     buggy_code_block_lines = pre_infill_lines + [buggy_lines] + post_infill_lines
     buggy_code_block = '\n'.join(buggy_code_block_lines)
@@ -69,25 +69,29 @@ def synthetize_and_extract_patch(patch_block, masked_code, buggy_lines):
 
     for i in range(len(buggy_code_block_lines)):
         if buggy_code_block_lines[i] == patch[0]:
-            patch.pop(0)
+            if len(patch) > 1:
+                patch.pop(0)
         else:
             break
 
     for i in range(len(buggy_code_block_lines)-1, -1, -1):
         if buggy_code_block_lines[i] == patch[-1]:
-            patch.pop()
+            if len(patch) > 1:
+                patch.pop()
         else:
             break
 
     for _ in range(len(patch)):
         if patch[0] in buggy_code_block_lines:
-            patch.pop(0)
+            if len(patch) > 0:
+                patch.pop(0)
         else:
             break
 
     for _ in range(len(patch)-1, -1, -1):
         if patch[-1] in buggy_code_block_lines:
-            patch.pop()
+            if len(patch) > 0:
+                patch.pop()
         else:
             break
 

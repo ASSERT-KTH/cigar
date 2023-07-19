@@ -169,6 +169,38 @@ class TestUtils(unittest.TestCase):
 
         self.assertEqual(patch, expected_patch)
 
+    def test_synthetize_and_extract_patch_on_SH_case_on_same_code(self):
+        patch_block = """    public String generateToolTipFragment(String toolTipText) {
+        return " title=\"" + toolTipText
+            + "\" alt=\"\"";
+    }"""
+        masked_code = """    public String generateToolTipFragment(String toolTipText) {
+>>> [ INFILL ] <<<
+            + "\" alt=\"\"";
+    }"""
+        buggy_line = """        return " title=\"" + toolTipText"""
+
+        expected_patch = ""
+
+        patch = synthetize_and_extract_patch(patch_block, masked_code, buggy_line)
+
+        self.assertEqual(patch, expected_patch)
+
+    def test_synthetize_and_extract_patch_on_SH_case_on_smaller_same_code(self):
+        patch_block = """        return " title=\"" + toolTipText
+            + "\" alt=\"\"";"""
+        masked_code = """    public String generateToolTipFragment(String toolTipText) {
+>>> [ INFILL ] <<<
+            + "\" alt=\"\"";
+    }"""
+        buggy_line = """        return " title=\"" + toolTipText"""
+
+        expected_patch = ""
+
+        patch = synthetize_and_extract_patch(patch_block, masked_code, buggy_line)
+
+        self.assertEqual(patch, expected_patch)
+
     def test_extract_patches_from_response_on_Chart_1_SH(self):
         framework = Framework(test_framework="defects4j", list_of_bugs=None,
                               d4j_path=user_params.D4J_PATH, java_home=user_params.JAVA_HOME, tmp_dir=user_params.TMP_DIR)
