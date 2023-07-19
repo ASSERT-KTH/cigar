@@ -183,7 +183,8 @@ with the following test error:\n```\n{bug.test_error_message}\n```
             next_summary_message = ""
             for result_reason, proposed_patch_list in sorted_proposed_patches.items():
                 mode_solution_name = "line" if proposed_patch_list[0].mode == "SL" else "hunk" if proposed_patch_list[0].mode == "SH" else "function"
-                s = "" if (proposed_patch_list) == 1 else "s"
+                s = "" if len(proposed_patch_list) == 1 else "s"
+                next_summary_message += "\n" if next_summary_message != "" else ""
                 next_summary_message += "\n".join([
                     f"The following {mode_solution_name}{s}:",
                     "\n".join([f"```java\n{proposed_patch.patch}\n```" for proposed_patch in proposed_patch_list]),

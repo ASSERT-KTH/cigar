@@ -49,6 +49,9 @@ class RapidCapr(object):
                             proposed_patches.add(response=response, test_result=test_result, result_reason=result_reason, mode=patch_mode, 
                                                  patch=patch, patch_diff=patch_diff)
         
+            if proposed_patches.contains_plausible_patch(mode=mode) == True:
+                break
+        
         return (proposed_patches.get_plausible_patches(), proposed_patches.get_plausible_patch_diffs(), 
                 total_cost, proposed_patches.get_call_num_of_first_plausible_patch(), None, total_call_tries, 
                 proposed_patches.get_test_failure_count(), proposed_patches.get_test_error_count())

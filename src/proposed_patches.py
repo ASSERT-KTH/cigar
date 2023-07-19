@@ -26,10 +26,17 @@ class ProposedPatches(object):
         else:
             return len([p for p in self.proposed_patches if p.mode == mode])
 
-    def contains_plausible_patch(self, mode):
-        for p in self.proposed_patches:
-            if p.test_result == "PASS" and p.mode == mode:
-                return True
+    def contains_plausible_patch(self, mode=None):
+        if mode is None:
+            for p in self.proposed_patches:
+                if p.test_result == "PASS":
+                    print("asd")
+                    return True
+        else:
+            for p in self.proposed_patches:
+                if p.test_result == "PASS" and p.mode == mode:
+                    print("asd")
+                    return True
         return False
     
     def get_plausible_patches(self, mode=None):
@@ -91,7 +98,7 @@ class ProposedPatches(object):
     
     def order(self, mode=None):
         if mode is None:
-            return sorted(self.proposed_patches, key=lambda k: (k.test_result != "ERROR", k.test_result != "FAIL", k.test_result != "PASS"))
+            return sorted(self.proposed_patches.copy(), key=lambda k: (k.test_result != "ERROR", k.test_result != "FAIL", k.test_result != "PASS"))
         else:
             return sorted([p for p in self.proposed_patches if p.mode == mode], key=lambda k: (k.test_result != "ERROR", k.test_result != "FAIL", k.test_result != "PASS"))
     

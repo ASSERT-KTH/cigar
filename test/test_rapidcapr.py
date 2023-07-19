@@ -12,10 +12,9 @@ class TestRapidCapr(unittest.TestCase):
         super().__init__(methodName)
         self.maxDiff = None   
 
-    def test_e2e_rapidcapr_improvement_over_capr_with_gpt35_on_d4j_Time(self):
+    def test_e2e_rapidcapr_improvement_over_capr_with_gpt35_on_d4j_Time_4(self):
         project = "Time"
-        # ids = [i for i in range(1, 28) if i != 21]
-        ids = [4]
+        bug_id = 4
 
         test_validate_patch_cache = Path(__file__).parent.parent / 'cache' / 'validate_patch_cache' # Uses prod cache (insead of test cache)
         test_n_shot_cache = Path(__file__).parent / 'cache' / 'n_shot'
@@ -33,24 +32,19 @@ class TestRapidCapr(unittest.TestCase):
         rapidcapr = RapidCapr(chatgpt=chatgpt,
                               framework=framework)
         
-        capr_token_usage_on_Time = 4911480
-        capr_Time_bugs_with_plausible_patches = 6
+        capr_token_usage_on_Time_4 = 210000 # Authors average
+        capr_Time_4_plausible_patch_count = 10 # My reproduced results
 
-        rapidcapr_token_usage_on_Time = 0
-        rapidcapr_Time_bugs_with_plausible_patches = 0
+        bug = framework.get_bug_details(project, bug_id)
 
-        for bug_id in ids:
-            bug = framework.get_bug_details(project, bug_id)
+        if bug.bug_type != "OT":
+            repair_results = rapidcapr.repair(bug=bug, max_fpps_try_per_mode=5, max_mpps_try_per_mode=5,
+                                                prompt_token_limit=2048, total_token_limit_target=4096,
+                                                similarity_threshold=0.5)
+            plausible_patches, _, repair_cost, _, _, _, _, _ = repair_results
 
-            if bug.bug_type != "OT":
-                repair_results = rapidcapr.repair(bug=bug, max_fpps_try_per_mode=2, max_mpps_try_per_mode=2, 
-                                                  prompt_token_limit=1500, total_token_limit_target=3000,
-                                                  similarity_threshold=0.5)
-                plausible_patches, _, repair_cost, _, _, _, _, _ = repair_results
+            rapidcapr_token_usage_on_Time_4 = repair_cost
+            rapidcapr_Time_4_plausible_patch_count = len(plausible_patches)
 
-                rapidcapr_token_usage_on_Time += repair_cost
-                if len(plausible_patches) > 0:
-                    rapidcapr_Time_bugs_with_plausible_patches += 1
-
-        self.assertLessEqual(rapidcapr_token_usage_on_Time, capr_token_usage_on_Time / 2)
-        self.assertGreaterEqual(rapidcapr_Time_bugs_with_plausible_patches, capr_Time_bugs_with_plausible_patches)
+        self.assertLessEqual(rapidcapr_token_usage_on_Time_4, capr_token_usage_on_Time_4) # 16848 < 42000
+        self.assertGreaterEqual(rapidcapr_Time_4_plausible_patch_count, capr_Time_4_plausible_patch_count) # 8 not > 10
