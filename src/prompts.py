@@ -168,6 +168,8 @@ with the following test error:\n```\n{bug.test_error_message}\n```
         while(len(ordered_proposed_patches) > 0):
             proposed_patch = ordered_proposed_patches.pop(-1)
 
+            if (proposed_patch.test_result != "FAIL"):
+                continue
             if any([proposed_patch.patch == included_proposed_patch.patch and proposed_patch.mode == included_proposed_patch.mode for included_proposed_patch in included_proposed_patches]):
                 continue
             else:
@@ -188,7 +190,7 @@ with the following test error:\n```\n{bug.test_error_message}\n```
                 next_summary_message += "\n".join([
                     f"The following {mode_solution_name}{s}:",
                     "\n".join([f"```java\n{proposed_patch.patch}\n```" for proposed_patch in proposed_patch_list]),
-                    f"Failed with the following test error:" if proposed_patch_list[0].test_result == "FAIL" else f"Failed with the following compilation error:",
+                    f"Failed with the following test error:",
                     f"```\n{result_reason}\n```",
                 ])
 

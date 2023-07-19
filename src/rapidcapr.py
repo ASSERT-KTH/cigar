@@ -13,7 +13,7 @@ class RapidCapr(object):
         self.chatgpt = chatgpt
         self.framework = framework
     
-    def repair(self, bug: Bug, max_fpps_try_per_mode=1, max_mpps_try_per_mode=1, prompt_token_limit=1500, total_token_limit_target=3000, similarity_threshold=0.5):
+    def repair(self, bug: Bug, max_fpps_try_per_mode=1, max_mpps_try_per_mode=1, prompt_token_limit=1500, total_token_limit_target=3000, max_sample_count=50, similarity_threshold=0.5):
 
         modes = ["SL", "SF"] if "SL" in bug.bug_type else list(bug.bug_type.split())
         prefix = f"{self.framework.test_framework}_{bug.project}_{bug.bug_id}"
@@ -36,7 +36,7 @@ class RapidCapr(object):
                     prompt, num_of_samples = construct_prompt_function(bug=bug, mode=mode, proposed_patches=proposed_patches, n_shot_bugs=n_shot_bugs,
                                                                        prompt_token_limit=prompt_token_limit, total_token_limit_target=total_token_limit_target)
                     try:
-                        responses, cost = self.chatgpt.call(prompt, num_of_samples=num_of_samples, prefix=f"{prefix}_{total_call_tries}")
+                        responses, cost = self.chatgpt.call(prompt, num_of_samples=min(max_sample_count,num_of_samples), prefix=f"{prefix}_{total_call_tries}")
                         total_cost += cost
                     except openai.error.InvalidRequestError as e:
                         total_cost += prog_params.gpt35_model_token_limit # Exceeded Token limit
