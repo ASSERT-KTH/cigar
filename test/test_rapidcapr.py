@@ -85,3 +85,78 @@ class TestRapidCapr(unittest.TestCase):
 
         self.assertLessEqual(rapidcapr_token_usage_on_Closure_86, capr_token_usage_on_Closure_86 / 5)
         self.assertGreaterEqual(rapidcapr_Closure_86_plausible_patch_count, capr_Closure_86_plausible_patch_count)
+
+    def test_e2e_rapidcapr_improvement_over_capr_with_gpt35_on_d4j_Chart_6(self):
+        project = "Chart"
+        bug_id = 6 # SH
+
+        test_validate_patch_cache = Path(__file__).parent.parent / 'cache' / 'validate_patch_cache' # Uses prod cache (insead of test cache)
+        test_n_shot_cache = Path(__file__).parent.parent / 'cache' / 'n_shot_cache' # Uses prod cache (insead of test cache)
+        test_bug_details_cache = Path(__file__).parent.parent / 'cache' / 'bug_details_cache' # Uses prod cache (insead of test cache)
+        test_gpt35_cache_folder = Path(__file__).parent / 'cache' / 'gpt35'
+
+        framework = Framework(test_framework="defects4j", list_of_bugs = prog_params.d4j_list_of_bugs, 
+                          d4j_path=user_params.D4J_PATH, java_home=user_params.JAVA_HOME, tmp_dir=user_params.TMP_DIR,
+                          validate_patch_cache_folder=test_validate_patch_cache,
+                          n_shot_cache_folder=test_n_shot_cache,
+                          bug_details_cache_folder=test_bug_details_cache)
+        chatgpt = ChatGPT(model=prog_params.gpt35_model, api_key=user_params.API_KEY,
+                        cache_folder=test_gpt35_cache_folder,
+                        load_from_cache=True, save_to_cache=True)
+        rapidcapr = RapidCapr(chatgpt=chatgpt,
+                              framework=framework)
+        
+        capr_token_usage_on_Chart_6 = 210000 # Authors average
+        capr_Chart_6_plausible_patch_count = 30 # My reproduced results
+
+        bug = framework.get_bug_details(project, bug_id)
+
+        if bug.bug_type != "OT":
+            repair_results = rapidcapr.repair(bug=bug, max_fpps_try_per_mode=5, max_mpps_try_per_mode=5,
+                                                prompt_token_limit=1500, total_token_limit_target=3000,
+                                                max_sample_count=100, similarity_threshold=0.5)
+            plausible_patches, _, repair_cost, _, _, _, _, _ = repair_results
+
+            rapidcapr_token_usage_on_Chart_6 = repair_cost
+            rapidcapr_Chart_6_plausible_patch_count = len(plausible_patches)
+
+        self.assertLessEqual(rapidcapr_token_usage_on_Chart_6, capr_token_usage_on_Chart_6 / 5)
+        self.assertGreaterEqual(rapidcapr_Chart_6_plausible_patch_count, capr_Chart_6_plausible_patch_count)
+
+
+    def test_e2e_rapidcapr_improvement_over_capr_with_gpt35_on_d4j_Chart_7(self):
+        project = "Chart"
+        bug_id = 7 # SF
+
+        test_validate_patch_cache = Path(__file__).parent.parent / 'cache' / 'validate_patch_cache' # Uses prod cache (insead of test cache)
+        test_n_shot_cache = Path(__file__).parent.parent / 'cache' / 'n_shot_cache' # Uses prod cache (insead of test cache)
+        test_bug_details_cache = Path(__file__).parent.parent / 'cache' / 'bug_details_cache' # Uses prod cache (insead of test cache)
+        test_gpt35_cache_folder = Path(__file__).parent / 'cache' / 'gpt35'
+
+        framework = Framework(test_framework="defects4j", list_of_bugs = prog_params.d4j_list_of_bugs, 
+                          d4j_path=user_params.D4J_PATH, java_home=user_params.JAVA_HOME, tmp_dir=user_params.TMP_DIR,
+                          validate_patch_cache_folder=test_validate_patch_cache,
+                          n_shot_cache_folder=test_n_shot_cache,
+                          bug_details_cache_folder=test_bug_details_cache)
+        chatgpt = ChatGPT(model=prog_params.gpt35_model, api_key=user_params.API_KEY,
+                        cache_folder=test_gpt35_cache_folder,
+                        load_from_cache=True, save_to_cache=True)
+        rapidcapr = RapidCapr(chatgpt=chatgpt,
+                              framework=framework)
+        
+        capr_token_usage_on_Chart_7 = 210000 # Authors average
+        capr_Chart_7_plausible_patch_count = 8 # My reproduced results
+
+        bug = framework.get_bug_details(project, bug_id)
+
+        if bug.bug_type != "OT":
+            repair_results = rapidcapr.repair(bug=bug, max_fpps_try_per_mode=5, max_mpps_try_per_mode=5,
+                                                prompt_token_limit=1500, total_token_limit_target=3000,
+                                                max_sample_count=100, similarity_threshold=0.5)
+            plausible_patches, _, repair_cost, _, _, _, _, _ = repair_results
+
+            rapidcapr_token_usage_on_Chart_6 = repair_cost
+            rapidcapr_Chart_6_plausible_patch_count = len(plausible_patches)
+
+        self.assertLessEqual(rapidcapr_token_usage_on_Chart_6, capr_token_usage_on_Chart_7 / 5)
+        self.assertGreaterEqual(rapidcapr_Chart_6_plausible_patch_count, capr_Chart_7_plausible_patch_count)
