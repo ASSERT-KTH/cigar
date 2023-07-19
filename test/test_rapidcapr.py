@@ -46,5 +46,5 @@ class TestRapidCapr(unittest.TestCase):
             rapidcapr_token_usage_on_Time_4 = repair_cost
             rapidcapr_Time_4_plausible_patch_count = len(plausible_patches)
 
-        self.assertLessEqual(rapidcapr_token_usage_on_Time_4, capr_token_usage_on_Time_4) # 16848 < 42000
-        self.assertGreaterEqual(rapidcapr_Time_4_plausible_patch_count, capr_Time_4_plausible_patch_count) # 8 not > 10
+        self.assertLessEqual(rapidcapr_token_usage_on_Time_4, capr_token_usage_on_Time_4 / 5)
+        self.assertGreaterEqual(rapidcapr_Time_4_plausible_patch_count, capr_Time_4_plausible_patch_count)
