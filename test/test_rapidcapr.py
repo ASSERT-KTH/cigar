@@ -17,7 +17,7 @@ class TestRapidCapr(unittest.TestCase):
         # ids = [i for i in range(1, 28) if i != 21]
         ids = [4]
 
-        test_validate_patch_cache = Path(__file__).parent / 'cache' / 'validate_patch'
+        test_validate_patch_cache = Path(__file__).parent.parent / 'cache' / 'validate_patch' # Uses prod cache (insead of test cache)
         test_n_shot_cache = Path(__file__).parent / 'cache' / 'n_shot'
         test_bug_details_cache = Path(__file__).parent / 'cache' / 'bug_details'
         test_gpt35_cache_folder = Path(__file__).parent / 'cache' / 'gpt35'
