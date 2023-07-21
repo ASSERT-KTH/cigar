@@ -139,12 +139,22 @@ with the following test error:\n```\n{bug.test_error_message}\n```
             return bug_details
 
     def fpps_call_to_action(mode):
+        bug_description = "\n".join([
+            "in the following format:",
+            "BUG DESCRIPTION:",
+            "Explain here what is wrong with the code and how to fix it.",
+            "CODE FIX:",
+            "```java",
+            "The correct code fix goes here.",
+            "```"
+        ])
+        
         if mode == "SL":
-            return "Please provide the correct line at the infill location."
+            return f"Please provide the correct line at the infill location {bug_description}."
         elif mode == "SH":
-            return "Please provide the correct hunk at the infill location."
+            return f"Please provide the correct hunk at the infill location {bug_description}."
         else:
-            return "Please provide the correct function."
+            return f"Please provide the correct function {bug_description}."
     
     def mpps_call_to_action(mode):
         if mode == "SL":
