@@ -166,3 +166,45 @@ class TestRapidCapr(unittest.TestCase):
 
         self.assertLessEqual(rapidcapr_token_usage_on_Chart_6, capr_token_usage_on_Chart_7 / 5)
         self.assertGreaterEqual(rapidcapr_Chart_6_plausible_patch_count, capr_Chart_7_plausible_patch_count)
+
+    def test_e2e_rapidcapr_improvement_over_capr_on_unfixed_bugs(self):
+
+        capr_bugs_with_plausible_patch = 0
+        rapidcapr_bugs_with_plausible_patch = 0
+
+        for project, bug_id in [("Chart", 3), ("Chart", 23),
+                                ("Closure", 4), ("Closure", 71), ("Closure", 118),
+                                ("Lang", 1), ("Lang", 6), ("Lang", 25),
+                                ("Math", 9), ("Math", 15), ("Math", 21),
+                                ("Mockito", 7), ("Mockito", 20), ("Mockito", 27),
+                                ("Time", 8), ("Time", 24) , ("Time", 25)]:
+
+            test_validate_patch_cache = Path(__file__).parent.parent / 'cache' / 'validate_patch_cache' # Uses prod cache (insead of test cache)
+            test_n_shot_cache = Path(__file__).parent.parent / 'cache' / 'n_shot_cache' # Uses prod cache (insead of test cache)
+            test_bug_details_cache = Path(__file__).parent.parent / 'cache' / 'bug_details_cache' # Uses prod cache (insead of test cache)
+            test_gpt35_cache_folder = Path(__file__).parent / 'cache' / 'gpt35'
+
+            framework = Framework(test_framework="defects4j", list_of_bugs = prog_params.d4j_list_of_bugs, 
+                            d4j_path=user_params.D4J_PATH, java_home=user_params.JAVA_HOME, tmp_dir=user_params.TMP_DIR,
+                            validate_patch_cache_folder=test_validate_patch_cache,
+                            n_shot_cache_folder=test_n_shot_cache,
+                            bug_details_cache_folder=test_bug_details_cache)
+            chatgpt = ChatGPT(model=prog_params.gpt35_model, api_key=user_params.API_KEY,
+                            cache_folder=test_gpt35_cache_folder,
+                            load_from_cache=True, save_to_cache=True)
+            rapidcapr = RapidCapr(chatgpt=chatgpt,
+                                framework=framework)
+
+            bug = framework.get_bug_details(project, bug_id)
+
+            if bug.bug_type != "OT":
+                repair_results = rapidcapr.repair(bug=bug, max_fpps_try_per_mode=self.max_fpps_try_per_mode, max_mpps_try_per_mode=self.max_mpps_try_per_mode,
+                                                    prompt_token_limit=self.prompt_token_limit, total_token_limit_target=self.total_token_limit_target,
+                                                    max_sample_count=self.max_sample_count, similarity_threshold=self.similarity_threshold)
+                plausible_patches, _, _, _, _, _, _, _ = repair_results
+
+                if len(plausible_patches) > 0 :
+                    rapidcapr_bugs_with_plausible_patch += 1
+                    break
+
+        self.assertGreater(rapidcapr_bugs_with_plausible_patch, capr_bugs_with_plausible_patch)
