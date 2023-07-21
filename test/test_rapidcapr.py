@@ -10,7 +10,14 @@ class TestRapidCapr(unittest.TestCase):
 
     def __init__(self, methodName: str = "runTest") -> None:
         super().__init__(methodName)
-        self.maxDiff = None   
+        self.maxDiff = None 
+        
+        self.max_fpps_try_per_mode = 5
+        self.max_mpps_try_per_mode = 5
+        self.prompt_token_limit = 1500
+        self.total_token_limit_target = 3000
+        self.max_sample_count = 100
+        self.similarity_threshold = 0.5
 
     def test_e2e_rapidcapr_improvement_over_capr_with_gpt35_on_d4j_Time_4(self):
         project = "Time"
@@ -38,9 +45,9 @@ class TestRapidCapr(unittest.TestCase):
         bug = framework.get_bug_details(project, bug_id)
 
         if bug.bug_type != "OT":
-            repair_results = rapidcapr.repair(bug=bug, max_fpps_try_per_mode=5, max_mpps_try_per_mode=5,
-                                                prompt_token_limit=1500, total_token_limit_target=3000,
-                                                max_sample_count=100, similarity_threshold=0.5)
+            repair_results = rapidcapr.repair(bug=bug, max_fpps_try_per_mode=self.max_fpps_try_per_mode, max_mpps_try_per_mode=self.max_mpps_try_per_mode,
+                                                prompt_token_limit=self.prompt_token_limit, total_token_limit_target=self.total_token_limit_target,
+                                                max_sample_count=self.max_sample_count, similarity_threshold=self.similarity_threshold)
             plausible_patches, _, repair_cost, _, _, _, _, _ = repair_results
 
             rapidcapr_token_usage_on_Time_4 = repair_cost
@@ -75,9 +82,9 @@ class TestRapidCapr(unittest.TestCase):
         bug = framework.get_bug_details(project, bug_id)
 
         if bug.bug_type != "OT":
-            repair_results = rapidcapr.repair(bug=bug, max_fpps_try_per_mode=5, max_mpps_try_per_mode=5,
-                                                prompt_token_limit=1500, total_token_limit_target=3000,
-                                                max_sample_count=100, similarity_threshold=0.5)
+            repair_results = rapidcapr.repair(bug=bug, max_fpps_try_per_mode=self.max_fpps_try_per_mode, max_mpps_try_per_mode=self.max_mpps_try_per_mode,
+                                                prompt_token_limit=self.prompt_token_limit, total_token_limit_target=self.total_token_limit_target,
+                                                max_sample_count=self.max_sample_count, similarity_threshold=self.similarity_threshold)
             plausible_patches, _, repair_cost, _, _, _, _, _ = repair_results
 
             rapidcapr_token_usage_on_Closure_86 = repair_cost
@@ -112,9 +119,9 @@ class TestRapidCapr(unittest.TestCase):
         bug = framework.get_bug_details(project, bug_id)
 
         if bug.bug_type != "OT":
-            repair_results = rapidcapr.repair(bug=bug, max_fpps_try_per_mode=5, max_mpps_try_per_mode=5,
-                                                prompt_token_limit=1500, total_token_limit_target=3000,
-                                                max_sample_count=100, similarity_threshold=0.5)
+            repair_results = rapidcapr.repair(bug=bug, max_fpps_try_per_mode=self.max_fpps_try_per_mode, max_mpps_try_per_mode=self.max_mpps_try_per_mode,
+                                                prompt_token_limit=self.prompt_token_limit, total_token_limit_target=self.total_token_limit_target,
+                                                max_sample_count=self.max_sample_count, similarity_threshold=self.similarity_threshold)
             plausible_patches, _, repair_cost, _, _, _, _, _ = repair_results
 
             rapidcapr_token_usage_on_Chart_6 = repair_cost
@@ -122,7 +129,6 @@ class TestRapidCapr(unittest.TestCase):
 
         self.assertLessEqual(rapidcapr_token_usage_on_Chart_6, capr_token_usage_on_Chart_6 / 5)
         self.assertGreaterEqual(rapidcapr_Chart_6_plausible_patch_count, capr_Chart_6_plausible_patch_count)
-
 
     def test_e2e_rapidcapr_improvement_over_capr_with_gpt35_on_d4j_Chart_7(self):
         project = "Chart"
@@ -150,9 +156,9 @@ class TestRapidCapr(unittest.TestCase):
         bug = framework.get_bug_details(project, bug_id)
 
         if bug.bug_type != "OT":
-            repair_results = rapidcapr.repair(bug=bug, max_fpps_try_per_mode=5, max_mpps_try_per_mode=5,
-                                                prompt_token_limit=1500, total_token_limit_target=3000,
-                                                max_sample_count=100, similarity_threshold=0.5)
+            repair_results = rapidcapr.repair(bug=bug, max_fpps_try_per_mode=self.max_fpps_try_per_mode, max_mpps_try_per_mode=self.max_mpps_try_per_mode,
+                                                prompt_token_limit=self.prompt_token_limit, total_token_limit_target=self.total_token_limit_target,
+                                                max_sample_count=self.max_sample_count, similarity_threshold=self.similarity_threshold)
             plausible_patches, _, repair_cost, _, _, _, _, _ = repair_results
 
             rapidcapr_token_usage_on_Chart_6 = repair_cost
