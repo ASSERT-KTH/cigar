@@ -38,7 +38,7 @@ class RapidCapr(object):
                                                                        prompt_token_limit=prompt_token_limit, total_token_limit_target=total_token_limit_target,
                                                                        ask_for_bug_description=ask_for_bug_description)
                     try:
-                        responses, cost = self.chatgpt.call(prompt, num_of_samples=min(max_sample_count,num_of_samples), prefix=f"{prefix}_{total_call_tries}")
+                        responses, cost = self.chatgpt.call(prompt, num_of_samples=max(1, min(max_sample_count,num_of_samples)), prefix=f"{prefix}_{total_call_tries}")
                         total_cost += cost
                     except openai.error.InvalidRequestError as e:
                         total_cost += prog_params.gpt35_model_token_limit # Exceeded Token limit
