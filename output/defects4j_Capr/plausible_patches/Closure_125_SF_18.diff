@@ -1,0 +1,48 @@
+diff --git a/src/com/google/javascript/jscomp/TypeCheck.java b/src/com/google/javascript/jscomp/TypeCheck.java
+index 4e053258..0a29ebe1 100644
+--- a/src/com/google/javascript/jscomp/TypeCheck.java
++++ b/src/com/google/javascript/jscomp/TypeCheck.java
+@@ -1653,22 +1653,32 @@ public class TypeCheck implements NodeTraversal.Callback, CompilerPass {
+   /**
+    * Visits a NEW node.
+    */
+-  private void visitNew(NodeTraversal t, Node n) {
++private void visitNew(NodeTraversal t, Node n) {
+     Node constructor = n.getFirstChild();
+     JSType type = getJSType(constructor).restrictByNotNullOrUndefined();
+-    if (type.isConstructor() || type.isEmptyType() || type.isUnknownType()) {
+-      FunctionType fnType = type.toMaybeFunctionType();
+-      if (fnType != null) {
+-        visitParameterList(t, n, fnType);
+-        ensureTyped(t, n, fnType.getInstanceType());
+-      } else {
++    if (type.isConstructor()) {
++        FunctionType fnType = type.toMaybeFunctionType();
++        if (fnType == null) {
++            // The type is a constructor, but not a function type.
++            report(t, constructor, NOT_A_CONSTRUCTOR);
++            ensureTyped(t, n);
++        } else {
++            // The type is a function type, so visit its parameters and ensure the
++            // type of its instance.
++            visitParameterList(t, n, fnType);
++            ensureTyped(t, n, fnType.getInstanceType());
++        }
++    } else if (type.isEmptyType() || type.isUnknownType()) {
++        // If the type is unknown or empty, then we cannot check that it's a
++        // constructor, so just ensure that it's typed and return.
+         ensureTyped(t, n);
+-      }
+     } else {
+-      report(t, n, NOT_A_CONSTRUCTOR);
+-      ensureTyped(t, n);
++        // The type is not a constructor, so report the error and ensure that the
++        // node is typed.
++        report(t, constructor, NOT_A_CONSTRUCTOR);
++        ensureTyped(t, n);
+     }
+-  }
++}
+ 
+   /**
+    * Check whether there's any property conflict for for a particular super

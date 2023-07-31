@@ -1,0 +1,149 @@
+diff --git a/src/com/google/javascript/jscomp/CheckSideEffects.java b/src/com/google/javascript/jscomp/CheckSideEffects.java
+index b9aa412c..d1789a94 100644
+--- a/src/com/google/javascript/jscomp/CheckSideEffects.java
++++ b/src/com/google/javascript/jscomp/CheckSideEffects.java
+@@ -81,78 +81,85 @@ final class CheckSideEffects extends AbstractPostOrderCallback
+   }
+ 
+   @Override
+-  public void visit(NodeTraversal t, Node n, Node parent) {
+-    // VOID nodes appear when there are extra semicolons at the BLOCK level.
+-    // I've been unable to think of any cases where this indicates a bug,
+-    // and apparently some people like keeping these semicolons around,
+-    // so we'll allow it.
+-    if (n.isEmpty() ||
+-        n.isComma()) {
+-      return;
++public void visit(NodeTraversal t, Node n, Node parent) {
++    if (n.isComma() || n.isEmpty()) {
++        return;
+     }
+ 
+     if (parent == null) {
+-      return;
+-    }
+-
+-    // Do not try to remove a block or an expr result. We already handle
+-    // these cases when we visit the child, and the peephole passes will
+-    // fix up the tree in more clever ways when these are removed.
+-    if (parent.getType() == Token.COMMA) {
+-      Node gramps = parent.getParent();
+-      if (gramps.isCall() && parent == gramps.getFirstChild()) {
+-        if (n == parent.getFirstChild() && parent.getChildCount() == 2 && n.getNext().isName() && "eval".equals(n.getNext().getString())) {
+-      return;
+-        }
++        return;
+     }
+ 
+-    // This no-op statement was there so that JSDoc information could
+-    // be attached to the name. This check should not complain about it.
+-      if (n == parent.getLastChild()) {
+-        for (Node an : parent.getAncestors()) {
+-          int ancestorType = an.getType();
+-          if (ancestorType == Token.COMMA)
+-            continue;
+-          if (ancestorType != Token.EXPR_RESULT && ancestorType != Token.BLOCK)
+-            return;
+-          else
+-            break;
++    // Check if the node is part of a comma-delimited list
++    if (parent.isComma()) {
++        // Check if the parent node is part of a call expression
++        Node gramps = parent.getParent();
++        if (gramps.isCall() && parent == gramps.getFirstChild()) {
++            // Check if the node is the first child of the parent and there is only one sibling node which is 'eval'
++            if (n == parent.getFirstChild() && parent.getChildCount() == 2 && n.getNext().isName() && "eval".equals(n.getNext().getString())) {
++                return;
++            }
++        } else {
++            // Check if the node has a parent which is an expression statement or a block, and if it has any side effects
++            for (Node an : parent.getAncestors()) {
++                int ancestorType = an.getType();
++                if (ancestorType == Token.COMMA) {
++                    continue;
++                } else if (ancestorType == Token.EXPR_RESULT || ancestorType == Token.BLOCK) {
++                    if (NodeUtil.mayHaveSideEffects(n, t.getCompiler())) {
++                        return;
++                    }
++                } else if (ancestorType == Token.IF || ancestorType == Token.WHILE || ancestorType == Token.FOR || ancestorType == Token.DO) {
++                    if (ancestorType == Token.IF && parent.hasChildren() && parent.getFirstChild() == n) {
++                        // Skip the first child of an if statement
++                        return;
++                    }
++                    if (ancestorType == Token.DO && parent.hasChildren() && parent.getLastChild() == n) {
++                        // Skip the last child of a do-while loop
++                        return;
++                    }
++                    if (ancestorType == Token.WHILE && parent.hasChildren() && parent.getFirstChild().getNext() == n) {
++                        // Skip the condition expression of a while loop
++                        return;
++                    }
++                    if (ancestorType == Token.FOR && parent.hasChildren() && (parent.getChildAtIndex(1) == n || parent.getChildAtIndex(2) == n)) {
++                        // Skip the condition expressions of a for loop
++                        return;
++                    }
++                } else {
++                    break;
++                }
++            }
+         }
+-      }
++    } else if (parent.isFor() && parent.getChildCount() == 4 && (n == parent.getFirstChild() || n == parent.getFirstChild().getNext().getNext())) {
++        // Check if the node is part of a for loop initializer or update expression
+     } else if (parent.getType() != Token.EXPR_RESULT && parent.getType() != Token.BLOCK) {
+-      if (parent.getType() == Token.FOR && parent.getChildCount() == 4 && (n == parent.getFirstChild() ||
+-           n == parent.getFirstChild().getNext().getNext())) {
+-      } else {
+-      return;
+-      }
++        // Check if the node has a parent which is not an expression statement or a block
++        return;
+     }
+ 
+     boolean isResultUsed = NodeUtil.isExpressionResultUsed(n);
+     boolean isSimpleOp = NodeUtil.isSimpleOperatorType(n.getType());
+-    if (!isResultUsed &&
+-        (isSimpleOp || !NodeUtil.mayHaveSideEffects(n, t.getCompiler()))) {
+-      if (n.isQualifiedName() && n.getJSDocInfo() != null) {
+-        return;
+-      } else if (n.isExprResult()) {
+-        return;
+-      }
+-      String msg = "This code lacks side-effects. Is there a bug?";
+-      if (n.isString()) {
+-        msg = "Is there a missing '+' on the previous line?";
+-      } else if (isSimpleOp) {
+-        msg = "The result of the '" + Token.name(n.getType()).toLowerCase() +
+-            "' operator is not being used.";
+-      }
++    if (!isResultUsed && (isSimpleOp || !NodeUtil.mayHaveSideEffects(n, t.getCompiler()))) {
++        if (n.isQualifiedName() && n.getJSDocInfo() != null) {
++            return;
++        } else if (n.isExprResult()) {
++            return;
++        }
++        String msg = "This code lacks side-effects. Is there a bug?";
++        if (n.isString()) {
++            msg = "Is there a missing '+' on the previous line?";
++        } else if (isSimpleOp) {
++            msg = "The result of the '" + Token.name(n.getType()).toLowerCase() + "' operator is not being used.";
++        }
+ 
+-      t.getCompiler().report(
+-          t.makeError(n, level, USELESS_CODE_ERROR, msg));
+-      // TODO(johnlenz): determine if it is necessary to
+-      // try to protect side-effect free statements as well.
+-      if (!NodeUtil.isStatement(n)) {
+-        problemNodes.add(n);
+-      }
++        t.getCompiler().report(t.makeError(n, level, USELESS_CODE_ERROR, msg));
++
++        if (!NodeUtil.isStatement(n)) {
++            problemNodes.add(n);
++        }
+     }
+-  }
++}
+ 
+   /**
+    * Protect side-effect free nodes by making them parameters

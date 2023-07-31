@@ -1,0 +1,68 @@
+diff --git a/src/com/google/javascript/jscomp/MinimizeExitPoints.java b/src/com/google/javascript/jscomp/MinimizeExitPoints.java
+index 4146f177..21ff4024 100644
+--- a/src/com/google/javascript/jscomp/MinimizeExitPoints.java
++++ b/src/com/google/javascript/jscomp/MinimizeExitPoints.java
+@@ -138,10 +138,59 @@ class MinimizeExitPoints
+        * can cause problems if it changes the completion type of the finally
+        * block. See ECMA 262 Sections 8.9 & 12.14
+        */
+-      if (NodeUtil.hasFinally(n)) {
+-        Node finallyBlock = n.getLastChild();
+-        tryMinimizeExits(finallyBlock, exitType, labelName);
+-      }
++// Don't try to minimize the exits of finally blocks, as
++// this can cause problems if it changes the completion
++// type of the finally block. See ECMA 262 Sections 8.9
++// and 12.14.
++if (NodeUtil.hasFinally(n)) {
++  boolean isReturnLeaf = n.getLastChild().getLastChild().isReturn();
++  if (!isReturnLeaf) {
++    return;
++  }
++}
++
++// Just a 'label'.
++if (n.isLabel()) {
++  Node labelBlock = n.getLastChild();
++  tryMinimizeExits(labelBlock, exitType, labelName);
++  return;
++}
++
++// Just a switch statement.
++if (n.isSwitch()) {
++  for (Node caseNode : n.getLastChild().children()) {
++    Node caseBlock = caseNode.getLastChild();
++    tryMinimizeExits(caseBlock, exitType, labelName);
++  }
++  return;
++}
++
++// Rest assumes a block with at least one child, bail on anything else.
++if (!n.isBlock() || n.getLastChild() == null) {
++  return;
++}
++
++for (Node c : n.children()) {
++  // An 'if' block to process below.
++  if (c.isIf()) {
++    Node ifTree = c;
++    Node trueBlock = ifTree.getFirstChild().getNext();
++    Node falseBlock = trueBlock.getNext();
++    tryMinimizeIfBlockExits(trueBlock, falseBlock, ifTree, exitType, labelName);
++
++    // Now the else block.
++    if (falseBlock != null) {
++      tryMinimizeIfBlockExits(falseBlock, trueBlock, ifTree, exitType, labelName);
++    }
++  }
++
++  if (c == n.getLastChild()) {
++    break;
++  }
++}
++
++// Now try to minimize the exits of the last child.
++tryMinimizeExits(n.getLastChild(), exitType, labelName);
+     }
+ 
+     // Just a 'label'.

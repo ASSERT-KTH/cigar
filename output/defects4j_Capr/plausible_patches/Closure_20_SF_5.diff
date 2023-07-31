@@ -1,0 +1,82 @@
+diff --git a/src/com/google/javascript/jscomp/PeepholeSubstituteAlternateSyntax.java b/src/com/google/javascript/jscomp/PeepholeSubstituteAlternateSyntax.java
+index bfa17074..319dffde 100644
+--- a/src/com/google/javascript/jscomp/PeepholeSubstituteAlternateSyntax.java
++++ b/src/com/google/javascript/jscomp/PeepholeSubstituteAlternateSyntax.java
+@@ -205,29 +205,58 @@ class PeepholeSubstituteAlternateSyntax
+     }
+   }
+ 
+-  private Node tryFoldSimpleFunctionCall(Node n) {
++private Node tryFoldSimpleFunctionCall(Node n) {
+     Preconditions.checkState(n.isCall());
+     Node callTarget = n.getFirstChild();
+-    if (callTarget != null && callTarget.isName() &&
+-          callTarget.getString().equals("String")) {
+-      // Fold String(a) to '' + (a) on immutable literals,
+-      // which allows further optimizations
+-      //
+-      // We can't do this in the general case, because String(a) has
+-      // slightly different semantics than '' + (a). See
+-      // http://code.google.com/p/closure-compiler/issues/detail?id=759
+-      Node value = callTarget.getNext();
+-      if (value != null) {
+-        Node addition = IR.add(
+-            IR.string("").srcref(callTarget),
+-            value.detachFromParent());
+-        n.getParent().replaceChild(n, addition);
+-        reportCodeChange();
+-        return addition;
+-      }
++    if (callTarget != null && callTarget.isName() && callTarget.getString().equals("String")) {
++        Node value = callTarget.getNext();
++        if (value != null && NodeUtil.isImmutableValue(value)) {
++            if (value.getNext() == null) {
++                // String(a) => '' + (a)
++                Node emptyString = IR.string("").srcref(callTarget);
++                Node addition = IR.add(emptyString, value.detachFromParent());
++                n.getParent().replaceChild(n, addition);
++                reportCodeChange();
++                return addition;
++            } else if (value.getNext().isString() && isAllParamsString(callTarget)) {
++                // String("a", "b", "c", ...) => "abc..."
++                String stringValue = buildStringFromParams(callTarget);
++                Node newString = IR.string(stringValue).srcref(n);
++                n.getParent().replaceChild(n, newString);
++                reportCodeChange();
++                return newString;
++            }
++        }
+     }
+     return n;
+-  }
++}
++
++/**
++ * Checks if all parameters of the specified function call are strings.
++ */
++private static boolean isAllParamsString(Node callNode) {
++    Node value = callNode.getFirstChild().getNext();
++    while (value != null) {
++        if (!NodeUtil.isImmutableValue(value) || !value.isString()) {
++            return false;
++        }
++        value = value.getNext();
++    }
++    return true;
++}
++
++/**
++ * Builds a string from all parameters of the specified function call.
++ */
++private static String buildStringFromParams(Node callNode) {
++    StringBuilder sb = new StringBuilder();
++    Node value = callNode.getFirstChild().getNext();
++    while (value != null) {
++        sb.append(value.getString());
++        value = value.getNext();
++    }
++    return sb.toString();
++}
+ 
+   private Node tryFoldImmediateCallToBoundFunction(Node n) {
+     // Rewriting "(fn.bind(a,b))()" to "fn.call(a,b)" makes it inlinable

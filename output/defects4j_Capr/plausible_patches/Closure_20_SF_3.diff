@@ -1,0 +1,76 @@
+diff --git a/src/com/google/javascript/jscomp/PeepholeSubstituteAlternateSyntax.java b/src/com/google/javascript/jscomp/PeepholeSubstituteAlternateSyntax.java
+index bfa17074..e866b021 100644
+--- a/src/com/google/javascript/jscomp/PeepholeSubstituteAlternateSyntax.java
++++ b/src/com/google/javascript/jscomp/PeepholeSubstituteAlternateSyntax.java
+@@ -205,29 +205,52 @@ class PeepholeSubstituteAlternateSyntax
+     }
+   }
+ 
+-  private Node tryFoldSimpleFunctionCall(Node n) {
++private Node tryFoldSimpleFunctionCall(Node n) {
+     Preconditions.checkState(n.isCall());
+     Node callTarget = n.getFirstChild();
+-    if (callTarget != null && callTarget.isName() &&
+-          callTarget.getString().equals("String")) {
+-      // Fold String(a) to '' + (a) on immutable literals,
+-      // which allows further optimizations
+-      //
+-      // We can't do this in the general case, because String(a) has
+-      // slightly different semantics than '' + (a). See
+-      // http://code.google.com/p/closure-compiler/issues/detail?id=759
+-      Node value = callTarget.getNext();
+-      if (value != null) {
+-        Node addition = IR.add(
+-            IR.string("").srcref(callTarget),
+-            value.detachFromParent());
+-        n.getParent().replaceChild(n, addition);
+-        reportCodeChange();
+-        return addition;
+-      }
++    if (callTarget != null && callTarget.isName() && callTarget.getString().equals("String")) {
++        Node value = callTarget.getNext();
++        if (value != null && NodeUtil.isImmutableValue(value)) {
++            if (value.isString() && value.getString().isEmpty()) {
++                // String() => ""
++                Node newString = IR.string("").srcref(callTarget);
++                n.getParent().replaceChild(n, newString);
++                reportCodeChange();
++                return newString;
++            } else if (value.getNext() == null) {
++                // String(a) => '' + (a)
++                Node emptyString = IR.string("").srcref(callTarget);
++                Node addition = IR.add(emptyString, value.detachFromParent());
++                n.getParent().replaceChild(n, addition);
++                reportCodeChange();
++                return addition;
++            } else if (value.getNext().isString()) {
++                // String("a", "b", "c", ...) => "abc..."
++                String stringValue = "";
++                while (value != null) {
++                    if (!NodeUtil.isImmutableValue(value)) {
++                        // This parameter is not a constant, we cannot fold the function call.
++                        return n;
++                    }
++                    stringValue += value.getString();
++                    value = value.getNext();
++                }
++                Node newString = IR.string(stringValue).srcref(n);
++                n.getParent().replaceChild(n, newString);
++                reportCodeChange();
++                return newString;
++            } else if (value.getNext().isNumber() && callTarget.getNext().getNext() == null) {
++                // String(n) => n.toString()
++                String numberString = value.getNext().getString();
++                Node call = IR.call(IR.getprop(value, IR.string("toString")), value.getNext().detachFromParent()).srcref(n);
++                n.getParent().replaceChild(n, call);
++                reportCodeChange();
++                return call;
++            }
++        }
+     }
+     return n;
+-  }
++}
+ 
+   private Node tryFoldImmediateCallToBoundFunction(Node n) {
+     // Rewriting "(fn.bind(a,b))()" to "fn.call(a,b)" makes it inlinable

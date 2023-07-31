@@ -1,0 +1,115 @@
+diff --git a/src/com/google/javascript/jscomp/PeepholeFoldConstants.java b/src/com/google/javascript/jscomp/PeepholeFoldConstants.java
+index d6c194a3..3ab37647 100644
+--- a/src/com/google/javascript/jscomp/PeepholeFoldConstants.java
++++ b/src/com/google/javascript/jscomp/PeepholeFoldConstants.java
+@@ -649,68 +649,56 @@ public class PeepholeFoldConstants extends AbstractPeepholeOptimization {
+   /**
+    * Try to fold shift operations
+    */
+-  private Node tryFoldShift(Node n, Node left, Node right) {
+-    if (left.getType() == Token.NUMBER &&
+-        right.getType() == Token.NUMBER) {
+-
+-      double result;
+-      double lval = left.getDouble();
+-      double rval = right.getDouble();
+-
+-      // check ranges.  We do not do anything that would clip the double to
+-      // a 32-bit range, since the user likely does not intend that.
+-      if (!(lval >= Integer.MIN_VALUE && lval <= Integer.MAX_VALUE)) {
+-        error(BITWISE_OPERAND_OUT_OF_RANGE, left);
+-        return n;
+-      }
+-
+-      // only the lower 5 bits are used when shifting, so don't do anything
+-      // if the shift amount is outside [0,32)
+-      if (!(rval >= 0 && rval < 32)) {
+-        error(SHIFT_AMOUNT_OUT_OF_BOUNDS, right);
+-        return n;
+-      }
++private Node tryFoldShift(Node n, Node left, Node right) {
++    if (left.getType() == Token.NUMBER && right.getType() == Token.NUMBER) {
++        double result;
++        double lval = left.getDouble();
++        double rval = right.getDouble();
++
++        // Check if lval and rval are integers
++        if (lval != Math.floor(lval) || rval != Math.floor(rval)) {
++            error(FRACTIONAL_BITWISE_OPERAND, n);
++            return n;
++        }
+ 
+-      // Convert the numbers to ints
+-      int lvalInt = (int) lval;
+-      if (lvalInt != lval) {
+-        error(FRACTIONAL_BITWISE_OPERAND, left);
+-        return n;
+-      }
++        // Check ranges of lval and rval
++        if ((lval < Integer.MIN_VALUE || lval > Integer.MAX_VALUE) || (rval < 0 || rval >= 32)) {
++            if (lval < Integer.MIN_VALUE || lval > Integer.MAX_VALUE) {
++                error(BITWISE_OPERAND_OUT_OF_RANGE, left);
++            }
++            if (rval < 0 || rval >= 32) {
++                error(SHIFT_AMOUNT_OUT_OF_BOUNDS, right);
++            }
++            return n;
++        }
+ 
+-      int rvalInt = (int) rval;
+-      if (rvalInt != rval) {
+-        error(FRACTIONAL_BITWISE_OPERAND, right);
+-        return n;
+-      }
++        long lvalInt = (long) lval;
++        long rvalInt = (long) rval;
+ 
+-      switch (n.getType()) {
+-        case Token.LSH:
+-          result = lvalInt << rvalInt;
+-          break;
+-        case Token.RSH:
+-          result = lvalInt >> rvalInt;
+-          break;
+-        case Token.URSH:
+-          // JavaScript handles zero shifts on signed numbers differently than
+-          // Java as an Java int can not represent the unsigned 32-bit number
+-          // where JavaScript can so use a long here.
+-          result = lvalInt >>> rvalInt;
+-          break;
+-        default:
+-          throw new AssertionError("Unknown shift operator: " +
+-              Node.tokenToName(n.getType()));
+-      }
++        switch (n.getType()) {
++            case Token.LSH:
++                result = lvalInt << rvalInt;
++                break;
++            case Token.RSH:
++                result = lvalInt >> rvalInt;
++                break;
++            case Token.URSH:
++                result = Long.remainderUnsigned(lvalInt, 1L << 32) >>> rvalInt;
++                break;
++            default:
++                throw new AssertionError("Unknown shift operator: " + Node.tokenToName(n.getType()));
++        }
+ 
+-      Node newNumber = Node.newNumber(result);
+-      n.getParent().replaceChild(n, newNumber);
+-      reportCodeChange();
++        // Replace n with the new number node
++        Node newNumber = Node.newNumber(result);
++        n.getParent().replaceChild(n, newNumber);
++        reportCodeChange();
+ 
+-      return newNumber;
++        return newNumber;
+     }
+ 
+     return n;
+-  }
++}
+ 
+   /**
+    * Try to fold comparison nodes, e.g ==
