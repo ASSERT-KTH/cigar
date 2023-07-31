@@ -7,7 +7,7 @@ from src.analysis import Analysis
 from prog_params import ProgParams as prog_params
 from user_params import UserParams as user_params
 
-def main(framework=None, project=None, bug_ids=None):
+def main(framework=None, project=None, bug_ids=None, repair_tool=None):
 
     defects4j = Framework(name="defects4j", list_of_bugs = prog_params.d4j_list_of_bugs, 
                             d4j_path=user_params.D4J_PATH, java_home=user_params.JAVA_HOME, tmp_dir=user_params.TMP_DIR,
@@ -31,8 +31,12 @@ def main(framework=None, project=None, bug_ids=None):
 
         capr = Capr(chatgpt=chatgpt, framework=test_framework)
         rapidcapr = RapidCapr(chatgpt=chatgpt, framework=test_framework)
+        
+        aprs = [capr, rapidcapr]
+        if repair_tool is not None:
+            aprs = [apr for apr in aprs if apr.name.lower() == repair_tool]
 
-        for apr in [capr, rapidcapr]:
+        for apr in aprs:
         
             if project is not None and bug_ids is not None:
                 list_of_bugs_to_fix = [(project, bug_ids)]
@@ -60,7 +64,8 @@ if __name__ == '__main__':
     parser.add_argument('-fr', '--framework', metavar='path', required=False, help='Framework to use', choices=['defects4j', 'human_eval_java'])
     parser.add_argument('-p', '--proj', metavar='path', required=False, help='Project name', choices=project_choices)
     parser.add_argument('-bs', '--bug_ids', metavar='path', required=False, help='List of bug_ids to repair', type=int, nargs='+')
+    parser.add_argument('-apr', '--repair_tool', metavar='path', required=False, help='APR algorithms to use', choices=['capr', 'rapidcapr'])
     
     args = parser.parse_args()
 
-    main(framework=args.framework, project=args.proj, bug_ids=args.bug_ids)
+    main(framework=args.framework, project=args.proj, bug_ids=args.bug_ids, repair_tool=args.repair_tool)

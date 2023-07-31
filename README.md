@@ -81,7 +81,7 @@ As explained [here](https://stackoverflow.com/questions/696839/how-do-i-write-a-
 
 ```
 project="Chart" 
-until $(pwd)/venv/bin/python3 "$(pwd)/main.py" -fr "defects4j" -p $project; do
+until $(pwd)/venv/bin/python3 "$(pwd)/main.py" -fr "defects4j" -p $project -apr "capr"; do
     echo "CAPR crashed with exit code $?. Restaring in a second..."
     sleep 1
 done
@@ -98,13 +98,13 @@ bug_ids=(1 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 19 20 21 22 24 25 26 27 28 29 3
 
 for i in {1..5}
 do
-    parallel --jobs $num_of_parallel_jobs --bar --joblog parallel_${project}.log --results parallel_results_${project}/ --resume --resume-failed $(pwd)/venv/bin/python3 $(pwd)/main.py -fr "defects4j" -p $project -bs {} ::: "${bug_ids[@]}"
+    parallel --jobs $num_of_parallel_jobs --bar --joblog parallel_${project}.log --results parallel_results_${project}/ --resume --resume-failed $(pwd)/venv/bin/python3 $(pwd)/main.py -apr "capr" -fr "defects4j" -p $project -bs {} ::: "${bug_ids[@]}" 
 
     rm -rf parallel_results_${project}/
     rm parallel_${project}.log
 done
 
-until $(pwd)/venv/bin/python3 "$(pwd)/main.py" -fr "defects4j" -p $project; do
+until $(pwd)/venv/bin/python3 "$(pwd)/main.py" -fr "defects4j" -p $project -apr "capr"; do
     echo "CAPR crashed with exit code $?. Restaring in a second..."
     sleep 1
 done
