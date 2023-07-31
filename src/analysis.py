@@ -98,5 +98,5 @@ class Analysis:
                     'max_conv_length', 'comment']
         elif self.apr.name.lower() == "rapidcapr": # TODO
             return ['framework', 'project', 'bug_id', 'bug_type',
-                    'ppc', 'rc', 'fppt', 'fppcl', 'uts', 'mts', 'errtf', 'errce',
+                    'ppc', 'rc', 'fppt', 'uts', 'mts', 'errtf', 'errce',
                     'comment']
