@@ -14,15 +14,18 @@ def main(framework=None, project=None, bug_ids=None):
                             validate_patch_cache_folder=prog_params.validate_patch_cache_folder,
                             n_shot_cache_folder=prog_params.n_shot_cache_folder,
                             bug_details_cache_folder=prog_params.bug_details_cache_folder)
-    human_eval_java = None # TODO add human eval java framework
+    human_eval_java = Framework(name="human_eval_java", # TODO add human eval java framework
+                                list_of_bugs=None,
+                                d4j_path=None,
+                                java_home=None,
+                                tmp_dir=None)  
     chatgpt = ChatGPT(model=prog_params.gpt35_model, api_key=user_params.API_KEY,
                     cache_folder=prog_params.gpt35_cache_folder,
                     load_from_cache=True, save_to_cache=True)
     
+    frameworks = [defects4j, human_eval_java]
     if framework is not None:
-        frameworks = [framework]
-    else:
-        frameworks = [defects4j, human_eval_java]
+        frameworks = [f for f in frameworks if f.name == framework]
     
     for test_framework in frameworks:
 

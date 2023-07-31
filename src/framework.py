@@ -9,7 +9,7 @@ from prog_params import ProgParams as prog_params
 class Framework(object):
     def __init__(self, name, list_of_bugs, d4j_path, java_home, tmp_dir, 
                  bug_details_cache_folder=None, validate_patch_cache_folder=None, n_shot_cache_folder=None):
-        assert name in ["defects4j", "quixbugs"]
+        assert name in ["defects4j", "human_eval_java"]
         self.name = name
         self.list_of_bugs = list_of_bugs
         self.validate_patch_cache_folder = validate_patch_cache_folder

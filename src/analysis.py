@@ -19,7 +19,7 @@ class Analysis:
 
         for project, ids in list_of_bugs_to_fix:
 
-            summary_file_path = Path(__file__).parent / 'output' / f'{self.framework.name}_{self.apr.name}' / f'{project}_summary.csv'
+            summary_file_path = Path(__file__).parent.parent / 'output' / f'{self.framework.name}_{self.apr.name}' / f'{project}_summary.csv'
 
             fieldnames = self._get_fieldnames()
             with open(summary_file_path, 'w', newline='') as csvfile:
