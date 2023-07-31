@@ -15,7 +15,7 @@ done
 
 until $(pwd)/venv/bin/python3 "$(pwd)/main.py" -p $project; do
     echo "CAPR crashed with exit code $?. Restaring in a second..."
-    sleep 1
+    sleep 60
 done
 
 
@@ -32,7 +32,7 @@ done
 
 until $(pwd)/venv/bin/python3 "$(pwd)/main.py" -p $project; do
     echo "CAPR crashed with exit code $?. Restaring in a second..."
-    sleep 1
+    sleep 60
 done
 
 
@@ -50,7 +50,7 @@ done
 
 until $(pwd)/venv/bin/python3 "$(pwd)/main.py" -p $project; do
     echo "CAPR crashed with exit code $?. Restaring in a second..."
-    sleep 1
+    sleep 60
 done
 
 
@@ -67,7 +67,7 @@ done
 
 until $(pwd)/venv/bin/python3 "$(pwd)/main.py" -p $project; do
     echo "CAPR crashed with exit code $?. Restaring in a second..."
-    sleep 1
+    sleep 60
 done
 
 
@@ -84,7 +84,7 @@ done
 
 until $(pwd)/venv/bin/python3 "$(pwd)/main.py" -p $project; do
     echo "CAPR crashed with exit code $?. Restaring in a second..."
-    sleep 1
+    sleep 60
 done
 
 
@@ -101,5 +101,5 @@ done
 
 until $(pwd)/venv/bin/python3 "$(pwd)/main.py" -p $project; do
     echo "CAPR crashed with exit code $?. Restaring in a second..."
-    sleep 1
+    sleep 60
 done
