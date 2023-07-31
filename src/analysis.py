@@ -35,10 +35,11 @@ class Analysis:
                 row['project'] = project
                 row['bug_id'] = bug_id
                 row['bug_type'] = bug.bug_type
-                row['max_conv_length'] = prog_params.capr_max_conv_length if self.apr.name.lower() == "capr" else None
+                if self.apr.name.lower() == "capr":
+                    row['max_conv_length'] = prog_params.capr_max_conv_length
 
                 if bug.bug_type != "OT":
-                    modes = list(bug.bug_type.split()) if self.apr.name.lower() == "capr" else [None]
+                    modes = list(bug.bug_type.split()) if self.apr.name.lower() == "capr" else [bug.bug_type]
 
                     for mode in modes:
                         logging.info(f" --- Started repairing {project}-{bug_id} ({mode}) --- ")
@@ -97,5 +98,5 @@ class Analysis:
                     'max_conv_length', 'comment']
         elif self.apr.name.lower() == "rapidcapr": # TODO
             return ['framework', 'project', 'bug_id', 'bug_type',
-                    'ppc', 'rc', 'fppt', 'fppcl', 'uts', 'mts', 'errtf', 'errce'
+                    'ppc', 'rc', 'fppt', 'fppcl', 'uts', 'mts', 'errtf', 'errce',
                     'comment']
