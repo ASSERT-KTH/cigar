@@ -29,6 +29,12 @@ class ProgParams:
     capr_n_shot_count = 1
     capr_max_conv_length = 3
     # RapidCapr related
+    rapidcapr_max_fpps_try_per_mode = 5
+    rapidcapr_max_mpps_try_per_mode = 5
+    rapidcapr_prompt_token_limit = 1500
+    rapidcapr_total_token_limit_target = 3000
+    rapidcapr_max_sample_count = 100
+    rapidcapr_similarity_threshold = 0.5
 
     ### Logging Parameters ###
     logging_level=logging.INFO

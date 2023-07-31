@@ -12,12 +12,12 @@ class TestRapidCapr(unittest.TestCase):
         super().__init__(methodName)
         self.maxDiff = None 
         
-        self.max_fpps_try_per_mode = 5
-        self.max_mpps_try_per_mode = 5
-        self.prompt_token_limit = 1500
-        self.total_token_limit_target = 3000
-        self.max_sample_count = 100
-        self.similarity_threshold = 0.5
+        self.max_fpps_try_per_mode = prog_params.rapidcapr_max_fpps_try_per_mode
+        self.max_mpps_try_per_mode = prog_params.rapidcapr_max_mpps_try_per_mode
+        self.prompt_token_limit = prog_params.rapidcapr_prompt_token_limit
+        self.total_token_limit_target = prog_params.rapidcapr_total_token_limit_target
+        self.max_sample_count = prog_params.rapidcapr_max_sample_count
+        self.similarity_threshold = prog_params.rapidcapr_similarity_threshold
 
     def test_e2e_rapidcapr_improvement_over_capr_with_gpt35_on_d4j_Time_4(self):
         project = "Time"
