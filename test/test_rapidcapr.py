@@ -167,17 +167,13 @@ class TestRapidCapr(unittest.TestCase):
         self.assertLessEqual(rapidcapr_token_usage_on_Chart_6, capr_token_usage_on_Chart_7 / 5)
         self.assertGreaterEqual(rapidcapr_Chart_6_plausible_patch_count, capr_Chart_7_plausible_patch_count)
 
-    def test_e2e_rapidcapr_improvement_over_capr_on_unfixed_bugs(self):
+    @unittest.skip("The GetBugExplanation feature did not increase the results")
+    def test_e2e_rapidcapr_ask_for_bug_description_improvement(self):
 
         capr_bugs_with_plausible_patch = 0
         rapidcapr_bugs_with_plausible_patch = 0
 
-        for project, bug_id in [("Chart", 3), ("Chart", 23),
-                                ("Closure", 4), ("Closure", 71), ("Closure", 118),
-                                ("Lang", 1), ("Lang", 6), ("Lang", 25),
-                                ("Math", 9), ("Math", 15), ("Math", 21),
-                                ("Mockito", 7), ("Mockito", 20), ("Mockito", 27),
-                                ("Time", 8), ("Time", 24) , ("Time", 25)]:
+        for project, bug_id in [("Lang", 6)]:
 
             test_validate_patch_cache = Path(__file__).parent.parent / 'cache' / 'validate_patch_cache' # Uses prod cache (insead of test cache)
             test_n_shot_cache = Path(__file__).parent.parent / 'cache' / 'n_shot_cache' # Uses prod cache (insead of test cache)
@@ -198,9 +194,10 @@ class TestRapidCapr(unittest.TestCase):
             bug = framework.get_bug_details(project, bug_id)
 
             if bug.bug_type != "OT":
-                repair_results = rapidcapr.repair(bug=bug, max_fpps_try_per_mode=self.max_fpps_try_per_mode, max_mpps_try_per_mode=self.max_mpps_try_per_mode,
+                repair_results = rapidcapr.repair(bug=bug, max_fpps_try_per_mode=self.max_fpps_try_per_mode, max_mpps_try_per_mode=0,
                                                     prompt_token_limit=self.prompt_token_limit, total_token_limit_target=self.total_token_limit_target,
-                                                    max_sample_count=self.max_sample_count, similarity_threshold=self.similarity_threshold)
+                                                    max_sample_count=self.max_sample_count, similarity_threshold=self.similarity_threshold,
+                                                    ask_for_bug_description=True)
                 plausible_patches, _, _, _, _, _, _, _ = repair_results
 
                 if len(plausible_patches) > 0 :

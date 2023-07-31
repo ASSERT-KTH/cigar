@@ -87,7 +87,7 @@ with the following test error:\n```\n{bug.test_error_message}\n```
     def system_message():
         return "You are an automated program repair tool."
     
-    def n_shot_example_message(bug: Bug, n_shot_bugs, mode):
+    def n_shot_example_message(bug: Bug, n_shot_bugs, mode, ask_for_bug_description=False):
 
         n_shot_bug = n_shot_bugs[0]
         
@@ -100,7 +100,7 @@ with the following test error:\n```\n{bug.test_error_message}\n```
         
         return "\n".join([Prompts.code_introduction_message(bug=n_shot_bug, mode=mode),
                           Prompts.bug_details(bug=n_shot_bug, mode=mode),
-                          Prompts.fpps_call_to_action(mode=mode),
+                          Prompts.fpps_call_to_action(mode=mode, ask_for_bug_description=ask_for_bug_description),
                           Prompts.solution_message(mode=mode, solution_list=[n_shot_bug]),
                           bug_fix])
 
@@ -138,23 +138,25 @@ with the following test error:\n```\n{bug.test_error_message}\n```
         else:
             return bug_details
 
-    def fpps_call_to_action(mode):
-        bug_description = "\n".join([
-            "in the following format:",
-            "BUG DESCRIPTION:",
-            "Explain here what is wrong with the code and how to fix it.",
-            "CODE FIX:",
-            "```java",
-            "The correct code fix goes here.",
-            "```"
-        ])
+    def fpps_call_to_action(mode, ask_for_bug_description=False):
+        bug_description = "."
+        if ask_for_bug_description:
+            bug_description = "\n".join([
+                " in the following format:",
+                "BUG DESCRIPTION:",
+                "Explain here what is wrong with the code and how to fix it.",
+                "CODE FIX:",
+                "```java",
+                "The correct code fix goes here.",
+                "```"
+            ])
         
         if mode == "SL":
-            return f"Please provide the correct line at the infill location {bug_description}."
+            return f"Please provide the correct line at the infill location{bug_description}"
         elif mode == "SH":
-            return f"Please provide the correct hunk at the infill location {bug_description}."
+            return f"Please provide the correct hunk at the infill location{bug_description}"
         else:
-            return f"Please provide the correct function {bug_description}."
+            return f"Please provide the correct function{bug_description}"
     
     def mpps_call_to_action(mode):
         if mode == "SL":
@@ -231,51 +233,51 @@ with the following test error:\n```\n{bug.test_error_message}\n```
 
     # RapidCapr Prompts
 
-    def construct_fpps_prompt(bug: Bug, mode, proposed_patches: ProposedPatches, n_shot_bugs, prompt_token_limit, total_token_limit_target):
+    def construct_fpps_prompt(bug: Bug, mode, proposed_patches: ProposedPatches, n_shot_bugs, prompt_token_limit, total_token_limit_target, ask_for_bug_description=False):
 
         if proposed_patches.length(mode=mode) == 0:
-            prompt = Prompts.initial_fpps_prompt(bug=bug, mode=mode, n_shot_bugs=n_shot_bugs)
+            prompt = Prompts.initial_fpps_prompt(bug=bug, mode=mode, n_shot_bugs=n_shot_bugs, ask_for_bug_description=ask_for_bug_description)
         else:
-            prompt = Prompts.ongoing_fpps_prompt(bug=bug, mode=mode, proposed_patches=proposed_patches, prompt_token_limit=prompt_token_limit)
+            prompt = Prompts.ongoing_fpps_prompt(bug=bug, mode=mode, proposed_patches=proposed_patches, prompt_token_limit=prompt_token_limit, ask_for_bug_description=ask_for_bug_description)
         
         num_of_samples = count_num_of_samples(bug=bug, prompt=prompt, proposed_patches=proposed_patches, mode=mode, total_token_limit_target=total_token_limit_target)
 
         return prompt, num_of_samples
     
-    def initial_fpps_prompt(bug: Bug, mode, n_shot_bugs):
+    def initial_fpps_prompt(bug: Bug, mode, n_shot_bugs, ask_for_bug_description=False):
         system_message = Prompts.system_message()
 
         user_message = "\n".join([Prompts.n_shot_example_message(bug=bug, n_shot_bugs=n_shot_bugs, mode=mode),
                                   Prompts.code_introduction_message(bug=bug, mode=mode),
                                   Prompts.bug_details(bug=bug, mode=mode),
-                                  Prompts.fpps_call_to_action(mode=mode)])
+                                  Prompts.fpps_call_to_action(mode=mode, ask_for_bug_description=ask_for_bug_description)])
             
         return [{"role": "system", "content": system_message}, 
                 {"role": "user", "content": user_message}]
     
-    def ongoing_fpps_prompt(bug: Bug, mode, proposed_patches: ProposedPatches, prompt_token_limit):
+    def ongoing_fpps_prompt(bug: Bug, mode, proposed_patches: ProposedPatches, prompt_token_limit, ask_for_bug_description=False):
         ordered_proposed_patches = proposed_patches.order(mode=mode)
 
         system_message = Prompts.system_message()
         last_proposed_patch = ordered_proposed_patches.pop(-1)
         last_assistant_response_message = last_proposed_patch.response
-        user_feedback_message = "\n".join([Prompts.feedback_on_response(bug=bug, proposed_patch=last_proposed_patch), Prompts.fpps_call_to_action(mode)]) 
+        user_feedback_message = "\n".join([Prompts.feedback_on_response(bug=bug, proposed_patch=last_proposed_patch), Prompts.fpps_call_to_action(mode=mode, ask_for_bug_description=ask_for_bug_description)]) 
         
-        user_message = "\n".join([Prompts.code_introduction_message(bug=bug, mode=mode),Prompts.bug_details(bug=bug, mode=mode), Prompts.fpps_call_to_action(mode=mode)])
+        user_message = "\n".join([Prompts.code_introduction_message(bug=bug, mode=mode),Prompts.bug_details(bug=bug, mode=mode), Prompts.fpps_call_to_action(mode=mode, ask_for_bug_description=ask_for_bug_description)])
         summary_token_limit = prompt_token_limit - get_token_count(system_message) - get_token_count(user_message) - get_token_count(last_assistant_response_message) - get_token_count(user_feedback_message)
         
         proposed_patches_summary = Prompts.summarize_proposed_patches(ordered_proposed_patches=ordered_proposed_patches, summary_token_limit=summary_token_limit)
         user_message = "\n".join([Prompts.code_introduction_message(bug=bug, mode=mode),
                                   Prompts.bug_details(bug=bug, mode=mode),
                                   proposed_patches_summary,
-                                  Prompts.fpps_call_to_action(mode=mode)])
+                                  Prompts.fpps_call_to_action(mode=mode, ask_for_bug_description=ask_for_bug_description)])
         
         return [{"role": "system", "content": system_message}, 
                 {"role": "user", "content": user_message},
                 {"role": "assistant", "content": last_assistant_response_message},
                 {"role": "user", "content": user_feedback_message}]
     
-    def construct_mpps_prompt(bug: Bug, mode, proposed_patches: ProposedPatches, n_shot_bugs, prompt_token_limit, total_token_limit_target):
+    def construct_mpps_prompt(bug: Bug, mode, proposed_patches: ProposedPatches, n_shot_bugs, prompt_token_limit, total_token_limit_target, ask_for_bug_description=False):
         prompt = Prompts.ongoing_mpps_prompt(bug=bug, mode=mode, proposed_patches=proposed_patches, prompt_token_limit=prompt_token_limit)
 
         num_of_samples = count_num_of_samples(bug=bug, prompt=prompt, proposed_patches=proposed_patches, mode=mode, total_token_limit_target=total_token_limit_target)
