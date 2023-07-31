@@ -10,6 +10,7 @@ from src.utils import extract_patches_from_response
 class RapidCapr(object):
 
     def __init__(self, chatgpt: ChatGPT, framework: Framework):
+        self.name = "RapidCapr"
         self.chatgpt = chatgpt
         self.framework = framework
     
@@ -17,7 +18,7 @@ class RapidCapr(object):
                max_sample_count=50, similarity_threshold=0.5, ask_for_bug_description=False):
 
         modes = ["SL", "SF"] if "SL" in bug.bug_type else list(bug.bug_type.split())
-        prefix = f"{self.framework.test_framework}_{bug.project}_{bug.bug_id}"
+        prefix = f"{self.framework.name}_{bug.project}_{bug.bug_id}"
         total_call_tries, total_cost = 0, 0
         
         proposed_patches = ProposedPatches()

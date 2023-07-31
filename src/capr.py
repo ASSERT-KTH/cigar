@@ -7,8 +7,9 @@ from src.bug import Bug
 from src.prompts import Prompts as prompts
 from prog_params import ProgParams as prog_params
 
-class CAPR(object):
+class Capr(object):
     def __init__(self, chatgpt: ChatGPT, framework: Framework):
+        self.name = "Capr"
         self.chatgpt = chatgpt
         self.framework = framework
 
@@ -24,7 +25,7 @@ class CAPR(object):
         total_cost = 0
         err_tf = 0
         err_ce = 0
-        prefix = f"{self.framework.test_framework}_{bug.project}_{bug.bug_id}_{mode}"
+        prefix = f"{self.framework.name}_{bug.project}_{bug.bug_id}_{mode}"
 
         while (current_tries < max_tries and len(plausible_patches) == 0):
             current_conversation_length = 0

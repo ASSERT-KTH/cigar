@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 from src.chatgpt import ChatGPT
-from src.capr import CAPR
+from src.capr import Capr
 from src.framework import Framework
 from prog_params import ProgParams as prog_params
 from user_params import UserParams as user_params
@@ -23,8 +23,8 @@ class TestCAPR(unittest.TestCase):
                           load_from_cache=True,
                           save_to_cache=True)
         framework = Framework("defects4j", list_of_bugs=[("Chart", [1])], d4j_path=self.d4j_path, java_home=self.java_home, tmp_dir=self.tmp_dir)
-        capr = CAPR(chatgpt=chatgpt, framework=framework)
-        self.assertIsInstance(capr, CAPR)
+        capr = Capr(chatgpt=chatgpt, framework=framework)
+        self.assertIsInstance(capr, Capr)
 
     def test_extract_patch_from_response(self):
         chatgpt = ChatGPT(model=self.chatgpt_model, 
@@ -33,7 +33,7 @@ class TestCAPR(unittest.TestCase):
                           load_from_cache=True,
                           save_to_cache=True)
         framework = Framework("defects4j", list_of_bugs=None, d4j_path=self.d4j_path, java_home=self.java_home, tmp_dir=self.tmp_dir)
-        capr = CAPR(chatgpt=chatgpt, framework=framework)
+        capr = Capr(chatgpt=chatgpt, framework=framework)
         
         response_patch_pairs = [
             ("Alternative fix line:\n```java\nif (Double.isNaN(value) || Double.isInfinite(value)) {\n```", 
@@ -52,7 +52,7 @@ class TestCAPR(unittest.TestCase):
                           load_from_cache=True,
                           save_to_cache=True)
         framework = Framework("defects4j", list_of_bugs=None, d4j_path=self.d4j_path, java_home=self.java_home, tmp_dir=self.tmp_dir)
-        capr = CAPR(chatgpt=chatgpt, framework=framework)
+        capr = Capr(chatgpt=chatgpt, framework=framework)
         
         response_patch_pairs = [
             ("```java\nif (!throwOnNonFiniteDouble && (Double.isNaN(value) || Double.isInfinite(value))) {\n    throw new IOException(\"Numeric values must be finite, but was \" + value);\n}\n``` \nNote: This solution checks if `throwOnNonFiniteDouble` is `false` before throwing the exception to avoid throwing an exception when `throwOnNonFiniteDouble` is `true`.",

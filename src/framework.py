@@ -7,10 +7,10 @@ from src.bug import Bug
 from prog_params import ProgParams as prog_params
 
 class Framework(object):
-    def __init__(self, test_framework, list_of_bugs, d4j_path, java_home, tmp_dir, 
+    def __init__(self, name, list_of_bugs, d4j_path, java_home, tmp_dir, 
                  bug_details_cache_folder=None, validate_patch_cache_folder=None, n_shot_cache_folder=None):
-        assert test_framework in ["defects4j", "quixbugs"]
-        self.test_framework = test_framework
+        assert name in ["defects4j", "quixbugs"]
+        self.name = name
         self.list_of_bugs = list_of_bugs
         self.validate_patch_cache_folder = validate_patch_cache_folder
         self.n_shot_cache_folder = n_shot_cache_folder
@@ -59,7 +59,7 @@ class Framework(object):
 
         bug = Bug(test_suite=test_suite, test_name=test_name, test_line=test_line, test_error_message=test_error,
                   buggy_lines=buggy_lines, fixed_lines=fixed_lines, code=code, masked_code=masked_code, fixed_code=fixed_code,
-                  test_framework=self.test_framework, project=project, bug_id=bug_id, bug_type=bug_type)
+                  test_framework=self.name, project=project, bug_id=bug_id, bug_type=bug_type)
 
         if self.bug_details_cache_folder is not None:
             with open(f'{file_path}', 'w') as f:
@@ -112,7 +112,7 @@ class Framework(object):
         patch_hash = hashlib.md5(str(proposed_patch).encode('utf-8')).hexdigest()
 
         if self.validate_patch_cache_folder is not None:
-            cache_file_path = f"{self.validate_patch_cache_folder}/{self.test_framework}_{bug.project}_{bug.bug_id}_{mode}_{patch_hash}.json"
+            cache_file_path = f"{self.validate_patch_cache_folder}/{self.name}_{bug.project}_{bug.bug_id}_{mode}_{patch_hash}.json"
             if Path(cache_file_path).is_file():
                 with open(cache_file_path, "r") as file:
                     json_to_load = json.load(file)
@@ -162,7 +162,7 @@ class Framework(object):
     
     def run_bash(self, function, project, bug_id, extra_arg1=None, extra_arg2=None):
         work_dir = f"{self.tmp_dir}/{project}-{bug_id}"
-        command = ['bash', f'{self.shell_script_folder}/{self.test_framework}.sh', function, f"{project}", f"{bug_id}", f"{work_dir}", f"{self.java_home}", f"{self.d4j_path}", f"{extra_arg1}", f"{extra_arg2}"]
+        command = ['bash', f'{self.shell_script_folder}/{self.name}.sh', function, f"{project}", f"{bug_id}", f"{work_dir}", f"{self.java_home}", f"{self.d4j_path}", f"{extra_arg1}", f"{extra_arg2}"]
         result = run(command, stdout=PIPE, stderr=PIPE, universal_newlines=True)
         if len(result.stdout) > 0:
             if result.stdout[-1] == "\n":

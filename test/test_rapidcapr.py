@@ -28,7 +28,7 @@ class TestRapidCapr(unittest.TestCase):
         test_bug_details_cache = Path(__file__).parent.parent / 'cache' / 'bug_details_cache' # Uses prod cache (insead of test cache)
         test_gpt35_cache_folder = Path(__file__).parent / 'cache' / 'gpt35'
 
-        framework = Framework(test_framework="defects4j", list_of_bugs = prog_params.d4j_list_of_bugs, 
+        framework = Framework(name="defects4j", list_of_bugs = prog_params.d4j_list_of_bugs, 
                           d4j_path=user_params.D4J_PATH, java_home=user_params.JAVA_HOME, tmp_dir=user_params.TMP_DIR,
                           validate_patch_cache_folder=test_validate_patch_cache,
                           n_shot_cache_folder=test_n_shot_cache,
@@ -65,7 +65,7 @@ class TestRapidCapr(unittest.TestCase):
         test_bug_details_cache = Path(__file__).parent.parent / 'cache' / 'bug_details_cache' # Uses prod cache (insead of test cache)
         test_gpt35_cache_folder = Path(__file__).parent / 'cache' / 'gpt35'
 
-        framework = Framework(test_framework="defects4j", list_of_bugs = prog_params.d4j_list_of_bugs, 
+        framework = Framework(name="defects4j", list_of_bugs = prog_params.d4j_list_of_bugs, 
                           d4j_path=user_params.D4J_PATH, java_home=user_params.JAVA_HOME, tmp_dir=user_params.TMP_DIR,
                           validate_patch_cache_folder=test_validate_patch_cache,
                           n_shot_cache_folder=test_n_shot_cache,
@@ -102,7 +102,7 @@ class TestRapidCapr(unittest.TestCase):
         test_bug_details_cache = Path(__file__).parent.parent / 'cache' / 'bug_details_cache' # Uses prod cache (insead of test cache)
         test_gpt35_cache_folder = Path(__file__).parent / 'cache' / 'gpt35'
 
-        framework = Framework(test_framework="defects4j", list_of_bugs = prog_params.d4j_list_of_bugs, 
+        framework = Framework(name="defects4j", list_of_bugs = prog_params.d4j_list_of_bugs, 
                           d4j_path=user_params.D4J_PATH, java_home=user_params.JAVA_HOME, tmp_dir=user_params.TMP_DIR,
                           validate_patch_cache_folder=test_validate_patch_cache,
                           n_shot_cache_folder=test_n_shot_cache,
@@ -139,7 +139,7 @@ class TestRapidCapr(unittest.TestCase):
         test_bug_details_cache = Path(__file__).parent.parent / 'cache' / 'bug_details_cache' # Uses prod cache (insead of test cache)
         test_gpt35_cache_folder = Path(__file__).parent / 'cache' / 'gpt35'
 
-        framework = Framework(test_framework="defects4j", list_of_bugs = prog_params.d4j_list_of_bugs, 
+        framework = Framework(name="defects4j", list_of_bugs = prog_params.d4j_list_of_bugs, 
                           d4j_path=user_params.D4J_PATH, java_home=user_params.JAVA_HOME, tmp_dir=user_params.TMP_DIR,
                           validate_patch_cache_folder=test_validate_patch_cache,
                           n_shot_cache_folder=test_n_shot_cache,
@@ -180,7 +180,7 @@ class TestRapidCapr(unittest.TestCase):
             test_bug_details_cache = Path(__file__).parent.parent / 'cache' / 'bug_details_cache' # Uses prod cache (insead of test cache)
             test_gpt35_cache_folder = Path(__file__).parent / 'cache' / 'gpt35'
 
-            framework = Framework(test_framework="defects4j", list_of_bugs = prog_params.d4j_list_of_bugs, 
+            framework = Framework(name="defects4j", list_of_bugs = prog_params.d4j_list_of_bugs, 
                             d4j_path=user_params.D4J_PATH, java_home=user_params.JAVA_HOME, tmp_dir=user_params.TMP_DIR,
                             validate_patch_cache_folder=test_validate_patch_cache,
                             n_shot_cache_folder=test_n_shot_cache,

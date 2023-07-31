@@ -202,7 +202,7 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(patch, expected_patch)
 
     def test_extract_patches_from_response_on_Chart_1_SH(self):
-        framework = Framework(test_framework="defects4j", list_of_bugs=None,
+        framework = Framework(name="defects4j", list_of_bugs=None,
                               d4j_path=user_params.D4J_PATH, java_home=user_params.JAVA_HOME, tmp_dir=user_params.TMP_DIR)
         bug = framework.get_bug_details("Chart", 1)
         
