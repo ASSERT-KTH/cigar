@@ -129,5 +129,7 @@ def count_num_of_samples(bug:Bug, prompt, proposed_patches: ProposedPatches, mod
             average_response_token_count = int(get_token_count(bug.code))
         else:
             average_response_token_count = int(get_token_count(bug.buggy_lines))
+    if average_response_token_count < 5:
+        average_response_token_count = 100
 
-    return int((total_token_limit_target - prompt_token_count) // max(average_response_token_count, 50))
+    return int((total_token_limit_target - prompt_token_count) // average_response_token_count)
