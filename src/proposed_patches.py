@@ -12,10 +12,10 @@ class ProposedPatches(object):
     
     def __init__(self, proposed_patches = None):
         self.proposed_patches = proposed_patches or []
-        self.total_length = len(self.proposed_patches)
+        self._total_length = len(self.proposed_patches)
 
     def add(self, response, test_result, result_reason, mode, patch, patch_diff):
-        self.total_length += 1
+        self._total_length += 1
 
         for p in self.proposed_patches:
             if p.patch == patch and p.mode == mode:
@@ -24,7 +24,7 @@ class ProposedPatches(object):
         self.proposed_patches.append(ProposedPatch(response=response, test_result=test_result, result_reason=result_reason, mode=mode, patch=patch, patch_diff=patch_diff))
 
     def total_length(self):
-        return self.total_length
+        return self._total_length
 
     def length(self, mode=None):
         if mode is None:
