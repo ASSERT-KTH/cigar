@@ -102,7 +102,7 @@ class Capr(object):
                 elif test_result == "ERROR":
                     err_ce += 1
         
-        return plausible_patches, plausible_patch_diffs, total_cost, first_plausible_patch_try, current_conversation_length, current_tries, err_tf, err_ce
+        return plausible_patches, plausible_patch_diffs, total_cost, first_plausible_patch_try, current_conversation_length, current_tries, err_tf, err_ce, current_tries
     
     def extract_patch_from_response(self, response):
 

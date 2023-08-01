@@ -52,7 +52,7 @@ class Analysis:
                                                             max_tries=max_tries,
                                                             max_conv_length=prog_params.capr_max_conv_length)
                         elif self.apr.name.lower() == "rapidcapr":
-                            max_tries = min(len(list(bug.bug_type.split())),2) * (prog_params.rapidcapr_max_fpps_try_per_mode + prog_params.rapidcapr_max_mpps_try_per_mode)
+                            max_tries = 2 * prog_params.rapidcapr_max_fpps_try_per_mode + prog_params.rapidcapr_max_mpps_try_per_mode
                             repair_results = self.apr.repair(bug=bug,
                                                              max_fpps_try_per_mode=prog_params.rapidcapr_max_fpps_try_per_mode,
                                                              max_mpps_try_per_mode=prog_params.rapidcapr_max_mpps_try_per_mode,
@@ -60,7 +60,7 @@ class Analysis:
                                                              total_token_limit_target=prog_params.rapidcapr_total_token_limit_target,
                                                              max_sample_count=prog_params.rapidcapr_max_sample_count,
                                                              similarity_threshold=prog_params.rapidcapr_similarity_threshold)
-                        plausible_patches, plausible_patch_diffs, repair_cost, first_plausible_patch_try, first_plausible_patch_conv_len, used_tries, err_tf, err_ce = repair_results
+                        plausible_patches, plausible_patch_diffs, repair_cost, first_plausible_patch_try, first_plausible_patch_conv_len, used_tries, err_tf, err_ce, tpc = repair_results
 
                         prefix = f"{mode}_" if self.apr.name.lower() == "capr" else ""
                         row[f'{prefix}ppc'] = len(plausible_patches)
@@ -69,6 +69,7 @@ class Analysis:
                         row[f'{prefix}mts'] = max_tries
                         row[f'{prefix}errtf'] = err_tf
                         row[f'{prefix}errce'] = err_ce
+                        row[f'{prefix}tpc'] = tpc
                         if len(plausible_patches) > 0:
                             row[f'{prefix}fppt'] = first_plausible_patch_try
                             if self.apr.name.lower() == "capr":
@@ -92,11 +93,11 @@ class Analysis:
     def _get_fieldnames(self):
         if self.apr.name.lower() == "capr":
             return ['framework', 'project', 'bug_id', 'bug_type',
-                    'SL_ppc', 'SL_rc', 'SL_fppt', 'SL_fppcl', 'SL_uts', 'SL_mts', 'SL_errtf', 'SL_errce',
-                    'SH_ppc', 'SH_rc', 'SH_fppt', 'SH_fppcl', 'SH_uts', 'SH_mts', 'SH_errtf', 'SH_errce',
-                    'SF_ppc', 'SF_rc', 'SF_fppt', 'SF_fppcl', 'SF_uts', 'SF_mts', 'SF_errtf', 'SF_errce',
+                    'SL_ppc', 'SL_rc', 'SL_fppt', 'SL_fppcl', 'SL_uts', 'SL_mts', 'SL_errtf', 'SL_errce', 'SL_tpc',
+                    'SH_ppc', 'SH_rc', 'SH_fppt', 'SH_fppcl', 'SH_uts', 'SH_mts', 'SH_errtf', 'SH_errce', 'SH_tpc',
+                    'SF_ppc', 'SF_rc', 'SF_fppt', 'SF_fppcl', 'SF_uts', 'SF_mts', 'SF_errtf', 'SF_errce', 'SF_tpc',
                     'max_conv_length', 'comment']
         elif self.apr.name.lower() == "rapidcapr": # TODO
             return ['framework', 'project', 'bug_id', 'bug_type',
-                    'ppc', 'rc', 'fppt', 'uts', 'mts', 'errtf', 'errce',
+                    'ppc', 'rc', 'fppt', 'uts', 'mts', 'errtf', 'errce', 'tpc',
                     'comment']

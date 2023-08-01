@@ -17,7 +17,7 @@ class RapidCapr(object):
     def repair(self, bug: Bug, max_fpps_try_per_mode=1, max_mpps_try_per_mode=1, prompt_token_limit=1500, total_token_limit_target=3000, 
                max_sample_count=50, similarity_threshold=0.5, ask_for_bug_description=False):
 
-        modes = ["SL", "SF"] if "SL" in bug.bug_type else list(bug.bug_type.split())
+        modes = [list(bug.bug_type.split())[0], "SF"]
         prefix = f"{self.framework.name}_{bug.project}_{bug.bug_id}"
         total_call_tries, total_cost = 0, 0
         first_plausible_patch_try = None
@@ -60,4 +60,4 @@ class RapidCapr(object):
         
         return (proposed_patches.get_plausible_patches(), proposed_patches.get_plausible_patch_diffs(), 
                 total_cost, first_plausible_patch_try, None, total_call_tries, 
-                proposed_patches.get_test_failure_count(), proposed_patches.get_test_error_count())
+                proposed_patches.get_test_failure_count(), proposed_patches.get_test_error_count(), proposed_patches.total_length())
