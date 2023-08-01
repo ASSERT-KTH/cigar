@@ -20,6 +20,7 @@ class RapidCapr(object):
         modes = ["SL", "SF"] if "SL" in bug.bug_type else list(bug.bug_type.split())
         prefix = f"{self.framework.name}_{bug.project}_{bug.bug_id}"
         total_call_tries, total_cost = 0, 0
+        first_plausible_patch_try = None
         
         proposed_patches = ProposedPatches()
 
@@ -53,8 +54,10 @@ class RapidCapr(object):
                                                  patch=patch, patch_diff=patch_diff)
         
             if proposed_patches.contains_plausible_patch(mode=mode) == True:
+                if first_plausible_patch_try is None:
+                    first_plausible_patch_try = total_call_tries
                 break
         
         return (proposed_patches.get_plausible_patches(), proposed_patches.get_plausible_patch_diffs(), 
-                total_cost, proposed_patches.get_call_num_of_first_plausible_patch(), None, total_call_tries, 
+                total_cost, first_plausible_patch_try, None, total_call_tries, 
                 proposed_patches.get_test_failure_count(), proposed_patches.get_test_error_count())
