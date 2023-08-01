@@ -37,7 +37,7 @@ def extract_patches_from_response(bug: Bug, response, response_mode, similarity_
 def synthetize_and_extract_patch(patch_block, masked_code, buggy_lines):
     masked_code_lines = masked_code.split('\n')
     
-    infill_line_count = None
+    infill_line_count = 0
     for i in range(len(masked_code_lines)):
         if 'INFILL' in masked_code_lines[i]:
             infill_line_count = i
@@ -128,6 +128,6 @@ def count_num_of_samples(bug:Bug, prompt, proposed_patches: ProposedPatches, mod
         if mode == "SF":
             average_response_token_count = int(get_token_count(bug.code))
         else:
-            average_response_token_count = int(max(get_token_count(bug.buggy_lines), 50))
+            average_response_token_count = int(get_token_count(bug.buggy_lines))
 
-    return int((total_token_limit_target - prompt_token_count) // average_response_token_count)
+    return int((total_token_limit_target - prompt_token_count) // max(average_response_token_count, 50))
