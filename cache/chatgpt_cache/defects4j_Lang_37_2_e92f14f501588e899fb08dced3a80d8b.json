@@ -1,0 +1,111 @@
+{
+    "call": {
+        "messages": [
+            {
+                "content": "You are an automated program repair tool.",
+                "role": "system"
+            },
+            {
+                "content": "The following code contains a bug.\n```java\n    public static <T> T[] addAll(T[] array1, T... array2) {\n        if (array1 == null) {\n            return clone(array2);\n        } else if (array2 == null) {\n            return clone(array1);\n        }\n        final Class<?> type1 = array1.getClass().getComponentType();\n        T[] joinedArray = (T[]) Array.newInstance(type1, array1.length + array2.length);\n        System.arraycopy(array1, 0, joinedArray, 0, array1.length);\n            System.arraycopy(array2, 0, joinedArray, array1.length, array2.length);\n            // Check if problem is incompatible types\n        return joinedArray;\n    }\n```\nThe code fails on this test:\n```\ntestJira567\n```\non this test line:\n```java\n               n = ArrayUtils.addAll(new Integer[]{Integer.valueOf(1)}, new Long[]{Long.valueOf(2)});\n```\nwith the following test error:\n```\njava.lang.ArrayStoreException\n```\nIt can be fixed by the following functions:\n1. ```java\n    public static <T> T[] addAll(T[] array1, T... array2) {\n        if (array1 == null) {\n            return clone(array2);\n        } else if (array2 == null) {\n            return clone(array1);\n        }\n        final Class<?> type1 = array1.getClass().getComponentType();\n        final Class<?> type2 = array2.getClass().getComponentType();\n        if (!type1.isAssignableFrom(type2) && !type2.isAssignableFrom(type1)) {\n            throw new IllegalArgumentException(\"Cannot store \" + type2.getName() + \" in an array of \" + type1.getName());\n        }\n        T[] joinedArray = (T[]) Array.newInstance(type1, array1.length + array2.length);\n        System.arraycopy(array1, 0, joinedArray, 0, array1.length);\n        System.arraycopy(array2, 0, joinedArray, array1.length, array2.length);\n        return joinedArray;\n    }\n```\n2. ```java\n    public static <T> T[] addAll(T[] array1, T... array2) {\n        if (array1 == null) {\n            return clone(array2);\n        } else if (array2 == null) {\n            return clone(array1);\n        }\n        final Class<?> type1 = array1.getClass().getComponentType();\n        final Class<?> type2 = array2.getClass().getComponentType();\n        if (!type1.isAssignableFrom(type2) && !type2.isAssignableFrom(type1)) {\n            throw new IllegalArgumentException(\"Cannot store \" + type2.getName() + \" in an array of \" + type1.getName());\n        }\n        @SuppressWarnings(\"unchecked\") // OK, because array classes are always reifiable\n        final T[] joinedArray = (T[]) Array.newInstance(type1, array1.length + array2.length);\n        System.arraycopy(array1, 0, joinedArray, 0, array1.length);\n        System.arraycopy(array2, 0, joinedArray, array1.length, array2.length);\n        return joinedArray;\n    }\n```\nPlease generate an alternative fix function.",
+                "role": "user"
+            }
+        ],
+        "model": "gpt-3.5-turbo-0301",
+        "n": 10,
+        "temperature": 1,
+        "top_p": 1
+    },
+    "response": {
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "index": 0,
+                "message": {
+                    "content": "Another possible fix:\n\n```java\n    public static <T> T[] addAll(T[] array1, T... array2) {\n        if (array1 == null) {\n            return clone(array2);\n        } else if (array2 == null) {\n            return clone(array1);\n        }\n\n        final Class<?> type1 = array1.getClass().getComponentType();\n        final Class<?> type2 = array2.getClass().getComponentType();\n        final Class<?> commonType = getCommonType(type1, type2);\n\n        T[] joinedArray = (T[]) Array.newInstance(commonType, array1.length + array2.length);\n        System.arraycopy(array1, 0, joinedArray, 0, array1.length);\n        System.arraycopy(array2, 0, joinedArray, array1.length, array2.length);\n\n        return joinedArray;\n    }\n\n    private static Class<?> getCommonType(Class<?> type1, Class<?> type2) {\n        if (type1.isAssignableFrom(type2)) {\n            return type1;\n        } else if (type2.isAssignableFrom(type1)) {\n            return type2;\n        } else if (type1.isPrimitive() || type2.isPrimitive()) {\n            throw new IllegalArgumentException(\"Cannot store incompatible primitive types \" + type1 + \" and \" + type2);\n        } else {\n            return Object.class;\n        }\n    }\n```\n\nThis fix calculates the common type between the two array component types and creates an array of that common type to store the elements. If the two types are not compatible and not both primitive, the common type is set to Object.class. If they are incompatible and either one is primitive, an exception is thrown.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 1,
+                "message": {
+                    "content": "Here is an alternative fix function:\n```java\n    public static <T> T[] addAll(T[] array1, T... array2) {\n        if (array1 == null) {\n            return clone(array2);\n        } else if (array2 == null) {\n            return clone(array1);\n        }\n        final Class<? extends Object[]> type1 = array1.getClass();\n        final Class<? extends Object[]> type2 = array2.getClass();\n        if (!type1.isAssignableFrom(type2) && !type2.isAssignableFrom(type1)) {\n            throw new IllegalArgumentException(\"Cannot store \" + type2.getName() + \" in an array of \" + type1.getName());\n        }\n        final T[] joinedArray = Arrays.copyOf(array1, array1.length + array2.length); // changed to use Arrays.copyOf\n        System.arraycopy(array2, 0, joinedArray, array1.length, array2.length);\n        return joinedArray;\n    }\n```\n\nThe main modification is to use `Arrays.copyOf()` instead of `Array.newInstance()` to create the joined array. This way, we do not need to determine the component type of the array and there is no risk of getting a `ClassCastException`. Similarly to the previous solutions, we also added a check to ensure that the types of the arrays are compatible.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 2,
+                "message": {
+                    "content": "Here's an alternative fix for the code:\n```java\n    public static <T> T[] addAll(T[] array1, T... array2) {\n        if (array1 == null) {\n            return clone(array2);\n        } else if (array2 == null) {\n            return clone(array1);\n        }\n        final Class<?> type1 = array1.getClass().getComponentType();\n        final Class<?> type2 = array2.getClass().getComponentType();\n        if (!type1.isAssignableFrom(type2) && !type2.isAssignableFrom(type1)) {\n            int size1 = array1.length;\n            int size2 = array2.length;\n            @SuppressWarnings(\"unchecked\")\n            T[] newArray = (T[]) Array.newInstance(type1, size1 + size2);\n            for (int i = 0; i < size1; i++) {\n                newArray[i] = array1[i];\n            }\n            for (int i = 0; i < size2; i++) {\n                newArray[size1 + i] = array2[i];\n            }\n            return newArray;\n        } else {\n            T[] joinedArray = (T[]) Array.newInstance(type1, array1.length + array2.length);\n            System.arraycopy(array1, 0, joinedArray, 0, array1.length);\n            System.arraycopy(array2, 0, joinedArray, array1.length, array2.length);\n            return joinedArray;\n        }\n    }\n```\nThis fix first checks if the array types are assignable from each other and if not, it creates a new array of the same type as the first array, copies its elements over, and then the elements of the second array. If the types are assignable, it continues with the original code. This should prevent any `ArrayStoreException` from occurring.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 3,
+                "message": {
+                    "content": "Another possible fix for the bug is:\n```java\npublic static <T> T[] addAll(T[] array1, T... array2) {\n    if (array1 == null) {\n        return clone(array2);\n    } else if (array2 == null) {\n        return clone(array1);\n    }\n    final Class<?> type1 = array1.getClass().getComponentType();\n    final Class<?> type2 = array2.getClass().getComponentType();\n    if (!type1.isAssignableFrom(type2) && !type2.isAssignableFrom(type1)) {\n        // Create a new array of objects and copy the elements from source arrays\n        Object[] joinedArray = new Object[array1.length + array2.length];\n        System.arraycopy(array1, 0, joinedArray, 0, array1.length);\n        System.arraycopy(array2, 0, joinedArray, array1.length, array2.length);\n        // Cast the array to the desired type\n        @SuppressWarnings(\"unchecked\") // The cast is safe, because the type of the array elements is checked above\n        T[] result = (T[]) Arrays.copyOf(joinedArray, joinedArray.length, array1.getClass());\n        return result;\n    } else {\n        // The component types of the arrays are compatible, so we can create a new array of the same type and copy the elements\n        T[] joinedArray = Arrays.copyOf(array1, array1.length + array2.length);\n        System.arraycopy(array2, 0, joinedArray, array1.length, array2.length);\n        return joinedArray;\n    }\n}\n```\nThis fix works by first checking if the component types of the arrays are compatible. If they are, it creates a new array of the same type as `array1` and copies the elements of both arrays. If they are not compatible, it creates a new array of objects, copies the elements of both arrays, and casts the array to the desired type. The cast is safe, because the type of the array elements is checked before the cast.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 4,
+                "message": {
+                    "content": "Here is an alternative fix function:\n```java\n    public static <T> T[] addAll(T[] array1, T... array2) {\n        if (array1 == null && array2 == null) {\n            throw new NullPointerException(\"Both arrays cannot be null\");\n        } else if (array1 == null) {\n            return Arrays.copyOf(array2, array2.length);\n        } else if (array2 == null) {\n            return Arrays.copyOf(array1, array1.length);\n        }\n        final Class<?> type1 = array1.getClass().getComponentType();\n        final Class<?> type2 = array2.getClass().getComponentType();\n        if (!type1.isAssignableFrom(type2) && !type2.isAssignableFrom(type1)) {\n             throw new IllegalArgumentException(\"Cannot store \" + type2.getName() + \" in an array of \" + type1.getName());\n        }\n        final T[] joinedArray = Arrays.copyOf(array1, array1.length + array2.length);\n        System.arraycopy(array2, 0, joinedArray, array1.length, array2.length);\n        return joinedArray;\n    }\n```\nThis function has the following improvements:\n- It throws a `NullPointerException` when both arrays are `null`. The original implementation would have thrown a `NullPointerException` only when the first array was `null` and returned a clone of the second array when it was `null`.\n- It uses the `Arrays.copyOf` method to create a new array and copy the elements of the first array to it. This is a simpler and more concise way to create a larger array compared to using the `Array.newInstance` method.\n- It removes the `@SuppressWarnings` annotation and instead declares the `joinedArray` variable with the `final` modifier.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 5,
+                "message": {
+                    "content": "Here is an alternative fix function:\n```java\n    public static <T> T[] addAll(T[] array1, T... array2) {\n        if (array1 == null) {\n            return clone(array2);\n        } else if (array2 == null) {\n            return clone(array1);\n        }\n        final Class<?> type1 = array1.getClass().getComponentType();\n        final Class<?> type2 = array2.getClass().getComponentType();\n        if (!type1.isInstance(array2[0]) && !type2.isInstance(array1[0])) {\n            throw new IllegalArgumentException(\"Cannot store \" + type2.getName() + \" in an array of \" + type1.getName());\n        }\n        @SuppressWarnings(\"unchecked\") // OK, because array classes are always reifiable\n        final T[] joinedArray = (T[]) Array.newInstance(type1, array1.length + array2.length);\n        System.arraycopy(array1, 0, joinedArray, 0, array1.length);\n        System.arraycopy(array2, 0, joinedArray, array1.length, array2.length);\n        return joinedArray;\n    }\n```\nIn this version, we perform a type check on the first elements of `array1` and `array2` instead of checking whether one type is assignable from the other. This ensures that the types are compatible for all elements of the arrays, not just the arrays themselves.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 6,
+                "message": {
+                    "content": "Here's an alternative fix that checks for null arrays before calling `getComponentType()`:\n```java\npublic static <T> T[] addAll(T[] array1, T... array2) {\n    if (array1 == null) {\n        return clone(array2);\n    } else if (array2 == null) {\n        return clone(array1);\n    }\n    final Class<?> type1 = array1.getClass().getComponentType();\n    final Class<?> type2 = array2.getClass().getComponentType();\n    if (type1 == null || type2 == null || (!type1.isAssignableFrom(type2) && !type2.isAssignableFrom(type1))) {\n        throw new IllegalArgumentException(\"Cannot store elements of different types in the same array\");\n    }\n    @SuppressWarnings(\"unchecked\") // OK, because array classes are always reifiable\n    final T[] joinedArray = (T[]) Array.newInstance(type1, array1.length + array2.length);\n    System.arraycopy(array1, 0, joinedArray, 0, array1.length);\n    System.arraycopy(array2, 0, joinedArray, array1.length, array2.length);\n    return joinedArray;\n}\n``` \n\nThis code also includes a check for two arrays that have different non-null component types. If this is the case, an `IllegalArgumentException` is thrown with an appropriate error message.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 7,
+                "message": {
+                    "content": "Here's an alternative fix for the given bug:\n\n```java\n    public static <T> T[] addAll(T[] array1, T... array2) {\n        if (array1 == null) {\n            return clone(array2);\n        } else if (array2 == null) {\n            return clone(array1);\n        }\n        final Class<?> type1 = array1.getClass().getComponentType();\n        final Class<?> type2 = array2.getClass().getComponentType();\n        if (!type1.isAssignableFrom(type2) && !type2.isAssignableFrom(type1)) {\n            // If the array types are not related, create a new array of Object type\n            Object[] joinedArray = new Object[array1.length + array2.length];\n            System.arraycopy(array1, 0, joinedArray, 0, array1.length);\n            System.arraycopy(array2, 0, joinedArray, array1.length, array2.length);\n            // Cast the array elements to T\n            @SuppressWarnings(\"unchecked\")\n            T[] result = (T[]) joinedArray;\n            return result;\n        }\n        // If the array types are related, create an array of the appropriate type\n        @SuppressWarnings(\"unchecked\")\n        T[] joinedArray = (T[]) Array.newInstance(type1, array1.length + array2.length);\n        System.arraycopy(array1, 0, joinedArray, 0, array1.length);\n        System.arraycopy(array2, 0, joinedArray, array1.length, array2.length);\n        return joinedArray;\n    }\n```\n\nThis alternative fix handles cases where the two input arrays have different types (that are not assignable to each other). In such cases, the function creates a new array of Object type, copies elements from both input arrays to it, and finally casts the elements to type T. This ensures that the resulting array contains all the elements of both input arrays, even when they have different types.\n\nNote: The ```@SuppressWarnings(\"unchecked\")``` is used to suppress the warning when casting to a generic type.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 8,
+                "message": {
+                    "content": "Here is an alternative fix function:\n\n```java\n    public static <T> T[] addAll(T[] array1, T... array2) {\n        if (array1 == null) {\n            return clone(array2);\n        } else if (array2 == null) {\n            return clone(array1);\n        }\n        final Class<?> type1 = array1.getClass().getComponentType();\n        final Class<?> type2 = array2.getClass().getComponentType();\n        if (!type1.equals(type2)) {\n            return null; // or throw an exception\n        }\n        T[] joinedArray = (T[]) Array.newInstance(type1, array1.length + array2.length);\n        System.arraycopy(array1, 0, joinedArray, 0, array1.length);\n        System.arraycopy(array2, 0, joinedArray, array1.length, array2.length);\n        return joinedArray;\n    }\n```\n\nThis function also checks if the component type of both arrays are equal, but instead of throwing an exception, it returns null if they are not. This is to indicate to the caller that the arrays are not compatible with each other. Of course, you could also throw an exception instead of returning null if that fits your specific use case better.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 9,
+                "message": {
+                    "content": "Here's another possible fix:\n```java\n    public static <T> T[] addAll(T[] array1, T... array2) {\n        if (array1 == null && array2 == null) {\n            return null;\n        }\n        else if (array1 == null) {\n            return Arrays.copyOf(array2, array2.length);\n        }\n        else if (array2 == null) {\n            return Arrays.copyOf(array1, array1.length);\n        }\n\n        final Class<?> type1 = array1.getClass().getComponentType();\n        final Class<?> type2 = array2.getClass().getComponentType();\n\n        if (!type1.isAssignableFrom(type2) && !type2.isAssignableFrom(type1)) {\n            throw new IllegalArgumentException(\"Cannot store \" + type2.getName() + \" in an array of \" + type1.getName());\n        }\n\n        @SuppressWarnings(\"unchecked\") \n        T[] joinedArray = (T[]) Array.newInstance(type1, array1.length + array2.length);\n\n        System.arraycopy(array1, 0, joinedArray, 0, array1.length);\n        System.arraycopy(array2, 0, joinedArray, array1.length, array2.length);\n\n        return joinedArray;\n    }\n```\nThis alternative fix adds an additional condition to check if both arrays are null. If they are, it returns null.",
+                    "role": "assistant"
+                }
+            }
+        ],
+        "created": 1690979716,
+        "id": "chatcmpl-7j5MKdfkN9UeWov4RYX3Wss5bS38J",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion",
+        "usage": {
+            "completion_tokens": 3258,
+            "prompt_tokens": 692,
+            "total_tokens": 3950
+        }
+    }
+}
