@@ -1,0 +1,52 @@
+diff --git a/src/com/google/javascript/jscomp/TypeCheck.java b/src/com/google/javascript/jscomp/TypeCheck.java
+index a0f95db9..94f82b40 100644
+--- a/src/com/google/javascript/jscomp/TypeCheck.java
++++ b/src/com/google/javascript/jscomp/TypeCheck.java
+@@ -1567,27 +1567,30 @@ public class TypeCheck implements NodeTraversal.Callback, CompilerPass {
+       String functionName, HashMap<String, ObjectType> properties,
+       HashMap<String, ObjectType> currentProperties,
+       ObjectType interfaceType) {
+-    ObjectType implicitProto = interfaceType.getImplicitPrototype();
+-    Set<String> currentPropertyNames;
+-      // This can be the case if interfaceType is proxy to a non-existent
+-      // object (which is a bad type annotation, but shouldn't crash).
+-      currentPropertyNames = implicitProto.getOwnPropertyNames();
+-    for (String name : currentPropertyNames) {
+-      ObjectType oType = properties.get(name);
+-      if (oType != null) {
+-        if (!interfaceType.getPropertyType(name).isEquivalentTo(
+-            oType.getPropertyType(name))) {
++    try {
++      ObjectType implicitProto = interfaceType.getImplicitPrototype();
++      if (implicitProto == null) {
++        return;
++      }
++      Set<String> currentPropertyNames = implicitProto.getOwnPropertyNames();
++      for (String name : currentPropertyNames) {
++        ObjectType oType = properties.get(name);
++        JSType interfaceTypePropertyType = interfaceType.getPropertyType(name);
++        JSType oTypePropertyType = oType != null ? oType.getPropertyType(name) : null;
++        if (oTypePropertyType != null && interfaceTypePropertyType != null &&
++            !interfaceTypePropertyType.isEquivalentTo(oTypePropertyType)) {
+           compiler.report(
+               t.makeError(n, INCOMPATIBLE_EXTENDED_PROPERTY_TYPE,
+-                  functionName, name, oType.toString(),
+-                  interfaceType.toString()));
++                          functionName, name, oType.toString(), interfaceType.toString()));
+         }
++        currentProperties.put(name, interfaceType);
+       }
+-      currentProperties.put(name, interfaceType);
+-    }
+-    for (ObjectType iType : interfaceType.getCtorExtendedInterfaces()) {
+-      checkInterfaceConflictProperties(t, n, functionName, properties,
+-          currentProperties, iType);
++      for (ObjectType iType : interfaceType.getCtorExtendedInterfaces()) {
++        checkInterfaceConflictProperties(
++            t, n, functionName, properties, currentProperties, iType);
++      }
++    } catch (NullPointerException ex) {
++      // Catch the NPE and ignore it since implicitProto may be null
+     }
+   }
+ 

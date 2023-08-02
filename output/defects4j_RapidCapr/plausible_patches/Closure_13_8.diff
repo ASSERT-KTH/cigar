@@ -1,0 +1,58 @@
+diff --git a/src/com/google/javascript/jscomp/PeepholeOptimizationsPass.java b/src/com/google/javascript/jscomp/PeepholeOptimizationsPass.java
+index b51c088e..ec75bb3f 100644
+--- a/src/com/google/javascript/jscomp/PeepholeOptimizationsPass.java
++++ b/src/com/google/javascript/jscomp/PeepholeOptimizationsPass.java
+@@ -110,32 +110,41 @@ class PeepholeOptimizationsPass
+     compiler.removeChangeHandler(handler);
+   }
+ 
+-  private void traverse(Node node) {
++private void traverse(Node node) {
+     // The goal here is to avoid retraversing
+     // the entire AST to catch newly created opportunities.
+     // So we track whether a "unit of code" has changed,
+     // and revisit immediately.
+     if (!shouldVisit(node)) {
+-      return;
++        exitNode(node);
++        return;
+     }
+ 
+     int visits = 0;
+-    do {
+-      Node c = node.getFirstChild();
+-      while(c != null) {
+-        traverse(c);
++    Node c = node.getFirstChild();
++
++    while (c != null) {
+         Node next = c.getNext();
++        traverse(c);
+         c = next;
+-      }
++    }
+ 
+-      visit(node);
+-      visits++;
++    boolean tooManyIterations = false;
+ 
+-      Preconditions.checkState(visits < 10000, "too many interations");
+-    } while (shouldRetraverse(node));
++    do {
++        if (tooManyIterations) {
++            throw new IllegalStateException("Too many iterations");
++        }
++
++        visit(node);
++        visits++;
++        if (visits >= 10000) {
++            tooManyIterations = true;
++        }
++    } while (!tooManyIterations && shouldRetraverse(node));
+ 
+     exitNode(node);
+-  }
++}
+ 
+   private boolean shouldRetraverse(Node node) {
+     if (node.getParent() != null && node.isFunction() || node.isScript()) {

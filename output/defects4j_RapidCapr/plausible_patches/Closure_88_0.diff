@@ -1,0 +1,51 @@
+diff --git a/src/com/google/javascript/jscomp/DeadAssignmentsElimination.java b/src/com/google/javascript/jscomp/DeadAssignmentsElimination.java
+index ef33e4c0..a6d90b8f 100644
+--- a/src/com/google/javascript/jscomp/DeadAssignmentsElimination.java
++++ b/src/com/google/javascript/jscomp/DeadAssignmentsElimination.java
+@@ -320,29 +320,38 @@ class DeadAssignmentsElimination extends AbstractPostOrderCallback implements
+    * reference of that variable is a read. It returns KILL, if the first
+    * reference of that variable is an assignment. It returns MAY_LIVE otherwise.
+    */
+-  private VariableLiveness isVariableReadBeforeKill(
++private VariableLiveness isVariableReadBeforeKill(
+       Node n, String variable) {
+     if (NodeUtil.isName(n) && variable.equals(n.getString())) {
+       if (NodeUtil.isLhs(n, n.getParent())) {
+-        // The expression to which the assignment is made is evaluated before
+-        // the RHS is evaluated (normal left to right evaluation) but the KILL
+-        // occurs after the RHS is evaluated.
++        // A variable is being written, so it is not being read before being killed.
+         return VariableLiveness.KILL;
+       } else {
++        // The variable is being read, so it is not being killed before being read.
+         return VariableLiveness.READ;
+       }
+     }
+ 
+     // Expressions are evaluated left-right, depth first.
++    VariableLiveness state = VariableLiveness.MAYBE_LIVE;
++    VariableLiveness childState;
+     for (Node child = n.getFirstChild();
+         child != null; child = child.getNext()) {
+       if (!ControlFlowGraph.isEnteringNewCfgNode(child)) { // Not a FUNCTION
+-        VariableLiveness state = isVariableReadBeforeKill(child, variable);
+-        if (state != VariableLiveness.MAYBE_LIVE) {
+-          return state;
++        childState = isVariableReadBeforeKill(child, variable);
++        if (childState == VariableLiveness.KILL) {
++          // If the variable is written in a different branch, it is no longer live.
++          state = VariableLiveness.KILL;
+         }
++        if (childState == VariableLiveness.READ) {
++          // If any child subtree reads the variable, the variable is not dead.
++          return VariableLiveness.READ;
++        }
++      } else {
++        // Entering a new function complicates control flow. The variable is potentially live.
++        state = VariableLiveness.MAYBE_LIVE;
+       }
+     }
+-    return VariableLiveness.MAYBE_LIVE;
++    return state;
+   }
+ }
