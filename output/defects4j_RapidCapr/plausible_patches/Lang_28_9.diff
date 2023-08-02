@@ -1,0 +1,97 @@
+diff --git a/src/main/java/org/apache/commons/lang3/text/translate/NumericEntityUnescaper.java b/src/main/java/org/apache/commons/lang3/text/translate/NumericEntityUnescaper.java
+index c3cb8695..a062bc8f 100644
+--- a/src/main/java/org/apache/commons/lang3/text/translate/NumericEntityUnescaper.java
++++ b/src/main/java/org/apache/commons/lang3/text/translate/NumericEntityUnescaper.java
+@@ -32,37 +32,66 @@ public class NumericEntityUnescaper extends CharSequenceTranslator {
+      * {@inheritDoc}
+      */
+     @Override
+-    public int translate(CharSequence input, int index, Writer out) throws IOException {
+-        // TODO: Protect from ArrayIndexOutOfBounds
+-        if(input.charAt(index) == '&' && input.charAt(index + 1) == '#') {
+-            int start = index + 2;
+-            boolean isHex = false;
++public int translate(CharSequence input, int index, Writer out) throws IOException {
++    final int ENTITY_START_OFFSET = 2;
++    final char ENTITY_START_CHAR = '&';
++    final char ENTITY_END_CHAR = ';';
+ 
+-            char firstChar = input.charAt(start);
+-            if(firstChar == 'x' || firstChar == 'X') {
+-                start++;
+-                isHex = true;
+-            }
++    if(input == null) {
++        return 0;
++    }
+ 
+-            int end = start;
+-            while(input.charAt(end) != ';') {
+-                end++;
+-            }
++    // Check if input is long enough to have a potential entity
++    if(input.length() < index + ENTITY_START_OFFSET + 1) {
++        return 0;
++    }
+ 
+-            int entityValue;
+-            try {
+-                if(isHex) {
+-                    entityValue = Integer.parseInt(input.subSequence(start, end).toString(), 16);
+-                } else {
+-                    entityValue = Integer.parseInt(input.subSequence(start, end).toString(), 10);
+-                }
+-            } catch(NumberFormatException nfe) {
+-                return 0;
+-            }
++    // Check if entity start character is present
++    if(input.charAt(index) != ENTITY_START_CHAR) {
++        return 0;
++    }
++
++    int start = index + ENTITY_START_OFFSET;
++    boolean isHex = false;
++
++    // Check for hex or decimal format
++    if (input.length() > start && (input.charAt(start) == 'x' || input.charAt(start) == 'X')) {
++        isHex = true;
++        start++;
++    }
+ 
+-                out.write(entityValue);
+-            return 2 + (end - start) + (isHex ? 1 : 0) + 1;
++    // Start parsing the entity value
++    int end = start;
++    int entityValue;
++    while(end < input.length() && input.charAt(end) != ENTITY_END_CHAR) {
++        if(!Character.isDigit(input.charAt(end)) && !(isHex && (Character.toLowerCase(input.charAt(end)) >= 'a' && Character.toLowerCase(input.charAt(end)) <= 'f'))) {
++            // Invalid entity format
++            return 0;
+         }
++        end++;
++    }
++
++    if(end >= input.length()) {
++        return 0;
++    }
++
++    // Parse the entity value
++    try {
++        entityValue = Integer.parseInt(input.subSequence(start, end).toString(), isHex ? 16 : 10);
++    } catch(NumberFormatException nfe) {
+         return 0;
+     }
++
++    // Write the entity value to output with surrogate check
++    if(Character.isSupplementaryCodePoint(entityValue)) {
++        char[] chars = Character.toChars(entityValue);
++        out.write(chars[0]);
++        out.write(chars[1]);
++    } else {
++        out.write((char) entityValue);
++    }
++
++    // Return the length of the entity, including start and end characters
++    return end - index + 1;
++}
+ }
