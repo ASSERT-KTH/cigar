@@ -36,12 +36,10 @@ class ProposedPatches(object):
         if mode is None:
             for p in self.proposed_patches:
                 if p.test_result == "PASS":
-                    print("asd")
                     return True
         else:
             for p in self.proposed_patches:
                 if p.test_result == "PASS" and p.mode == mode:
-                    print("asd")
                     return True
         return False
     
