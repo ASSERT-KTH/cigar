@@ -1,0 +1,48 @@
+diff --git a/src/java/org/apache/commons/math/distribution/NormalDistributionImpl.java b/src/java/org/apache/commons/math/distribution/NormalDistributionImpl.java
+index 02810e142..5f3becebc 100644
+--- a/src/java/org/apache/commons/math/distribution/NormalDistributionImpl.java
++++ b/src/java/org/apache/commons/math/distribution/NormalDistributionImpl.java
+@@ -105,10 +105,40 @@ public class NormalDistributionImpl extends AbstractContinuousDistribution
+      * x is more than 20 standard deviations from the mean, in which case the
+      * convergence exception is caught and 0 or 1 is returned.
+      */
+-    public double cumulativeProbability(double x) throws MathException {
+-            return 0.5 * (1.0 + Erf.erf((x - mean) /
+-                    (standardDeviation * Math.sqrt(2.0))));
++public double cumulativeProbability(double x) throws MathException {
++    if (Double.isNaN(x)) {
++        throw new MathException("Input is NaN");
+     }
++    if (Double.isInfinite(x)) {
++        return x < 0 ? 0.0 : 1.0;
++    }
++    double dev = (x - mean) / standardDeviation;
++    double ret;
++    if (Math.abs(dev) > 40.0) {
++        ret = dev < 0.0 ? 0.0 : 1.0;
++    } else if (Math.abs(dev) > 4.0) {
++        // Use approximation for large values
++        double t = 1.0 / (1.0 + 0.3275911 * Math.abs(dev));
++        ret = 1.0 - ((0.254829592 * t) - (0.284496736 * t * t) + (1.421413741 * t * t * t)
++                - (1.453152027 * t * t * t * t) + (1.061405429 * t * t * t * t * t))
++                * Math.exp(-dev * dev / 2.0);
++        ret = dev < 0.0 ? 1.0 - ret : ret;
++    } else {
++        // Use exact formula for smaller values
++        try {
++            ret = Erf.erf(dev / Math.sqrt(2.0));
++            ret = 0.5d * (1d + ret);
++        } catch (MaxIterationsExceededException e) {
++            // Use approximation for extreme values
++            double t = 1.0 / (1.0 + 0.3275911 * Math.abs(dev));
++            ret = 1.0 - ((0.254829592 * t) - (0.284496736 * t * t) + (1.421413741 * t * t * t)
++                    - (1.453152027 * t * t * t * t) + (1.061405429 * t * t * t * t * t))
++                    * Math.exp(-dev * dev / 2.0);
++            ret = dev < 0.0 ? 1.0 - ret : ret;
++        }
++    }
++    return ret;
++}
+     
+     /**
+      * For this distribution, X, this method returns the critical point x, such
