@@ -1,0 +1,119 @@
+{
+    "call": {
+        "messages": [
+            {
+                "content": "You are an automated program repair tool.",
+                "role": "system"
+            },
+            {
+                "content": "The following code contains a buggy hunk that has been removed.\n```java\n    private void checkParameters() {\n        final double[] init = getStartPoint();\n        final double[] lB = getLowerBound();\n        final double[] uB = getUpperBound();\n\n        // Checks whether there is at least one finite bound value.\n        boolean hasFiniteBounds = false;\n        for (int i = 0; i < lB.length; i++) {\n            if (!Double.isInfinite(lB[i]) ||\n                !Double.isInfinite(uB[i])) {\n                hasFiniteBounds = true;\n                break;\n            }\n        }\n        // Checks whether there is at least one infinite bound value.\n        boolean hasInfiniteBounds = false;\n        if (hasFiniteBounds) {\n            for (int i = 0; i < lB.length; i++) {\n                if (Double.isInfinite(lB[i]) ||\n                    Double.isInfinite(uB[i])) {\n                    hasInfiniteBounds = true;\n                    break;\n                }\n            }\n\n            if (hasInfiniteBounds) {\n                // If there is at least one finite bound, none can be infinite,\n                // because mixed cases are not supported by the current code.\n                throw new MathUnsupportedOperationException();\n            } else {\n                // Convert API to internal handling of boundaries.\n                boundaries = new double[2][];\n                boundaries[0] = lB;\n                boundaries[1] = uB;\n\n                // Abort early if the normalization will overflow (cf. \"encode\" method).\n>>> [ INFILL ] <<<\n            }\n        } else {\n            // Convert API to internal handling of boundaries.\n            boundaries = null;\n        }\n\n        if (inputSigma != null) {\n            if (inputSigma.length != init.length) {\n                throw new DimensionMismatchException(inputSigma.length, init.length);\n            }\n            for (int i = 0; i < init.length; i++) {\n                if (inputSigma[i] < 0) {\n                    throw new NotPositiveException(inputSigma[i]);\n                }\n                if (boundaries != null) {\n                    if (inputSigma[i] > boundaries[1][i] - boundaries[0][i]) {\n                        throw new OutOfRangeException(inputSigma[i], 0, boundaries[1][i] - boundaries[0][i]);\n                    }\n                }\n            }\n        }\n    }\n```\nThis was the original buggy hunk which was removed by the infill location:\n```java\n\n```\nThe code fails on this test:\n```\ntestBoundaryRangeTooLarge\n```\non this test line:\n```java\n                        throw new MathIllegalStateException();\n```\nwith the following test error:\n```\njava.lang.Exception: Unexpected exception, expected<org.apache.commons.math3.exception.NumberIsTooLargeException> but was<org.apache.commons.math3.exception.MathIllegalStateException>\n```\nIt can be fixed by the following hunk:\n1. ```java\n        if (boundaries != null && Double.isInfinite(boundaries[1][0] - boundaries[0][0])) {\n            throw new NumberIsTooLargeException(boundaries[1][0] - boundaries[0][0], 0, true);\n        }\n```\nPlease generate an alternative fix hunk.",
+                "role": "user"
+            }
+        ],
+        "model": "gpt-3.5-turbo-0301",
+        "n": 11,
+        "temperature": 1,
+        "top_p": 1
+    },
+    "response": {
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "index": 0,
+                "message": {
+                    "content": "The following hunk can also fix the issue:\n```java\n        if (boundaries != null) {\n            boolean allFiniteBounds = true;\n            for (int i = 0; i < lB.length; i++) {\n                if (Double.isInfinite(lB[i]) || Double.isInfinite(uB[i])) {\n                    allFiniteBounds = false;\n                    break;\n                }\n            }\n            if (allFiniteBounds && Arrays.stream(uB).map(x -> x-lB[0]).anyMatch(x -> Double.isInfinite(x))) {\n                throw new NumberIsTooLargeException(uB[0] - lB[0], 0, true);\n            }\n        }\n```\n\nThis hunk checks if all the boundaries are finite. If they are all finite, it checks if any range between the upper and lower bounds is infinite. If there is an infinite range, it throws a `NumberIsTooLargeException`.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 1,
+                "message": {
+                    "content": "The following fix hunk should also resolve the issue:\n\n```java\nif (boundaries != null) {\n    for (int i = 0; i < lB.length; i++) {\n        if (Double.isInfinite(lB[i]) || Double.isInfinite(uB[i])) {\n            throw new NumberIsTooLargeException(Double.POSITIVE_INFINITY, 0, true);\n        }\n        if (uB[i] - lB[i] <= 0) {\n            throw new NumberIsTooLargeException(uB[i] - lB[i], 0, true);\n        }\n    }\n}\n```\n\nThis fix hunk checks for two cases:\n1. If any of the boundaries are infinite, then throw a `NumberIsTooLargeException` with a positive infinity value.\n2. If any of the upper bounds are less than or equal to their respective lower bounds, then throw a `NumberIsTooLargeException` with the difference between the upper and lower boundaries as the value.\n\nNote that in case 1, the value used for the exception is positive infinity instead of the value of the boundary difference, as the condition `uB[i] - lB[i] <= 0` would not be satisfied in that case.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 2,
+                "message": {
+                    "content": "Based on the information provided, it seems that the original buggy code is missing a condition where the program should throw a `NumberIsTooLargeException` when the range of the boundary exceeds the maximum value of a `double` number. Therefore, the alternative fix hunk is:\n\n```java\nif (boundaries != null) {\n    double range = boundaries[1][0] - boundaries[0][0];\n    if (Double.isInfinite(range)) {\n        throw new NumberIsTooLargeException(range, 0, true);\n    } else if (Double.MAX_VALUE / Math.max(1, Math.abs(range)) < FastMath.max(1, lB.length)) {\n        throw new NumberIsTooLargeException(range, Double.MAX_VALUE, false);\n    }\n}\n```\n\nThis code-block checks both if the range of the boundary exceeds the maximum value of `double` using `Double.isInfinite()`, and also checks if the calculation of `Double.MAX_VALUE / range * lB.length` would exceed the max value of `double` to prevent issues with rounding errors. If either of these conditions is met, it will throw a `NumberIsTooLargeException`.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 3,
+                "message": {
+                    "content": "Here is an alternative fix hunk:\n```java\n        if (hasFiniteBounds) {\n            for (int i = 0; i < lB.length; i++) {\n                if (Double.isNaN(lB[i]) ||\n                    Double.isNaN(uB[i])) {\n                    throw new MathIllegalArgumentException(LocalizedFormats.NAN_ELEMENT_AT_INDEX, i);\n                }\n                if (Double.compare(lB[i], uB[i]) > 0) {\n                    throw new NumberIsTooLargeException(LocalizedFormats.LOWER_BOUND_NOT_BELOW_UPPER_BOUND, lB[i], uB[i], true);\n                }\n                if (!Double.isInfinite(lB[i]) ||\n                    !Double.isInfinite(uB[i])) {\n                    hasFiniteBounds = true;\n                }\n            }\n\n            if (hasFiniteBounds) {\n                // Convert API to internal handling of boundaries.\n                boundaries = new double[2][];\n                boundaries[0] = lB;\n                boundaries[1] = uB;\n            } else {\n                boundaries = null;\n            }\n        } else {\n            // Convert API to internal handling of boundaries.\n            boundaries = null;\n        }\n\n        if (inputSigma != null) {\n            if (inputSigma.length != init.length) {\n                throw new DimensionMismatchException(inputSigma.length, init.length);\n            }\n            for (int i = 0; i < init.length; i++) {\n                if (inputSigma[i] < 0) {\n                    throw new NotPositiveException(inputSigma[i]);\n                }\n                if (boundaries != null) {\n                    if (inputSigma[i] > boundaries[1][i] - boundaries[0][i]) {\n                        throw new NumberIsTooLargeException(inputSigma[i], boundaries[1][i] - boundaries[0][i], false);\n                    }\n                }\n            }\n        }\n```\nThis alternative fix hunk replaces the original boundary check with a more comprehensive one that checks for NaN values as well as the ordering of the lower and upper bounds. The hunk also replaces `OutOfRangeException` with `NumberIsTooLargeException`.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 4,
+                "message": {
+                    "content": "Here is an alternative fix hunk:\n```java\nif (inputSigma != null) {\n    if (inputSigma.length != init.length) {\n        throw new DimensionMismatchException(inputSigma.length, init.length);\n    }\n    for (int i = 0; i < init.length; i++) {\n        if (inputSigma[i] < 0) {\n            throw new NotPositiveException(inputSigma[i]);\n        }\n        if (boundaries != null) {\n            double boundDiff = boundaries[1][i] - boundaries[0][i];\n            if (Double.isInfinite(boundDiff)) {\n                throw new NumberIsTooLargeException(boundDiff, 0, true);\n            }\n            if (inputSigma[i] > boundDiff) {\n                throw new OutOfRangeException(inputSigma[i], 0, boundDiff);\n            }\n        }\n    }\n}\n``` \nThis fix hunk adds a check to see if the difference between the upper and lower boundary of the input array is infinite. If it is, it throws a `NumberIsTooLargeException`.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 5,
+                "message": {
+                    "content": "The following fix hunk can be used:\n\n```java\nif (inputSigma != null) {\n    if (inputSigma.length != init.length) {\n        throw new DimensionMismatchException(inputSigma.length, init.length);\n    }\n    for (int i = 0; i < init.length; i++) {\n        if (inputSigma[i] < 0) {\n            throw new NotPositiveException(inputSigma[i]);\n        }\n        if (boundaries != null && !Double.isInfinite(boundaries[1][i] - boundaries[0][i])) {\n            if (inputSigma[i] > boundaries[1][i] - boundaries[0][i]) {\n                throw new NumberIsTooLargeException(inputSigma[i], boundaries[1][i] - boundaries[0][i], false);\n            }\n        }\n    }\n}\n``` \n\nThis hunk checks if the difference between the upper and lower bound for a parameter is infinite or not, and only if it is finite checks if the input sigma value is greater than the difference, throwing an exception if so. This ensures that we only throw exceptions in supported cases and in a way that reflects the actual error that has occurred.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 6,
+                "message": {
+                    "content": "Here is an alternative fix hunk:\n```java\nif (hasFiniteBounds) {\n    boolean anyInfiniteBound = false;\n    boolean anyNonInfiniteBound = false;\n    for (int i = 0; i < lB.length; i++) {\n        if (Double.isInfinite(lB[i]) || Double.isInfinite(uB[i])) {\n            anyInfiniteBound = true;\n        } else {\n            anyNonInfiniteBound = true;\n        }\n    }\n\n    if (anyInfiniteBound && anyNonInfiniteBound) {\n        // If there is at least one finite bound, none can be infinite,\n        // because mixed cases are not supported by the current code.\n        throw new MathUnsupportedOperationException();\n    } else if (anyInfiniteBound) {\n        // If all bounds are infinite, the normalize method will not work.\n        throw new NumberIsTooLargeException(Double.POSITIVE_INFINITY, 0, true);\n    } else {\n        // Convert API to internal handling of boundaries.\n        boundaries = new double[2][];\n        boundaries[0] = lB;\n        boundaries[1] = uB;\n\n        // Abort early if the normalization will overflow (cf. \"encode\" method).\n        if (Double.isInfinite(boundaries[1][0] - boundaries[0][0])) {\n            throw new NumberIsTooLargeException(boundaries[1][0] - boundaries[0][0], 0, true);\n        }\n    }\n}\n``` \n\nThis implementation separates the checks on the bounds into two parts:\n1. It first checks whether any non-infinite bound exists. If an infinite bound is found with any finite bound, a `MathUnsupportedOperationException` is thrown as before.\n2. If there are no finite bounds, a `NumberIsTooLargeException` is thrown because the `normalize` method will not work on infinite bounds. \n3. If all bounds are finite, they are converted to internal representation, and the existing check for overflow of the normalization is kept the same.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 7,
+                "message": {
+                    "content": "Here is an alternative fix hunk for the given code:\n```java\nif (hasInfiniteBounds) {\n    // If there is at least one finite bound, none can be infinite,\n    // because mixed cases are not supported by the current code.\n    throw new NumberIsTooLargeException(0, Double.POSITIVE_INFINITY, false);\n} else {\n    // Convert API to internal handling of boundaries.\n    boundaries = new double[2][];\n    boundaries[0] = lB;\n    boundaries[1] = uB;\n\n    // Abort early if the normalization will overflow (cf. \"encode\" method).\n    double boundaryRange = boundaries[1][0] - boundaries[0][0];\n    double inputSigmaMax = inputSigma != null ? Arrays.stream(inputSigma).max().getAsDouble() : 0.0;\n    if (boundaryRange > Double.MAX_VALUE / inputSigmaMax) {\n        throw new NumberIsTooLargeException(boundaryRange, Double.MAX_VALUE / inputSigmaMax, true);\n    }\n}\n```\nThis fix hunk calculates the range of the boundaries and the maximum value of `inputSigma` and checks if the range multiplied by the maximum value of `inputSigma` is greater than `Double.MAX_VALUE`. If so, it throws a `NumberIsTooLargeException` with appropriate parameters. This should fix the original bug and pass the failing test case.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 8,
+                "message": {
+                    "content": "Based on the provided information, it seems like `NumberIsTooLargeException` would be a more appropriate exception to throw in this case. The fix hunk could look like this:\n```java\nif (boundaries != null) {\n    double boundaryRange = boundaries[1][0] - boundaries[0][0];\n    if (Double.isInfinite(boundaryRange)) {\n        throw new NumberIsTooLargeException(boundaryRange, 0, true);\n    }\n}\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 9,
+                "message": {
+                    "content": "Based on the information provided, it seems the original buggy hunk was removed completely and there is no information on what could be causing the test failure. Therefore, I cannot generate an alternative fix hunk without further context or information. Please provide more details or the original buggy hunk for me to assist you better.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 10,
+                "message": {
+                    "content": "The following fix hunk prevents the normalization from overflowing by checking if the input boundaries are too large.\n\n```java\nif (hasFiniteBounds) {\n    for (int i = 0; i < lB.length; i++) {\n        if (Double.isInfinite(lB[i]) || Double.isInfinite(uB[i])) {\n            hasInfiniteBounds = true;\n            break;\n        }\n    }\n\n    if (hasInfiniteBounds) {\n        // If there is at least one finite bound, none can be infinite,\n        // because mixed cases are not supported by the current code.\n        throw new MathUnsupportedOperationException();\n    } else if (!isNormalizable(lB, uB)) {\n        // Input boundaries are too large to be normalized.\n        throw new NumberIsTooLargeException(getBoundaryRange(lB, uB), 0, true);\n    } else {\n        // Convert API to internal handling of boundaries.\n        boundaries = new double[2][];\n        boundaries[0] = lB;\n        boundaries[1] = uB;\n    }\n} else {\n    // Convert API to internal handling of boundaries.\n    boundaries = null;\n}\n\n...\n\nprivate boolean isNormalizable(double[] lB, double[] uB) {\n    for (int i = 0; i < lB.length; i++) {\n        double boundaryRange = uB[i] - lB[i];\n        if (Double.isInfinite(boundaryRange) || boundaryRange > MAX_NORMALIZED_BOUNDARY_RANGE) {\n            return false;\n        }\n    }\n    return true;\n}\n\nprivate double getBoundaryRange(double[] lB, double[] uB) {\n    double maxBoundaryRange = Double.NEGATIVE_INFINITY;\n    for (int i = 0; i < lB.length; i++) {\n        double boundaryRange = uB[i] - lB[i];\n        if (boundaryRange > maxBoundaryRange) {\n            maxBoundaryRange = boundaryRange;\n        }\n    }\n    return maxBoundaryRange;\n}\n\nprivate static final double MAX_NORMALIZED_BOUNDARY_RANGE = Math.exp(704); // maximum representable double value\n```",
+                    "role": "assistant"
+                }
+            }
+        ],
+        "created": 1690928130,
+        "id": "chatcmpl-7irwIG016vWHwlL6GKnSUnpIEsxJG",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion",
+        "usage": {
+            "completion_tokens": 2885,
+            "prompt_tokens": 698,
+            "total_tokens": 3583
+        }
+    }
+}

@@ -1,0 +1,87 @@
+{
+    "call": {
+        "messages": [
+            {
+                "content": "You are an automated program repair tool.",
+                "role": "system"
+            },
+            {
+                "content": "The following code contains a bug.\n```java\n    public double cumulativeProbability(double x) throws MathException {\n        final double dev = x - mean;\n        try {\n        return 0.5 * (1.0 + Erf.erf((dev) /\n                    (standardDeviation * FastMath.sqrt(2.0))));\n        } catch (MaxIterationsExceededException ex) {\n            if (x < (mean - 20 * standardDeviation)) { // JDK 1.5 blows at 38\n                return 0;\n            } else if (x > (mean + 20 * standardDeviation)) {\n                return 1;\n            } else {\n                throw ex;\n            }\n        }\n    }\n```\nThe code fails on this test:\n```\ntestExtremeValues\n```\non this test line:\n```java\n        assertEquals(distribution.cumulativeProbability(Double.MAX_VALUE), 1, 0);\n```\nwith the following test error:\n```\norg.apache.commons.math.ConvergenceException: Continued fraction diverged to NaN for value \u221e\n```\nIt can be fixed by the following functions:\n1. ```java\npublic double cumulativeProbability(double x) throws MathException {\n    final double dev = x - mean;\n    final double nSigma = dev / standardDeviation;\n\n    if (Double.isNaN(nSigma)) {\n        throw new MathException(\"Invalid input value: x = NaN\");\n    } else if (Double.isInfinite(nSigma)) {\n        return (nSigma < 0) ? 0.0 : 1.0;\n    } else if (nSigma > 40.0) {\n        return 1.0;\n    } else if (nSigma < -40.0) {\n        return 0.0;\n    } else {\n        try {\n            return 0.5 * (1.0 + Erf.erf(nSigma / FastMath.sqrt(2.0)));\n        } catch (MaxIterationsExceededException ex) {\n            if (dev < 0) {\n                return 0;\n            } else {\n                return 1;\n            }\n        }\n    }\n}\n```\n2. ```java\npublic double cumulativeProbability(double x) throws MathException {\n    if (Double.isInfinite(x)) {\n        return (x < 0) ? 0.0 : 1.0;\n    } else if (Double.isNaN(x)) {\n      throw new MathException(\"Invalid input value: x = NaN\");\n    }\n    final double dev = x - mean;\n    final double nSigma = dev / standardDeviation;\n    final double cutoff = 40.0;\n\n    // Avoid overflow in exponential\n    if (nSigma < -cutoff) {\n        return 0.0;\n    }\n    if (nSigma > cutoff) {\n        return 1.0;\n    }\n    try {\n      return 0.5 * (1.0 + Erf.erf(nSigma / FastMath.sqrt(2.0)));\n    } catch (MaxIterationsExceededException ex) {\n        if (x < (mean - cutoff * standardDeviation)) {\n            return 0.0;\n        } else if (x > (mean + cutoff * standardDeviation)) {\n            return 1.0;\n        } else {\n            throw ex;\n        }\n    }\n}\n```\n3. ```java\npublic double cumulativeProbability(double x) throws MathException {\n    final double dev = x - mean;\n    final double nSigma = dev / standardDeviation;\n\n    if (Double.isNaN(nSigma)) {\n        throw new MathException(\"Invalid input value: x = \" + x\n                                 + \", mean = \" + mean\n                                 + \", standardDeviation = \" + standardDeviation);\n    }\n\n    // Avoid overflow in exponential\n    if (nSigma > 40.0) {\n        return 1.0;\n    }\n\n    if (nSigma < -40.0) {\n        return 0.0;\n    }\n\n    try {\n        return 0.5 * (1.0 + Erf.erf(nSigma / FastMath.sqrt(2.0)));\n    } catch (MaxIterationsExceededException ex) {\n        if (x < (mean - 20 * standardDeviation)) { // JDK 1.5 blows at 38\n            return 0;\n        } else if (x > (mean + 20 * standardDeviation)) {\n            return 1;\n        } else {\n            throw ex;\n        }\n    }\n}\n```\n4. ```java\npublic double cumulativeProbability(double x) throws MathException {\n    if (Double.isInfinite(x)) {\n        return (x < 0) ? 0.0 : 1.0;\n    } else if (Double.isNaN(x)) {\n    \tthrow new MathException(\"Invalid input value: x = NaN\");\n    }\n    final double dev = x - mean;\n    final double nSigma = dev / standardDeviation;\n\n    // Avoid overflow in exponential\n    if (nSigma > 40.0) {\n        return 1.0;\n    } else if (nSigma < -40.0) {\n        return 0.0;\n    } else {\n        return 0.5 * (1.0 + Erf.erf(nSigma / FastMath.sqrt(2.0)));\n    }\n}\n```\nPlease generate an alternative fix function.",
+                "role": "user"
+            }
+        ],
+        "model": "gpt-3.5-turbo-0301",
+        "n": 7,
+        "temperature": 1,
+        "top_p": 1
+    },
+    "response": {
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "index": 0,
+                "message": {
+                    "content": "Here is an alternative fix that should also work:\n\n```java\npublic double cumulativeProbability(double x) throws MathException {\n    if (Double.isNaN(x)) {\n        throw new MathException(\"Invalid input value: x = NaN\");\n    }\n    final double dev = x - mean;\n    final double nSigma = dev / standardDeviation;\n\n    if (Double.isInfinite(nSigma)) {\n        return (nSigma < 0) ? 0.0 : 1.0;\n    }\n\n    final double cutoff = 40.0;\n\n    if (nSigma > cutoff) {\n        // Avoid overflow in exponential\n        return 1.0;\n    } else if (nSigma < -cutoff) {\n        // Avoid overflow in exponential\n        return 0.0;\n    } else {\n        try {\n            return 0.5 * (1.0 + Erf.erf(nSigma / FastMath.sqrt(2.0)));\n        } catch (MaxIterationsExceededException ex) {\n            if (x < (mean - cutoff * standardDeviation)) {\n                return 0.0;\n            } else if (x > (mean + cutoff * standardDeviation)) {\n                return 1.0;\n            } else {\n                throw ex;\n            }\n        }\n    }\n}\n```\n\nIn this fix, we first check if `x` is `NaN`. Then, we calculate `nSigma` as before, and check if it is infinite. If it is infinite, we return either 0 or 1 depending on the sign of `nSigma`.\n\nNext, we define a constant `cutoff` to avoid overflow in the exponential function. We check if `nSigma` is outside the range of `-cutoff` to `cutoff`, and return either 0 or 1 if it is. If `nSigma` is within range, we calculate the cumulative probability using the Erf function as before.\n\nFinally, if the MaxIterationsExceededException is thrown, we handle it the same way as before, by returning 0 or 1 depending on the value of `x`.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 1,
+                "message": {
+                    "content": "Here's an alternative fix function:\n```java\npublic double cumulativeProbability(double x) throws MathException {\n    if (Double.isInfinite(x)) {\n        return (x < 0) ? 0.0 : 1.0;\n    } else if (Double.isNaN(x)) {\n      throw new MathException(\"Invalid input value: x = NaN\");\n    }\n\n    final double dev = x - mean;\n    final double nSigma = dev / standardDeviation;\n    final double threshold = 5.0;\n\n    if (nSigma > threshold) {\n        return 1.0 - Erf.erfc(nSigma / FastMath.sqrt(2.0)) / 2.0;\n    } else if (nSigma < -threshold) {\n        return Erf.erfc(-nSigma / FastMath.sqrt(2.0)) / 2.0;\n    } else {\n        try {\n            return 0.5 * (1.0 + Erf.erf(nSigma / FastMath.sqrt(2.0)));\n        } catch (MaxIterationsExceededException ex) {\n            if (x < (mean - 20 * standardDeviation)) { \n                return 0;\n            } else if (x > (mean + 20 * standardDeviation)) {\n                return 1;\n            } else {\n                throw ex;\n            }\n        }\n    }\n}\n```\nIn this version, we have introduced a threshold value, above and below which we use the complementary error function (erfc) to compute the cumulative probability. This is because when the input is too large or too small, the standard error function (erf) fails to converge and may produce NaNs or INFs. The threshold value is chosen empirically, and may be adjusted depending on the needs of the user.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 2,
+                "message": {
+                    "content": "Here's another fix function:\n```java\npublic double cumulativeProbability(double x) throws MathException {\n    if (Double.isNaN(x)) {\n        throw new MathException(\"Invalid input value: x = NaN\");\n    }\n    final double dev = x - mean;\n    final double nSigma = dev / standardDeviation;\n    final double maxDev = 20.0 * standardDeviation;\n    final double minDev = -maxDev;\n\n    if (nSigma > 40.0) {\n        return 1.0;\n    } else if (nSigma < -40.0) {\n        return 0.0;\n    } else if (dev > maxDev) {\n        return 1.0;\n    } else if (dev < minDev) {\n        return 0.0;\n    } else {\n        try {\n            return 0.5 * (1.0 + Erf.erf(nSigma / FastMath.sqrt(2.0)));\n        } catch (MaxIterationsExceededException ex) {\n            if (dev < 0) {\n                return 0.0;\n            } else {\n                return 1.0;\n            }\n        }\n    }\n}\n```\nThis fix function checks if the input value `x` is NaN, and throws an exception if it is. It then calculates the number of standard deviations `nSigma` from the mean. If `nSigma` is greater than 40 or less than -40, the function returns 1.0 or 0.0, respectively. If `dev`, the difference between `x` and the mean, is greater than 20 standard deviations, the function returns 1.0. If `dev` is less than -20 standard deviations, the function returns 0.0. Otherwise, it computes the cumulative distribution function using the `Erf.erf()` function and returns the result. If the max iterations exception is caught, the function returns 0.0 or 1.0 based on the sign of `dev`.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 3,
+                "message": {
+                    "content": "Here is an alternative fix function:\n\n```java\npublic double cumulativeProbability(double x) throws MathException {\n   if (Double.isNaN(x)) {\n       throw new MathException(\"Invalid input value: x = NaN\");\n   } else if (Double.isInfinite(x)) {\n       return x < 0 ? 0.0 : 1.0;\n   }\n\n   final double dev = x - mean;\n\n   if (Double.isInfinite(dev)) {\n       return dev < 0 ? 0.0 : 1.0;\n   } else if (Double.isNaN(dev)) {\n       throw new MathException(\"Invalid input value: x = \" + x +\n               \", mean = \" + mean + \", standardDeviation = \" + standardDeviation);\n   }\n\n   try {\n       final double nSigma = dev / standardDeviation;\n       return 0.5 * (1.0 + Erf.erf(nSigma / FastMath.sqrt(2.0)));\n   } catch (MaxIterationsExceededException ex) {\n       if (x < (mean - 20 * standardDeviation)) {\n           return 0.0;\n       } else if (x > (mean + 20 * standardDeviation)) {\n           return 1.0;\n       } else {\n           throw ex;\n       }\n   }\n}\n```\n\nIn this fix, we first handle the cases where x or dev are NaN or infinite. We then calculate nSigma and use it to calculate the cumulative probability. If that leads to a `MaxIterationsExceededException`, we handle the same case as the original code and return either 0 or 1 based on the value of x.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 4,
+                "message": {
+                    "content": "Here's another possible fix function:\n\n```java\npublic double cumulativeProbability(double x) throws MathException {\n    final double dev = x - mean;\n    final double nSigma = dev / standardDeviation;\n\n    if (Double.isNaN(nSigma)) {\n    \tthrow new MathException(\"Invalid input value: x = NaN\");\n    }\n\n    double result;\n    try {\n        result = 0.5 * (1.0 + Erf.erf(nSigma / FastMath.sqrt(2.0)));\n    } catch (MaxIterationsExceededException ex) {\n        if (dev < 0) {\n            return 0;\n        } else {\n            return 1;\n        }\n    }\n\n    if (Double.isInfinite(result)) {\n        result = (nSigma < 0) ? 0.0 : 1.0;\n    }\n\n    return result;\n}\n```\n\nThis function first checks if the input `x` produces a `NaN` value for `nSigma`, and throws an exception if it does. Then it calculates the cumulative probability using the same formula as the original implementation, except that it catches the `MaxIterationsExceededException` to handle extreme values. If the result of the calculation is infinite, it sets the result to either 0 or 1 depending on whether `nSigma` is negative or positive. Finally, it returns either the calculated result or the pre-set value for infinite results.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 5,
+                "message": {
+                    "content": "Here is an alternative fix function:\n\n```java\npublic double cumulativeProbability(double x) throws MathException {\n    if (Double.isNaN(x)) {\n        throw new MathException(\"Invalid input value: x = NaN\");\n    }\n\n    final double dev = x - mean;\n    final double nSigma = dev / standardDeviation;\n\n    if (Double.isInfinite(nSigma)) {\n        if (nSigma > 0) {\n            return 1.0;\n        } else {\n            return 0.0;\n        }\n    }\n\n    if (nSigma > 40.0) {\n        return 1.0;\n    } else if (nSigma < -40.0) {\n        return 0.0;\n    }\n\n    try {\n        return 0.5 * (1.0 + Erf.erf(nSigma / FastMath.sqrt(2.0)));\n    } catch (MaxIterationsExceededException ex) {\n        return (nSigma < 0) ? 0.0 : 1.0;\n    }\n}\n```\n\nThis function first checks if `x` is `NaN` and throws an exception if so. Then, it calculates `dev` and `nSigma`. If `nSigma` is infinite, it returns 0 if `nSigma` is negative and 1 if it's positive. Otherwise, it checks if `nSigma` is too high or too low to be accurately calculated and returns 0 or 1 respectively. If `nSigma` is within range, it calculates the cumulative probability using the `Erf` function. If the function fails due to `MaxIterationsExceededException`, it returns 0 if `nSigma` is negative and 1 if it's positive.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 6,
+                "message": {
+                    "content": "Here's an alternative fix:\n```java\npublic double cumulativeProbability(double x) throws MathException {\n    if (Double.isNaN(x)) {\n        throw new MathException(\"Invalid input value: x = NaN\");\n    } else if (Double.isInfinite(x)) {\n        return (x < 0) ? 0.0 : 1.0;\n    }\n    final double dev = x - mean;\n    final double nSigma = dev / standardDeviation;\n    if (Double.isNaN(nSigma) || Double.isInfinite(nSigma)) {\n        return Double.NaN;\n    }\n\n    try {\n        if (nSigma > 0) {\n            return 1 - Erf.erfc(nSigma / FastMath.sqrt(2.0)) / 2.0;\n        } else {\n            return Erf.erfc(-nSigma / FastMath.sqrt(2.0)) / 2.0;\n        }\n    } catch (MaxIterationsExceededException ex) {\n        throw new MathException(ex.getMessage());\n    }\n}\n```\nThis fix handles all edge cases, including NaNs and infinities for both x and the calculated nSigma. Additionally, it uses the complementary error function (erfc) to calculate the final result, which is more numerically stable than the erf function used in the original code.",
+                    "role": "assistant"
+                }
+            }
+        ],
+        "created": 1690907192,
+        "id": "chatcmpl-7imUa90HNF8IuDAsb7IL2qxbmI6Rf",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion",
+        "usage": {
+            "completion_tokens": 2484,
+            "prompt_tokens": 1143,
+            "total_tokens": 3627
+        }
+    }
+}

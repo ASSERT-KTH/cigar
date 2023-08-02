@@ -1,0 +1,87 @@
+{
+    "call": {
+        "messages": [
+            {
+                "content": "You are an automated program repair tool.",
+                "role": "system"
+            },
+            {
+                "content": "The following code contains a bug.\n```java\n    public long adjustOffset(long instant, boolean earlierOrLater) {\n        // a bit messy, but will work in all non-pathological cases\n        \n        // evaluate 3 hours before and after to work out if anything is happening\n        long instantBefore = convertUTCToLocal(instant - 3 * DateTimeConstants.MILLIS_PER_HOUR);\n        long instantAfter = convertUTCToLocal(instant + 3 * DateTimeConstants.MILLIS_PER_HOUR);\n        if (instantBefore == instantAfter) {\n            return instant;  // not an overlap (less than is a gap, equal is normal case)\n        }\n        \n        // work out range of instants that have duplicate local times\n        long local = convertUTCToLocal(instant);\n        return convertLocalToUTC(local, false, earlierOrLater ? instantAfter : instantBefore);\n        \n        // calculate result\n          // currently in later offset\n          // currently in earlier offset\n    }\n```\nThe code fails on this test:\n```\ntestBug3476684_adjustOffset\n```\non this test line:\n```java\n        assertEquals(baseAfter, baseBefore.withLaterOffsetAtOverlap());\n```\nwith the following test error:\n```\njunit.framework.AssertionFailedError: expected:<2012-02-25T23:15:00.000-03:00> but was:<2012-02-25T23:15:00.000-02:00>\n```\nIt can be fixed by the following function:\n1. ```java\n    public long adjustOffset(long instant, boolean earlierOrLater) {\n        // evaluate 24 hours before and after to work out if anything is happening\n        long instantBefore = convertUTCToLocal(instant - 24 * DateTimeConstants.MILLIS_PER_HOUR);\n        long instantAfter = convertUTCToLocal(instant + 24 * DateTimeConstants.MILLIS_PER_HOUR);\n        if (instantBefore == instantAfter) {\n            return instant;  // not an overlap (less than is a gap, equal is normal case)\n        }\n        \n        // work out range of instants that have duplicate local times\n        long local = convertUTCToLocal(instant);\n        return convertLocalToUTC(local, false, earlierOrLater ? instantAfter : instantBefore);\n        \n        // calculate result\n          // currently in later offset\n          // currently in earlier offset\n    }\n```\nPlease generate an alternative fix function.",
+                "role": "user"
+            }
+        ],
+        "model": "gpt-3.5-turbo-0301",
+        "n": 7,
+        "temperature": 1,
+        "top_p": 1
+    },
+    "response": {
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "index": 0,
+                "message": {
+                    "content": "One alternative fix could be to change the evaluation window from 3 hours before and after the instant to 12 hours before and after the instant:\n```java\npublic long adjustOffset(long instant, boolean earlierOrLater) {\n    // evaluate 12 hours before and after to work out if anything is happening\n    long instantBefore = convertUTCToLocal(instant - 12 * DateTimeConstants.MILLIS_PER_HOUR);\n    long instantAfter = convertUTCToLocal(instant + 12 * DateTimeConstants.MILLIS_PER_HOUR);\n    if (instantBefore == instantAfter) {\n        return instant; // not an overlap (less than is a gap, equal is normal case)\n    }\n\n    // work out range of instants that have duplicate local times\n    long local = convertUTCToLocal(instant);\n    return convertLocalToUTC(local, false, earlierOrLater ? instantAfter : instantBefore);\n\n    // calculate result\n    // currently in later offset\n    // currently in earlier offset\n}\n```\nThis increases the evaluation window to cover a wider range of time zone changes, reducing the likelihood of missing edge cases that could lead to incorrect offsets.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 1,
+                "message": {
+                    "content": "Here is an alternative fix for the given code:\n\n```java\n    public long adjustOffset(long instant, boolean earlierOrLater) {\n        // evaluate 2 days before and after to work out if anything is happening\n        long instantBefore = convertUTCToLocal(instant - 2 * DateTimeConstants.MILLIS_PER_DAY);\n        long instantAfter = convertUTCToLocal(instant + 2 * DateTimeConstants.MILLIS_PER_DAY);\n        if (instantBefore == instantAfter) {\n            return instant;  // not an overlap (less than is a gap, equal is normal case)\n        }\n\n        // work out range of instants that have duplicate local times\n        long local = convertUTCToLocal(instant);\n        long maxDurationMillis = 2 * DateTimeConstants.MILLIS_PER_HOUR;\n        for (long offsetMillis = maxDurationMillis; offsetMillis < 2 * DateTimeConstants.MILLIS_PER_DAY; offsetMillis *= 2) {\n            long nextInstant = instant + offsetMillis;\n            long nextLocal = convertUTCToLocal(nextInstant);\n            if (nextLocal == local) {\n                instantAfter = nextInstant;\n            } else {\n                break;\n            }\n        }\n        for (long offsetMillis = maxDurationMillis; offsetMillis < 2 * DateTimeConstants.MILLIS_PER_DAY; offsetMillis *= 2) {\n            long prevInstant = instant - offsetMillis;\n            long prevLocal = convertUTCToLocal(prevInstant);\n            if (prevLocal == local) {\n                instantBefore = prevInstant;\n            } else {\n                break;\n            }\n        }\n\n        return convertLocalToUTC(local, false, earlierOrLater ? instantAfter : instantBefore);\n\n        // calculate result\n        // currently in later offset\n        // currently in earlier offset\n    }\n```\n\nThis implementation increases the range of instants that are evaluated to 2 days before and after the input instant, and uses a loop to narrow down the range of instants that have duplicate local times to a maximum of 2 hours. It should still work correctly in all non-pathological cases.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 2,
+                "message": {
+                    "content": "Here is an alternative fix for the code:\n\n```java\n    public long adjustOffset(long instant, boolean earlierOrLater) {\n        // evaluate 4 hours before and after to work out if anything is happening\n        long instantBefore = convertUTCToLocal(instant - 4 * DateTimeConstants.MILLIS_PER_HOUR);\n        long instantAfter = convertUTCToLocal(instant + 4 * DateTimeConstants.MILLIS_PER_HOUR);\n\n        // if before and after are same then no overlap\n        if (instantBefore == instantAfter) {\n            return instant;\n        }\n\n        // check if there is a gap or overlap for the given instant\n        boolean gapBefore = isLocalDateTimeGap(instantBefore);\n        boolean overlapAfter = isLocalDateTimeOverlap(instantAfter);\n\n        // if there is no overlap or earlierOrLater is false and there is a gap or earlierOrLater is true and there is an overlap\n        if ((!overlapAfter && (!earlierOrLater || gapBefore)) || (earlierOrLater && overlapAfter)) {\n            return convertLocalToUTC(instantBefore, false, instant);\n        }\n        // otherwise there is an overlap and we need to return the instantAfter\n        return convertLocalToUTC(instantAfter, false, instant);\n    }\n    \n    // helper function to check if given local date time is a gap\n    private boolean isLocalDateTimeGap(long localDateTime) {\n        long nextLocalDateTime = convertUTCToLocal(convertLocalToUTC(localDateTime, false));\n        return nextLocalDateTime > localDateTime;\n    }\n\n    // helper function to check if there is an overlap for the given local instant\n    private boolean isLocalDateTimeOverlap(long localDateTime) {\n        long prevLocalDateTime = convertUTCToLocal(convertLocalToUTC(localDateTime, true));\n        return prevLocalDateTime != localDateTime;\n    }\n```\n\nThis fixes the issue by checking for both gaps and overlaps, and then using the correct timezone offset to adjust the instant.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 3,
+                "message": {
+                    "content": "Here is an alternative fix that should address the issue:\n```java\npublic long adjustOffset(long instant, boolean earlierOrLater) {\n    // evaluate 48 hours before and after to work out if anything is happening\n    long instantBefore = convertUTCToLocal(instant - 48 * DateTimeConstants.MILLIS_PER_HOUR);\n    long instantAfter = convertUTCToLocal(instant + 48 * DateTimeConstants.MILLIS_PER_HOUR);\n    if (instantBefore == instantAfter) {\n        return instant;  // not an overlap (less than is a gap, equal is normal case)\n    }\n    \n    // work out range of instants that have duplicate local times\n    long local = convertUTCToLocal(instant);\n    return convertLocalToUTC(local, false, earlierOrLater ? instantAfter : instantBefore);        \n}\n```\nThis fixes the issue by increasing the range of instants evaluated to 48 hours before and after the initial instant, providing a wider range to detect any overlaps.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 4,
+                "message": {
+                    "content": "Here is an alternative fix function:\n\n```java\npublic long adjustOffset(long instant, boolean earlierOrLater) {\n    // evaluate 12 hours before and after to work out if anything is happening\n    long instantBefore = convertUTCToLocal(instant - 12 * DateTimeConstants.MILLIS_PER_HOUR);\n    long instantAfter = convertUTCToLocal(instant + 12 * DateTimeConstants.MILLIS_PER_HOUR);\n\n    if (instantBefore < instantAfter) {\n        // Gap\n        if (earlierOrLater) {\n            return instantAfter - 1;\n        } else {\n            return instantBefore;\n        }\n    } else if (instantBefore > instantAfter) {\n        // Overlap\n        long local = convertUTCToLocal(instant);\n        return convertLocalToUTC(local, false, earlierOrLater ? instantAfter : instantBefore);\n    } else {\n        // Single instant (no overlap or gap)\n        return instant;\n    }\n}\n```\n\nThis alternative function checks for a gap or overlap by evaluating 12 hours before and after the instant. If there is a gap, it returns the instant after (if `earlierOrLater` is `true`) or the instant before (if `earlierOrLater` is `false`). If there is an overlap, it follows the original implementation and calculates the offset based on the range of instants with duplicate local times. If there is neither a gap nor an overlap, it simply returns the instant.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 5,
+                "message": {
+                    "content": "Alternative fix function:\n```java\npublic long adjustOffset(long instant, boolean earlierOrLater) {\n    // evaluate 3 hours before and after to work out if anything is happening\n    long instantBefore = convertUTCToLocal(instant - 3 * DateTimeConstants.MILLIS_PER_HOUR);\n    long instantAfter = convertUTCToLocal(instant + 3 * DateTimeConstants.MILLIS_PER_HOUR);\n\n    // check if there is an overlap or gap using only the hour and minute of the local time\n    boolean overlap = ((new LocalDateTime(instantBefore)).withSecondOfMinute(0).withMillisOfSecond(0))\n                        .isEqual((new LocalDateTime(instantAfter)).withSecondOfMinute(0).withMillisOfSecond(0));\n\n    if (!overlap) {\n        // no overlap or gap\n        return instant;\n    }\n\n    // calculate the range of instants that have duplicate local times\n    long offsetBefore = (convertLocalToUTC(instantBefore, false) - instantBefore);\n    long offsetAfter = (convertLocalToUTC(instantAfter, false) - instantAfter);\n\n    // calculate the difference in offsets\n    long diff = Math.abs(offsetAfter - offsetBefore);\n\n    // if same offset regardless of earlier or later, then we don't have an overlap\n    if (diff == 0) {\n        return instant;\n    }\n\n    // adjust the offset to the earlier/later\n    if (earlierOrLater) {\n        return (instant - offsetBefore + (diff * (offsetBefore < 0 ? -1 : 1)));\n    } else {\n        return (instant - offsetAfter + (diff * (offsetAfter < 0 ? -1 : 1)));\n    }\n}\n```\nThis function checks for the presence of an overlap or gap using only the hour and minute of the local time, instead of evaluating 24 hours before and after. It then calculates the range of instants that have duplicate local times and the difference in offsets at those instants. Finally, it adjusts the offset to the earlier or later offset depending on the boolean input and returns the adjusted instant.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 6,
+                "message": {
+                    "content": "Here is an alternative fix for the given code:\n\n```java\n    public long adjustOffset(long instant, boolean earlierOrLater) {\n        long local = convertUTCToLocal(instant);\n        int offsetBefore = getOffset(instant - DateTimeConstants.MILLIS_PER_SECOND);\n        int offsetAfter = getOffset(instant + DateTimeConstants.MILLIS_PER_SECOND);\n        if (offsetBefore == offsetAfter) {\n            return instant;  // not an overlap (less than is a gap, equal is normal case)\n        }\n        if (earlierOrLater) {\n            if (local + offsetBefore >= 0) {\n                return instant - offsetBefore;\n            } else {\n                return instant - offsetAfter;\n            }\n        } else {\n            if (local + offsetAfter >= 0) {\n                return instant - offsetAfter;\n            } else {\n                return instant - offsetBefore;\n            }\n        }\n    }\n```\n\nThis fix finds the offset for the previous and next second relative to the given instant to check if there is an overlap. It then computes the appropriate offset based on whether the input `earlierOrLater` is true or false and the current offset of the instant relative to midnight of the current day.",
+                    "role": "assistant"
+                }
+            }
+        ],
+        "created": 1690963523,
+        "id": "chatcmpl-7j199cfZWiVd6XXTmajPESgu28qCQ",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion",
+        "usage": {
+            "completion_tokens": 2282,
+            "prompt_tokens": 537,
+            "total_tokens": 2819
+        }
+    }
+}
