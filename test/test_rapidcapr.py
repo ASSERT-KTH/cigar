@@ -19,6 +19,7 @@ class TestRapidCapr(unittest.TestCase):
         self.max_sample_count = prog_params.rapidcapr_max_sample_count
         self.similarity_threshold = prog_params.rapidcapr_similarity_threshold
 
+    @unittest.skip("Features were implemented, rapidcapr parameters were changed since then, retesting it again requires api calls")
     def test_e2e_rapidcapr_improvement_over_capr_with_gpt35_on_d4j_Time_4(self):
         project = "Time"
         bug_id = 4
@@ -56,6 +57,7 @@ class TestRapidCapr(unittest.TestCase):
         self.assertLessEqual(rapidcapr_token_usage_on_Time_4, capr_token_usage_on_Time_4 / 5)
         self.assertGreaterEqual(rapidcapr_Time_4_plausible_patch_count, capr_Time_4_plausible_patch_count)
 
+    @unittest.skip("Features were implemented, rapidcapr parameters were changed since then, retesting it again requires api calls")
     def test_e2e_rapidcapr_improvement_over_capr_with_gpt35_on_d4j_Closure_86(self):
         project = "Closure"
         bug_id = 86
@@ -93,6 +95,7 @@ class TestRapidCapr(unittest.TestCase):
         self.assertLessEqual(rapidcapr_token_usage_on_Closure_86, capr_token_usage_on_Closure_86 / 5)
         self.assertGreaterEqual(rapidcapr_Closure_86_plausible_patch_count, capr_Closure_86_plausible_patch_count)
 
+    @unittest.skip("Features were implemented, rapidcapr parameters were changed since then, retesting it again requires api calls")
     def test_e2e_rapidcapr_improvement_over_capr_with_gpt35_on_d4j_Chart_6(self):
         project = "Chart"
         bug_id = 6 # SH
@@ -130,6 +133,7 @@ class TestRapidCapr(unittest.TestCase):
         self.assertLessEqual(rapidcapr_token_usage_on_Chart_6, capr_token_usage_on_Chart_6 / 5)
         self.assertGreaterEqual(rapidcapr_Chart_6_plausible_patch_count, capr_Chart_6_plausible_patch_count)
 
+    @unittest.skip("Features were implemented, rapidcapr parameters were changed since then, retesting it again requires api calls")
     def test_e2e_rapidcapr_improvement_over_capr_with_gpt35_on_d4j_Chart_7(self):
         project = "Chart"
         bug_id = 7 # SF
