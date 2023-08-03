@@ -27,7 +27,7 @@ done
 
 
 # Run each bug in parallel
-for j in {1..10}
+for j in {1..3}
 do
     parallel --jobs $num_of_parallel_jobs --bar --joblog parallel.log --results parallel_results/ --resume --resume-failed $(pwd)/venv/bin/python3 $(pwd)/main.py -apr $apr -fr $framework -p {1} -bs {2} ::: "${params_projects[@]}" :::+ "${params_bug_ids[@]}"
     rm -rf parallel_results/
