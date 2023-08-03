@@ -63,7 +63,7 @@ class RapidCapr(object):
                     break
 
             plausible_patches, plausible_patch_diffs = proposed_patches.get_plausible_patches(), proposed_patches.get_plausible_patch_diffs()
-            test_failure_count += proposed_patches.get_test_failure_count(), 
+            test_failure_count += proposed_patches.get_test_failure_count()
             test_error_count += proposed_patches.get_test_error_count()
             total_length += proposed_patches.total_length()
 
