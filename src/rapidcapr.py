@@ -52,10 +52,10 @@ class RapidCapr(object):
                             test_result, result_reason, patch_diff = self.framework.validate_patch(bug=bug, proposed_patch=patch, mode=patch_mode)
                             proposed_patches.add(response=response, test_result=test_result, result_reason=result_reason, mode=patch_mode, 
                                                  patch=patch, patch_diff=patch_diff)
+                            if first_plausible_patch_try is None and test_result == 'PASS':
+                                first_plausible_patch_try = total_call_tries
         
             if proposed_patches.contains_plausible_patch(mode=mode) == True:
-                if first_plausible_patch_try is None:
-                    first_plausible_patch_try = total_call_tries
                 break
         
         return (proposed_patches.get_plausible_patches(), proposed_patches.get_plausible_patch_diffs(), 
