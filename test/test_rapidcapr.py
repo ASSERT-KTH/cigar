@@ -23,9 +23,9 @@ class TestRapidCapr(unittest.TestCase):
         project = "Time"
         bug_id = 4
 
-        test_validate_patch_cache = Path(__file__).parent.parent / 'cache' / 'validate_patch_cache' # Uses prod cache (insead of test cache)
-        test_n_shot_cache = Path(__file__).parent.parent / 'cache' / 'n_shot_cache' # Uses prod cache (insead of test cache)
-        test_bug_details_cache = Path(__file__).parent.parent / 'cache' / 'bug_details_cache' # Uses prod cache (insead of test cache)
+        test_validate_patch_cache = Path(__file__).parent.parent / 'cache' / 'validate_patch_cache' # Uses prod cache (instead of test cache)
+        test_n_shot_cache = Path(__file__).parent.parent / 'cache' / 'n_shot_cache' # Uses prod cache (instead of test cache)
+        test_bug_details_cache = Path(__file__).parent.parent / 'cache' / 'bug_details_cache' # Uses prod cache (instead of test cache)
         test_gpt35_cache_folder = Path(__file__).parent / 'cache' / 'gpt35'
 
         framework = Framework(name="defects4j", list_of_bugs = prog_params.d4j_list_of_bugs, 
@@ -47,7 +47,7 @@ class TestRapidCapr(unittest.TestCase):
         if bug.bug_type != "OT":
             repair_results = rapidcapr.repair(bug=bug, max_fpps_try_per_mode=self.max_fpps_try_per_mode, max_mpps_try_per_mode=self.max_mpps_try_per_mode,
                                                 prompt_token_limit=self.prompt_token_limit, total_token_limit_target=self.total_token_limit_target,
-                                                max_sample_count=self.max_sample_count, similarity_threshold=self.similarity_threshold)
+                                                max_sample_count=self.max_sample_count, similarity_threshold=self.similarity_threshold, max_rounds=1)
             plausible_patches, _, repair_cost, _, _, _, _, _ = repair_results
 
             rapidcapr_token_usage_on_Time_4 = repair_cost
@@ -60,9 +60,9 @@ class TestRapidCapr(unittest.TestCase):
         project = "Closure"
         bug_id = 86
 
-        test_validate_patch_cache = Path(__file__).parent.parent / 'cache' / 'validate_patch_cache' # Uses prod cache (insead of test cache)
-        test_n_shot_cache = Path(__file__).parent.parent / 'cache' / 'n_shot_cache' # Uses prod cache (insead of test cache)
-        test_bug_details_cache = Path(__file__).parent.parent / 'cache' / 'bug_details_cache' # Uses prod cache (insead of test cache)
+        test_validate_patch_cache = Path(__file__).parent.parent / 'cache' / 'validate_patch_cache' # Uses prod cache (instead of test cache)
+        test_n_shot_cache = Path(__file__).parent.parent / 'cache' / 'n_shot_cache' # Uses prod cache (instead of test cache)
+        test_bug_details_cache = Path(__file__).parent.parent / 'cache' / 'bug_details_cache' # Uses prod cache (instead of test cache)
         test_gpt35_cache_folder = Path(__file__).parent / 'cache' / 'gpt35'
 
         framework = Framework(name="defects4j", list_of_bugs = prog_params.d4j_list_of_bugs, 
@@ -97,9 +97,9 @@ class TestRapidCapr(unittest.TestCase):
         project = "Chart"
         bug_id = 6 # SH
 
-        test_validate_patch_cache = Path(__file__).parent.parent / 'cache' / 'validate_patch_cache' # Uses prod cache (insead of test cache)
-        test_n_shot_cache = Path(__file__).parent.parent / 'cache' / 'n_shot_cache' # Uses prod cache (insead of test cache)
-        test_bug_details_cache = Path(__file__).parent.parent / 'cache' / 'bug_details_cache' # Uses prod cache (insead of test cache)
+        test_validate_patch_cache = Path(__file__).parent.parent / 'cache' / 'validate_patch_cache' # Uses prod cache (instead of test cache)
+        test_n_shot_cache = Path(__file__).parent.parent / 'cache' / 'n_shot_cache' # Uses prod cache (instead of test cache)
+        test_bug_details_cache = Path(__file__).parent.parent / 'cache' / 'bug_details_cache' # Uses prod cache (instead of test cache)
         test_gpt35_cache_folder = Path(__file__).parent / 'cache' / 'gpt35'
 
         framework = Framework(name="defects4j", list_of_bugs = prog_params.d4j_list_of_bugs, 
@@ -134,9 +134,9 @@ class TestRapidCapr(unittest.TestCase):
         project = "Chart"
         bug_id = 7 # SF
 
-        test_validate_patch_cache = Path(__file__).parent.parent / 'cache' / 'validate_patch_cache' # Uses prod cache (insead of test cache)
-        test_n_shot_cache = Path(__file__).parent.parent / 'cache' / 'n_shot_cache' # Uses prod cache (insead of test cache)
-        test_bug_details_cache = Path(__file__).parent.parent / 'cache' / 'bug_details_cache' # Uses prod cache (insead of test cache)
+        test_validate_patch_cache = Path(__file__).parent.parent / 'cache' / 'validate_patch_cache' # Uses prod cache (instead of test cache)
+        test_n_shot_cache = Path(__file__).parent.parent / 'cache' / 'n_shot_cache' # Uses prod cache (instead of test cache)
+        test_bug_details_cache = Path(__file__).parent.parent / 'cache' / 'bug_details_cache' # Uses prod cache (instead of test cache)
         test_gpt35_cache_folder = Path(__file__).parent / 'cache' / 'gpt35'
 
         framework = Framework(name="defects4j", list_of_bugs = prog_params.d4j_list_of_bugs, 
@@ -175,9 +175,9 @@ class TestRapidCapr(unittest.TestCase):
 
         for project, bug_id in [("Lang", 6)]:
 
-            test_validate_patch_cache = Path(__file__).parent.parent / 'cache' / 'validate_patch_cache' # Uses prod cache (insead of test cache)
-            test_n_shot_cache = Path(__file__).parent.parent / 'cache' / 'n_shot_cache' # Uses prod cache (insead of test cache)
-            test_bug_details_cache = Path(__file__).parent.parent / 'cache' / 'bug_details_cache' # Uses prod cache (insead of test cache)
+            test_validate_patch_cache = Path(__file__).parent.parent / 'cache' / 'validate_patch_cache' # Uses prod cache (instead of test cache)
+            test_n_shot_cache = Path(__file__).parent.parent / 'cache' / 'n_shot_cache' # Uses prod cache (instead of test cache)
+            test_bug_details_cache = Path(__file__).parent.parent / 'cache' / 'bug_details_cache' # Uses prod cache (instead of test cache)
             test_gpt35_cache_folder = Path(__file__).parent / 'cache' / 'gpt35'
 
             framework = Framework(name="defects4j", list_of_bugs = prog_params.d4j_list_of_bugs, 

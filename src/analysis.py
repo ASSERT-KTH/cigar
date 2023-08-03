@@ -59,7 +59,8 @@ class Analysis:
                                                              prompt_token_limit=prog_params.rapidcapr_prompt_token_limit,
                                                              total_token_limit_target=prog_params.rapidcapr_total_token_limit_target,
                                                              max_sample_count=prog_params.rapidcapr_max_sample_count,
-                                                             similarity_threshold=prog_params.rapidcapr_similarity_threshold)
+                                                             similarity_threshold=prog_params.rapidcapr_similarity_threshold,
+                                                             max_rounds=prog_params.rapidcapr_max_rounds)
                         plausible_patches, plausible_patch_diffs, repair_cost, first_plausible_patch_try, first_plausible_patch_conv_len, used_tries, err_tf, err_ce, tpc = repair_results
 
                         prefix = f"{mode}_" if self.apr.name.lower() == "capr" else ""
