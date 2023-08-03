@@ -1,0 +1,135 @@
+{
+    "call": {
+        "messages": [
+            {
+                "content": "You are an automated program repair tool.",
+                "role": "system"
+            },
+            {
+                "content": "The following code contains a bug.\n```java\n    public static boolean isAvailableLocale(Locale locale) {\n        return cAvailableLocaleSet.contains(locale);\n    }\n```\nThe code fails on this test:\n```\ntestAvailableLocaleSet\n```\non this test line:\n```java\n        LocaleUtils.isAvailableLocale(Locale.getDefault());\n```\nwith the following test error:\n```\njava.lang.NullPointerException\n```\nPlease provide the correct function.\nIt can be fixed by the following function:\n```java\n    public static boolean isAvailableLocale(Locale locale) {\n        return availableLocaleList().contains(locale);\n    }\n```\nThe following code contains a bug.\n```java\n    public final void translate(CharSequence input, Writer out) throws IOException {\n        if (out == null) {\n            throw new IllegalArgumentException(\"The Writer must not be null\");\n        }\n        if (input == null) {\n            return;\n        }\n        int pos = 0;\n        int len = input.length();\n        while (pos < len) {\n            int consumed = translate(input, pos, out);\n            if (consumed == 0) {\n                char[] c = Character.toChars(Character.codePointAt(input, pos));\n                out.write(c);\n                pos+= c.length;\n                continue;\n            }\n//          // contract with translators is that they have to understand codepoints \n//          // and they just took care of a surrogate pair\n            for (int pt = 0; pt < consumed; pt++) {\n                pos += Character.charCount(Character.codePointAt(input, pos));\n            }\n        }\n    }\n```\nThe code fails on this test:\n```\ntestEscapeSurrogatePairs\n```\non this test line:\n```java\n        assertEquals(\"\\uD83D\\uDE30\", StringEscapeUtils.escapeCsv(\"\\uD83D\\uDE30\"));\n```\nwith the following test error:\n```\njava.lang.StringIndexOutOfBoundsException: String index out of range: 2\n```\nPlease provide the correct function.",
+                "role": "user"
+            }
+        ],
+        "model": "gpt-3.5-turbo-0301",
+        "n": 13,
+        "temperature": 1,
+        "top_p": 1
+    },
+    "response": {
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "index": 0,
+                "message": {
+                    "content": "The issue with the provided code is that it does not properly handle surrogate pairs in the input CharSequence. The correct function to fix this issue is:\n\n```java\n    public final void translate(CharSequence input, Writer out) throws IOException {\n        if (out == null) {\n            throw new IllegalArgumentException(\"The Writer must not be null\");\n        }\n        if (input == null) {\n            return;\n        }\n        int pos = 0;\n        int len = input.length();\n        while (pos < len) {\n            int consumed = translate(input, pos, out);\n            if (consumed == 0) {\n                int codePoint = Character.codePointAt(input, pos);\n                if (Character.isSupplementaryCodePoint(codePoint)) {\n                    out.write(Character.toChars(codePoint));\n                } else {\n                    out.write(codePoint);\n                }\n                pos += Character.charCount(codePoint);\n                continue;\n            }\n            for (int pt = 0; pt < consumed; pt++) {\n                pos += Character.charCount(Character.codePointAt(input, pos));\n            }\n        }\n    }\n```\n\nThis function properly handles surrogate pairs in the input CharSequence by using `Character.isSupplementaryCodePoint()` and `Character.toChars()`.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 1,
+                "message": {
+                    "content": "The issue in the `translate` function is that the second parameter in `Character.codePointAt(input, pos)` should be incremented by the number of characters in the code point to avoid processing surrogate pairs multiple times. Here's the corrected `translate` function:\n\n```java\npublic final void translate(CharSequence input, Writer out) throws IOException {\n    if (out == null) {\n        throw new IllegalArgumentException(\"The Writer must not be null\");\n    }\n    if (input == null) {\n        return;\n    }\n    int pos = 0;\n    int len = input.length();\n    while (pos < len) {\n        int consumed = translate(input, pos, out);\n        if (consumed == 0) {\n            char[] c = Character.toChars(Character.codePointAt(input, pos));\n            out.write(c);\n            pos+= c.length;\n        } else {\n            pos += Character.charCount(Character.codePointAt(input, pos));\n        }\n    }\n}\n```\n\nRegarding the code for the `isAvailableLocale` function, we would need to see the definition of `cAvailableLocaleSet` to provide a correct solution.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 2,
+                "message": {
+                    "content": "The following function should fix the bug:\n```java\n    public final void translate(CharSequence input, Writer out) throws IOException {\n        if (out == null) {\n            throw new IllegalArgumentException(\"The Writer must not be null\");\n        }\n        if (input == null) {\n            return;\n        }\n        int pos = 0;\n        int len = input.length();\n        while (pos < len) {\n            int consumed = translate(input, pos, out);\n            if (consumed == 0) {\n                char c = input.charAt(pos);\n                if (Character.isHighSurrogate(c) && pos + 1 < len && Character.isLowSurrogate(input.charAt(pos + 1))) {\n                    out.write(c);\n                    out.write(input.charAt(pos + 1));\n                    pos += 2;\n                } else {\n                    out.write(c);\n                    pos++;\n                }\n                continue;\n            }\n            for (int pt = 0; pt < consumed; pt++) {\n                pos += Character.charCount(Character.codePointAt(input, pos));\n            }\n        }\n    }\n```\nThe problem with the original code is that it assumes that each character in the CharSequence is a single Unicode character. However, this is not always the case with surrogate pairs, which represent a single Unicode character but are encoded as two `char` values in Java. The fix checks for surrogate pairs and writes them as a single character to the output `Writer`.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 3,
+                "message": {
+                    "content": "The issue with the `translate()` function seems to be related to the handling of surrogate pairs. Here is a corrected version of the function:\n\n```java\npublic final void translate(CharSequence input, Writer out) throws IOException {\n    if (out == null) {\n        throw new IllegalArgumentException(\"The Writer must not be null\");\n    }\n    if (input == null) {\n        return;\n    }\n    int pos = 0;\n    int len = input.length();\n    while (pos < len) {\n        int consumed = translate(input, pos, out);\n        if (consumed == 0) {\n            int codePoint = Character.codePointAt(input, pos);\n            if (Character.isSupplementaryCodePoint(codePoint)) {\n                char[] surrogatePair = Character.toChars(codePoint);\n                out.write(surrogatePair);\n            } else {\n                out.write(codePoint);\n            }\n            pos+= Character.charCount(codePoint);\n            continue;\n        }\n        pos += consumed;\n    }\n}\n```\n\nThe main difference is in how the surrogate pairs are handled. Instead of using `Character.toChars()` and writing the resulting array of chars, the function now checks if the code point is part of a surrogate pair using `Character.isSupplementaryCodePoint()` and writes the code point directly using `out.write(codePoint)`. The function then advances the position by the number of chars required to represent the code point, using `Character.charCount(codePoint)`.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 4,
+                "message": {
+                    "content": "The problem is with the `pos += c.length` line. When dealing with surrogate pairs, `c` can have a length greater than 1, meaning that `pos` should be incremented by the `codePointCount` instead of `c.length`. Here is the corrected function:\n\n```java\npublic final void translate(CharSequence input, Writer out) throws IOException {\n    if (out == null) {\n        throw new IllegalArgumentException(\"The Writer must not be null\");\n    }\n    if (input == null) {\n        return;\n    }\n    int pos = 0;\n    int len = input.length();\n    while (pos < len) {\n        int consumed = translate(input, pos, out);\n        if (consumed == 0) {\n            int codePoint = Character.codePointAt(input, pos);\n            int charCount = Character.charCount(codePoint);\n            char[] chars = Character.toChars(codePoint);\n            out.write(chars);\n            pos += charCount;\n            continue;\n        }\n        for (int pt = 0; pt < consumed; pt++) {\n            pos += Character.charCount(Character.codePointAt(input, pos));\n        }\n    }\n}\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 5,
+                "message": {
+                    "content": "The issue with the provided code is that it is not accounting for surrogate pairs when writing to the output writer. The correct function would be as follows:\n\n```java\npublic final void translate(CharSequence input, Writer out) throws IOException {\n        if (out == null) {\n            throw new IllegalArgumentException(\"The Writer must not be null\");\n        }\n        if (input == null) {\n            return;\n        }\n        int pos = 0;\n        int len = input.length();\n        while (pos < len) {\n            int consumed = translate(input, pos, out);\n            if (consumed == 0) {\n                int codePoint = Character.codePointAt(input, pos);\n                if (Character.isSupplementaryCodePoint(codePoint)) {\n                    out.write(Character.highSurrogate(codePoint));\n                    out.write(Character.lowSurrogate(codePoint));\n                } else {\n                    out.write(codePoint);\n                }\n                pos += Character.charCount(codePoint);\n                continue;\n            }\n            pos += consumed;\n        }\n    }\n```\n\nThis updated code checks to see if the character at the current position is a surrogate pair and writes both high and low surrogates to the output `Writer` when necessary.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 6,
+                "message": {
+                    "content": "It can be fixed by the following function:\n```java\n    public final void translate(CharSequence input, Writer out) throws IOException {\n        if (out == null) {\n            throw new IllegalArgumentException(\"The Writer must not be null\");\n        }\n        if (input == null) {\n            return;\n        }\n        int pos = 0;\n        int len = input.length();\n        while (pos < len) {\n            int consumed = translate(input, pos, out);\n            if (consumed == 0) {\n                int codepoint = Character.codePointAt(input, pos);\n                if(Character.isSupplementaryCodePoint(codepoint)) {\n                    out.write(Character.toChars(codepoint));\n                }else {\n                   out.write(Character.toString((char) codepoint));\n                }\n                pos+= Character.charCount(codepoint);\n                continue;\n            }\n            for (int pt = 0; pt < consumed; pt++) {\n                pos += Character.charCount(Character.codePointAt(input, pos));\n            }\n        }\n    }\n```\nThe issue is with the `translate` method. The `translate` method expects the input to consist of Unicode code units, but surrogate code units represent only a subset of Unicode code points. In the original code, when a surrogate pair is encountered, the method tries to access the following character after the high surrogate, which is invalid. \n\nA fix for this is to use the `Character.isSupplementaryCodePoint()` method to determine whether a code point is a valid supplementary code point and if it is, use the `Character.toChars()` method to write the entire code point to the output.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 7,
+                "message": {
+                    "content": "It can be fixed by the following function:\n```java\n    public final void translate(CharSequence input, Writer out) throws IOException {\n        if (out == null) {\n            throw new IllegalArgumentException(\"The Writer must not be null\");\n        }\n        if (input == null) {\n            return;\n        }\n        int pos = 0;\n        int len = input.length();\n        while (pos < len) {\n            int consumed = translate(input, pos, out);\n            if (consumed == 0) {\n                char c = input.charAt(pos);\n                if (Character.isHighSurrogate(c) && pos + 1 < len && Character.isLowSurrogate(input.charAt(pos + 1))) {\n                    consumed = translate(input, pos, out);\n                } else {\n                    out.write(c);\n                }\n                pos++;\n                continue;\n            }\n            for (int pt = 0; pt < consumed; pt++) {\n                pos += Character.charCount(Character.codePointAt(input, pos));\n            }\n        }\n    }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 8,
+                "message": {
+                    "content": "The following function should fix the bug:\n```java\n    public final void translate(CharSequence input, Writer out) throws IOException {\n        if (out == null) {\n            throw new IllegalArgumentException(\"The Writer must not be null\");\n        }\n        if (input == null) {\n            return;\n        }\n        int pos = 0;\n        int len = input.length();\n        while (pos < len) {\n            int consumed = translate(input, pos, out);\n            if (consumed == 0) {\n                int codePoint = Character.codePointAt(input, pos);\n                if (Character.isSupplementaryCodePoint(codePoint)) {\n                    pos += 2;\n                } else {\n                    pos++;\n                }\n                out.write(codePoint);\n            } else {\n                for (int pt = 0; pt < consumed; pt++) {\n                    pos += Character.charCount(Character.codePointAt(input, pos));\n                }\n            }\n        }\n    }\n```\nBy checking if the code point is a supplementary code point, we can correctly handle surrogate pairs in the input CharSequence.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 9,
+                "message": {
+                    "content": "The issue in the code is that it does not handle surrogate pairs correctly. It assumes that each character in the input sequence is represented by a single Java char value, which is not true for Unicode code points above U+FFFF. The correct function to handle surrogate pairs is as follows:\n\n```java\n    public final void translate(CharSequence input, Writer out) throws IOException {\n        if (out == null) {\n            throw new IllegalArgumentException(\"The Writer must not be null\");\n        }\n        if (input == null) {\n            return;\n        }\n        int pos = 0;\n        int len = input.length();\n        while (pos < len) {\n            int consumed;\n            int ch = Character.codePointAt(input, pos);\n            if (Character.isHighSurrogate((char)ch)) {\n                if (pos + 1 >= len) {\n                    throw new IllegalArgumentException(\"Invalid surrogate pair at end of input: \" + input.subSequence(pos, len));\n                }\n                consumed = translate(input, pos, out);\n            } else {\n                consumed = translate(input, pos, out);\n                if (consumed == 0) {\n                    out.write(ch);\n                    consumed = Character.charCount(ch);\n                }\n            }\n            pos += consumed;\n        }\n    }\n```\n\nNote that the code checks for invalid surrogate pairs at the end of the input and throws an exception in that case. It also uses the `Character.codePointAt` and `Character.charCount` methods to correctly handle surrogate pairs.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 10,
+                "message": {
+                    "content": "The following function should fix the bug:\n```java\n    public final void translate(CharSequence input, Writer out) throws IOException {\n        if (out == null) {\n            throw new IllegalArgumentException(\"The Writer must not be null\");\n        }\n        if (input == null) {\n            return;\n        }\n        int pos = 0;\n        int len = input.length();\n        while (pos < len) {\n            int consumed = translate(input, pos, out);\n            if (consumed == 0) {\n                // handle surrogate pairs\n                int codePoint = Character.codePointAt(input, pos);\n                char[] chars = Character.toChars(codePoint);\n                for (int i = 0; i < chars.length; i++) {\n                    out.write(chars[i]);\n                }\n                pos += Character.charCount(codePoint);\n                continue;\n            }\n            pos += consumed;\n        }\n    }\n```\nThe change made here is that we handle surrogate pairs correctly in the `translate` method.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 11,
+                "message": {
+                    "content": "The correct function can be:\n```java\n    public final void translate(CharSequence input, Writer out) throws IOException {\n        if (out == null) {\n            throw new IllegalArgumentException(\"The Writer must not be null\");\n        }\n        if (input == null) {\n            return;\n        }\n        int pos = 0;\n        int len = input.length();\n        while (pos < len) {\n            int consumed = translate(input, pos, out);\n            if (consumed == 0) {\n                int codePoint = Character.codePointAt(input, pos);\n                if (Character.isSupplementaryCodePoint(codePoint)) {\n                    char[] c = Character.toChars(codePoint);\n                    out.write(c);\n                } else {\n                    out.write(codePoint);\n                }\n                pos += Character.charCount(codePoint);\n                continue;\n            }\n//          // contract with translators is that they have to understand codepoints \n//          // and they just took care of a surrogate pair\n            for (int pt = 0; pt < consumed; pt++) {\n                pos += Character.charCount(Character.codePointAt(input, pos));\n            }\n        }\n    }\n```\nThe change is to add a check for Supplementary code points in line 14 before calling the `write` method of the `Writer` class.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 12,
+                "message": {
+                    "content": "The issue is with the `translate` method not handling surrogate pairs correctly. One solution is to use the `codePointAt` method to get the Unicode code point of the current character, and adjust the loop accordingly. Here's the corrected method:\n\n```java\npublic final void translate(CharSequence input, Writer out) throws IOException {\n    if (out == null) {\n        throw new IllegalArgumentException(\"The Writer must not be null\");\n    }\n    if (input == null) {\n        return;\n    }\n    int pos = 0;\n    int len = input.length();\n    while (pos < len) {\n        // get the Unicode code point of the current character\n        int codePoint = Character.codePointAt(input, pos);\n        int consumed = translate(input, pos, out);\n        if (consumed == 0) {\n            // if no translation occurred, write the character directly\n            out.write(codePoint);\n            pos += Character.charCount(codePoint);\n        } else {\n            // skip past the characters that were translated\n            pos += consumed;\n        }\n    }\n}\n```\n\nWith this change, the `testEscapeSurrogatePairs` test case should now pass.",
+                    "role": "assistant"
+                }
+            }
+        ],
+        "created": 1691073951,
+        "id": "chatcmpl-7jTsFGWlDdgHibYhOedVFGm0h3wRn",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion",
+        "usage": {
+            "completion_tokens": 3310,
+            "prompt_tokens": 428,
+            "total_tokens": 3738
+        }
+    }
+}
