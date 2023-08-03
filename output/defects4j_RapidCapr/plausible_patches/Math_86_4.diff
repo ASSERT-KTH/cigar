@@ -1,0 +1,136 @@
+diff --git a/src/java/org/apache/commons/math/linear/CholeskyDecompositionImpl.java b/src/java/org/apache/commons/math/linear/CholeskyDecompositionImpl.java
+index acd9222f6..d809d06dc 100644
+--- a/src/java/org/apache/commons/math/linear/CholeskyDecompositionImpl.java
++++ b/src/java/org/apache/commons/math/linear/CholeskyDecompositionImpl.java
+@@ -90,66 +90,89 @@ public class CholeskyDecompositionImpl implements CholeskyDecomposition {
+      * @see #DEFAULT_RELATIVE_SYMMETRY_THRESHOLD
+      * @see #DEFAULT_ABSOLUTE_POSITIVITY_THRESHOLD
+      */
+-    public CholeskyDecompositionImpl(final RealMatrix matrix,
+-                                     final double relativeSymmetryThreshold,
+-                                     final double absolutePositivityThreshold)
+-        throws NonSquareMatrixException,
+-               NotSymmetricMatrixException, NotPositiveDefiniteMatrixException {
++public CholeskyDecompositionImpl(final RealMatrix matrix,
++                                 final double relativeSymmetryThreshold,
++                                 final double absolutePositivityThreshold)
++    throws NonSquareMatrixException,
++           NotSymmetricMatrixException, NotPositiveDefiniteMatrixException {
++
++    if (!matrix.isSquare()) {
++        throw new NonSquareMatrixException(matrix.getRowDimension(),
++                                           matrix.getColumnDimension());
++    }
+ 
+-        if (!matrix.isSquare()) {
+-            throw new NonSquareMatrixException(matrix.getRowDimension(),
+-                                               matrix.getColumnDimension());
+-        }
++    final int order = matrix.getRowDimension();
++    lTData   = matrix.getData();
++    cachedL  = null;
++    cachedLT = null;
+ 
+-        final int order = matrix.getRowDimension();
+-        lTData   = matrix.getData();
+-        cachedL  = null;
+-        cachedLT = null;
++    boolean isPositiveDefinite = true;
++    boolean isSymmetric = true;
++    // Check the matrix before transformation
++    for (int i = 0; i < order; i++) {
+ 
+-        // check the matrix before transformation
+-        for (int i = 0; i < order; ++i) {
++        final double[] lI = lTData[i];
+ 
+-            final double[] lI = lTData[i];
++        // check diagonal element
++        if (lTData[i][i] < absolutePositivityThreshold) {
++            isPositiveDefinite = false;
++            break;
++        }
+ 
+-            if (lTData[i][i] < absolutePositivityThreshold) {
+-                throw new NotPositiveDefiniteMatrixException();
+-            }
+-            // check off-diagonal elements (and reset them to 0)
+-            for (int j = i + 1; j < order; ++j) {
+-                final double[] lJ = lTData[j];
+-                final double lIJ = lI[j];
+-                final double lJI = lJ[i];
+-                final double maxDelta =
++        // check off-diagonal elements (and reset them to 0)
++        for (int j = i + 1; j < order; j++) {
++            final double[] lJ = lTData[j];
++            final double lIJ = lI[j];
++            final double lJI = lJ[i];
++            final double maxDelta =
+                     relativeSymmetryThreshold * Math.max(Math.abs(lIJ), Math.abs(lJI));
+-                if (Math.abs(lIJ - lJI) > maxDelta) {
+-                    throw new NotSymmetricMatrixException();
+-                }
+-                lJ[i] = 0;
+-           }
++            if (Math.abs(lIJ - lJI) > maxDelta) {
++                isSymmetric = false;
++                break;
++            }
++            lJ[i] = 0;
++        }
++        if (!isSymmetric || !isPositiveDefinite) {
++            break;
+         }
++    }
+ 
+-        // transform the matrix
+-        for (int i = 0; i < order; ++i) {
++    if (!isSymmetric) {
++        throw new NotSymmetricMatrixException();
++    }
+ 
+-            final double[] ltI = lTData[i];
++    if (!isPositiveDefinite) {
++        throw new NotPositiveDefiniteMatrixException();
++    }
+ 
+-            // check diagonal element
++    // Transform the matrix
++    for (int i = 0; i < order; ++i) {
+ 
+-            ltI[i] = Math.sqrt(ltI[i]);
+-            final double inverse = 1.0 / ltI[i];
++        final double[] ltI = lTData[i];
++
++        // check diagonal element
++        if (ltI[i] <= absolutePositivityThreshold) {
++            throw new NotPositiveDefiniteMatrixException();
++        }
+ 
+-            for (int q = order - 1; q > i; --q) {
+-                ltI[q] *= inverse;
+-                final double[] ltQ = lTData[q];
+-                for (int p = q; p < order; ++p) {
+-                    ltQ[p] -= ltI[q] * ltI[p];
++        ltI[i] = Math.sqrt(ltI[i]);
++        final double inverse = 1.0 / ltI[i];
++
++        for (int q = order - 1; q > i; --q) {
++            ltI[q] *= inverse;
++            final double[] ltQ = lTData[q];
++            for (int p = q; p < order; ++p) {
++                ltQ[p] -= ltI[q] * ltI[p];
++                if (p == q && ltQ[q] < absolutePositivityThreshold) {
++                    throw new NotPositiveDefiniteMatrixException();
+                 }
+             }
+-
+         }
+ 
+     }
+ 
++}
++
+     /** {@inheritDoc} */
+     public RealMatrix getL() {
+         if (cachedL == null) {
