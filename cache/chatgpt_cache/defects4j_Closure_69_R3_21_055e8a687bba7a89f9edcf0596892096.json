@@ -1,0 +1,479 @@
+{
+    "call": {
+        "messages": [
+            {
+                "content": "You are an automated program repair tool.",
+                "role": "system"
+            },
+            {
+                "content": "The following code contains a buggy hunk that has been removed.\n```java\n  private boolean hasExceptionHandler(Node cfgNode) {\n>>> [ INFILL ] <<<\n    return false;\n  }\n```\nThis was the original buggy hunk which was removed by the infill location:\n```java\n\n```\nThe code fails on this test:\n```\ntestIssue794b\n```\non this test line:\n```java\n    test(EXTERN_FUNCTIONS, \"function _func() {\" + input + \"}\",\n```\nwith the following test error:\n```\njunit.framework.AssertionFailedError:\n```\nPlease provide the correct hunk at the infill location.\nIt can be fixed by the following hunk:\n```java\n    List<DiGraphEdge<Node, Branch>> branchEdges = getCfg().getOutEdges(cfgNode);\n    for (DiGraphEdge<Node, Branch> edge : branchEdges) {\n      if (edge.getValue() == Branch.ON_EX) {\n        return true;\n      }\n    }\n```\nThe following code contains a buggy hunk that has been removed.\n```java\n  private void visitCall(NodeTraversal t, Node n) {\n    Node child = n.getFirstChild();\n    JSType childType = getJSType(child).restrictByNotNullOrUndefined();\n\n    if (!childType.canBeCalled()) {\n      report(t, n, NOT_CALLABLE, childType.toString());\n      ensureTyped(t, n);\n      return;\n    }\n\n    // A couple of types can be called as if they were functions.\n    // If it is a function type, then validate parameters.\n    if (childType instanceof FunctionType) {\n      FunctionType functionType = (FunctionType) childType;\n\n      boolean isExtern = false;\n      JSDocInfo functionJSDocInfo = functionType.getJSDocInfo();\n      if(functionJSDocInfo != null) {\n        String sourceName = functionJSDocInfo.getSourceName();\n        CompilerInput functionSource = compiler.getInput(sourceName);\n        isExtern = functionSource.isExtern();\n      }\n\n      // Non-native constructors should not be called directly\n      // unless they specify a return type and are defined\n      // in an extern.\n      if (functionType.isConstructor() &&\n          !functionType.isNativeObjectType() &&\n          (functionType.getReturnType().isUnknownType() ||\n           functionType.getReturnType().isVoidType() ||\n           !isExtern)) {\n        report(t, n, CONSTRUCTOR_NOT_CALLABLE, childType.toString());\n      }\n\n      // Functions with explcit 'this' types must be called in a GETPROP\n      // or GETELEM.\n>>> [ INFILL ] <<<\n\n      visitParameterList(t, n, functionType);\n      ensureTyped(t, n, functionType.getReturnType());\n    } else {\n      ensureTyped(t, n);\n    }\n\n    // TODO: Add something to check for calls of RegExp objects, which is not\n    // supported by IE.  Either say something about the return type or warn\n    // about the non-portability of the call or both.\n  }\n```\nThis was the original buggy hunk which was removed by the infill location:\n```java\n\n```\nThe code fails on this test:\n```\ntestThisTypeOfFunction2\n```\non this test line:\n```java\n      assertTrue(\"expected a warning\", warnings.length > 0);\n```\nwith the following test error:\n```\njunit.framework.AssertionFailedError: expected a warning\n```\nPlease provide the correct hunk at the infill location.",
+                "role": "user"
+            }
+        ],
+        "model": "gpt-3.5-turbo-0301",
+        "n": 56,
+        "temperature": 1,
+        "top_p": 1
+    },
+    "response": {
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "index": 0,
+                "message": {
+                    "content": "The correct hunk is:\n```java\n      ObjectType thisType =\n          ObjectType.cast(\n              functionType.getTypeOfThis().restrictByNotNullOrUndefined());\n      if (thisType != null\n          && !(n.getParent().isGetElem() || n.getParent().isGetProp())) {\n        report(t, n, THIS_BEFORE_SUPER, \"\");\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 1,
+                "message": {
+                    "content": "The correct hunk to fill in the gap is as follows:\n\n```java\n      if (functionType.getParameterType(0) instanceof ObjectType &&\n          !NodeUtil.isGet(functionType.getParameterNode(0))) {\n        report(t, n, INVALID_THIS_TYPE, functionType.getParameterType(0).toString());\n      }\n\n      visitParameterList(t, n, functionType);\n      ensureTyped(t, n, functionType.getReturnType());\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 2,
+                "message": {
+                    "content": "The correct hunk to fix the issue is:\n```java\n      if (functionType.getTypeOfThis() != null && !NodeUtil.isGet(functionType.getTypeOfThis().getNode())) {\n        report(t, n, ILLEGAL_THIS);\n      }\n\n      visitParameterList(t, n, functionType);\n      ensureTyped(t, n, functionType.getReturnType());\n```\nThis will ensure that a function with an explicit \"this\" type is only called in a `GETPROP` or `GETELEM` node, and the validation of the parameter list happens before ensuring the return type of the function.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 3,
+                "message": {
+                    "content": "The correct hunk at the infill location is:\n\n```java\n      if (functionType.getTypeOfThis() != null &&\n          !NodeUtil.isGet(functionType.getTypeOfThis().getReferenceNode())) {\n        report(t, n, EXPLICIT_THIS, childType.toString());\n      }\n\n      visitParameterList(t, n, functionType);\n      ensureTyped(t, n, functionType.getReturnType());\n```\n\nThis hunk adds a check for whether functions with explicit 'this' types are being called in a GETPROP or GETELEM. If they are not, it reports an error.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 4,
+                "message": {
+                    "content": "The correct hunk at the infill location is:\n```java\n      if (functionType.getTypeOfThis() != null && !NodeUtil.isGet(functionType.getTypeOfThis())) {\n        report(t, n, INVALID_THIS_TYPE, childType.toString());\n      }\n```\nThis checks if the function has an explicit 'this' type and whether it is called in a GETPROP or GETELEM node. If not, it reports an error.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 5,
+                "message": {
+                    "content": "The correct hunk at the infill location is:\n```java\n      if (functionType.getTypeOfThis() != null && !NodeUtil.isGet(functionType.getTypeOfThis().getNode())) {\n        report(t, n, INVALID_THIS_TYPE, functionType.toString());\n      }\n\n      visitParameterList(t, n, functionType);\n      ensureTyped(t, n, functionType.getReturnType());\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 6,
+                "message": {
+                    "content": "The correct hunk for the infill location is:\n```java\n      JSType thisType = functionType.getTypeOfThis();\n      if (thisType != null && !isGetPropOrGetElemParent(n)) {\n        report(t, n, INVALID_THIS_TYPE, thisType.toString());\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 7,
+                "message": {
+                    "content": "The correct hunk for the infill location is:\n```java\n      if (functionType.getTypeOfThis() != null && !NodeUtil.isGet(functionType.getTypeOfThis().getNode())) {\n        report(\n            t,\n            n,\n            STRICT_THIS_TYPE,\n            functionType.getTypeOfThis().toString(),\n            childType.toString());\n        ensureTyped(t, n);\n        return;\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 8,
+                "message": {
+                    "content": "The correct hunk at the infill location is:\n```java\n      if (functionJSDocInfo != null && functionJSDocInfo.getThisType() != null &&\n          !NodeUtil.isGetOrSetKey(n.getParent()) &&\n          !NodeUtil.isObjectLitKey(n.getParent())) {\n        report(t, n, INVALID_THIS_TYPE, functionJSDocInfo.getThisType().toAnnotationString());\n      }\n```\n",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 9,
+                "message": {
+                    "content": "The correct hunk to fix the issue is as follows:\n```java\nif (functionType.getThisType() != null && !NodeUtil.isGetOrSetKey(n.getParent())) {\n  report(t, n, CANNOT_CALL_NON_GET_SET_CLASS_METHODS_ON_THIS);\n}\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 10,
+                "message": {
+                    "content": "The hunk to be added at the infill location is:\n```java\n      JSDocInfo jsDocInfo = NodeUtil.getBestJSDocInfo(child);\n      if (jsDocInfo != null && jsDocInfo.hasThisType() &&\n          (n.getParent().isGetProp() || n.getParent().isGetElem())) {\n        JSType thisType = jsDocInfo.getThisType().evaluate(scope, registry);\n        Node thisNode = n.getParent().isGetProp() ? n.getParent().getFirstChild() : n.getParent().getSecondChild();\n        JSType actualThisType = getJSType(thisNode);\n        if (!actualThisType.isSubtype(thisType)) {\n          report(t, n, INVALID_THIS_TYPE, thisType.toString());\n        }\n      }\n```\nThis fix adds a check to ensure that functions with explicit 'this' types must be called in a GETPROP or GETELEM. It gets the JSDoc of the function node and checks if the 'this' type is specified in it. If there is a 'this' type specified, it checks if the function is called in a GETPROP or GETELEM. Finally, it compares the actual type of 'this' with the specified type from JSDoc and raises an error if they are not equal.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 11,
+                "message": {
+                    "content": "The correct hunk for the infill location is:\n```java\n      Node parent = n.getParent();\n\n      // 'this' function calls that are not GETPROP or GETELEM are invalid.\n      if (parent != null &&\n          parent.isGetProp() &&\n          parent.getParent() != null &&\n          parent.getParent().isCall() &&\n          n == parent.getLastChild()) {\n        JSType receiverType = getJSType(parent.getFirstChild()).dereference();\n        if (!receiverType.isUnknownType() &&\n            !receiverType.isNullType() &&\n            !receiverType.isAllType() &&\n            !receiverType.isObjectType()) {\n          report(t, n, THIS_TYPE_INVALID, receiverType.toString());\n        }\n      }\n```\n",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 12,
+                "message": {
+                    "content": "The correct hunk to fix the bug is:\n\n```java\n      if (functionType.getTypeOfThis() != null) {\n        Node parent = n.getParent();\n        if (parent == null || !(parent.isGetProp() || parent.isGetElem())) {\n          report(t, n, FUNCTION_WITH_NON_OBJECT_THIS_VALUE);\n        }\n      }\n```\n\nThis adds a check for functions with an explicit `this` type that are called without using `GETPROP` or `GETELEM`, which is not allowed.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 13,
+                "message": {
+                    "content": "The following hunk can fix the bug:\n\n```java\n  private void visitCall(NodeTraversal t, Node n) {\n    Node child = n.getFirstChild();\n    JSType childType = getJSType(child).restrictByNotNullOrUndefined();\n\n    if (!childType.canBeCalled()) {\n      report(t, n, NOT_CALLABLE, childType.toString());\n      ensureTyped(t, n);\n      return;\n    }\n\n    // A couple of types can be called as if they were functions.\n    // If it is a function type, then validate parameters.\n    if (childType instanceof FunctionType) {\n      FunctionType functionType = (FunctionType) childType;\n\n      boolean isExtern = false;\n      JSDocInfo functionJSDocInfo = functionType.getJSDocInfo();\n      if(functionJSDocInfo != null) {\n        String sourceName = functionJSDocInfo.getSourceName();\n        CompilerInput functionSource = compiler.getInput(sourceName);\n        isExtern = functionSource.isExtern();\n      }\n\n      // Non-native constructors should not be called directly\n      // unless they specify a return type and are defined\n      // in an extern.\n      if (functionType.isConstructor() &&\n          !functionType.isNativeObjectType() &&\n          (functionType.getReturnType().isUnknownType() ||\n           functionType.getReturnType().isVoidType() ||\n           !isExtern)) {\n        report(t, n, CONSTRUCTOR_NOT_CALLABLE, childType.toString());\n      }\n\n      // Functions with explcit 'this' types must be called in a GETPROP\n      // or GETELEM.\n      if (functionType.getTypeOfThis() != null &&\n          n.getParent().getType() != Token.GETPROP &&\n          n.getParent().getType() != Token.GETELEM) {\n        report(t, n, INVALID_THIS_TYPE, functionType.getTypeOfThis().toString());\n      }\n\n      visitParameterList(t, n, functionType);\n      ensureTyped(t, n, functionType.getReturnType());\n    } else {\n      ensureTyped(t, n);\n    }\n\n    // TODO: Add something to check for calls of RegExp objects, which is not\n    // supported by IE.  Either say something about the return type or warn\n    // about the non-portability of the call or both.\n  }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 14,
+                "message": {
+                    "content": "The following hunk should be added at the infill location:\n```java\n      JSDocInfo jsDocInfo = NodeUtil.getBestJSDocInfo(child);\n      if (jsDocInfo != null && jsDocInfo.hasThisType()) {\n        Node parent = n.getParent();\n        if (!NodeUtil.isGet(parent) && !NodeUtil.isGetElem(parent)) {\n          report(t, n, FUNCTION_WITHOUT_THIS, childType.toString());\n        }\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 15,
+                "message": {
+                    "content": "The correct hunk to fix the issue is:\n```java\n      // Functions with explicit 'this' types must be called in a GETPROP\n      // or GETELEM.\n      if (functionType.hasAnyDeclaredParameter() &&\n          functionType.getParameterTypes().get(0).isThisType()) {\n        Node parent = n.getParent();\n        boolean inGetPropOrGetElem =\n            (parent.isGetProp() || parent.isGetElem()) &&\n            parent.getFirstChild() == n;\n        if (!inGetPropOrGetElem) {\n          report(t, n, INVALID_THIS_TYPE);\n        }\n      }\n\n      visitParameterList(t, n, functionType);\n      ensureTyped(t, n, functionType.getReturnType());\n    } else {\n      ensureTyped(t, n);\n    }\n```\n",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 16,
+                "message": {
+                    "content": "The correct hunk to fix the bug is:\n```java\n      if (functionType.getTypeOfThis() != null\n          && !(n.getParent() != null && (n.getParent().isGetProp() || n.getParent().isGetElem()))) {\n        report(t, n, FUNCTION_WITH_NON_OBJECT_THIS, childType.toString());\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 17,
+                "message": {
+                    "content": "The correct hunk at the infill location is:\n```java\n      if (functionType.getParameterNames().contains(\"this\")) {\n        Node parent = n.getParent();\n        boolean isGetPropOrGetElem = NodeUtil.isGet(parent) || NodeUtil.isGetElem(parent);\n        if (!isGetPropOrGetElem) {\n          report(t, n, INVALID_THIS_TYPE_FUNCTION_CALL);\n        }\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 18,
+                "message": {
+                    "content": "The correct hunk at the infill location is as follows:\n```java\n      if (functionType.getTypeOfThis().isPresent()) {\n        Node parent = n.getParent();\n        if (!(parent.isGetProp() || parent.isGetElem())) {\n          report(t, n, EXPLICIT_THIS, childType.toString());\n        }\n      }\n\n      visitParameterList(t, n, functionType);\n      ensureTyped(t, n, functionType.getReturnType());\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 19,
+                "message": {
+                    "content": "The correct hunk for the infill location is:\n\n```java\nif (functionType.getThisType() != null && NodeUtil.getEnclosingNodeType(n) != Token.GETPROP\n          && NodeUtil.getEnclosingNodeType(n) != Token.GETELEM) {\n        report(t, n, FUNCTION_WITH_NON_LITERAL_THIS_ERROR);\n}\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 20,
+                "message": {
+                    "content": "The correct hunk to fix the issue would be:\n```java\n      ObjectType thisType = functionType.getTypeOfThis();\n      if (thisType != null && !isGetPropOrGetElem(n.getParent())) {\n        report(t, n, CALL_FUNCTION_WITH_UNRELATED_THIS, childType.toString());\n      }\n\n      visitParameterList(t, n, functionType);\n      ensureTyped(t, n, functionType.getReturnType());\n```\nThis adds a check to see if the function being called has an explicit `this` type defined, and if so, checks if the function is being called using a `GETPROP` or `GETELEM` node. If not, it reports an error.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 21,
+                "message": {
+                    "content": "The correct hunk to fix the issue is:\n\n```java\nif (functionType.hasInstanceType() && n.getParent().isGetProp()) {\n  String propName = n.getParent().getLastChild().getString();\n  String error = null;\n\n  // Do not check unused variables.\n  if (!compiler.getCompilerOptions().isWarningLevelSuppressed(\n          CheckLevel.WARNING) &&\n      !NodeUtil.isExpressionResultUsed(n)) {\n    error = \"'this' property access unescaped\";\n  } else if (propName.equals(\"apply\") || propName.equals(\"call\")) {\n    if (n.getNext() == null || !n.getNext().isThis()) {\n      error = \"function call missing 'this' argument\";\n    }\n  } else if (propName.equals(\"bind\")) {\n    if (n.getNext() == null || n.getNext().isThis()) {\n      error = \"'this' argument for function bind\";\n    } else {\n      Node secondArg = n.getNext().getNext();\n      if (secondArg == null || !secondArg.isUnusedResult()) {\n        error = \"function bind should return unused value\";\n      }\n    }\n  } else if (propName.equals(\"toString\") ||\n             propName.equals(\"valueOf\")) {\n    error = \"DOM object function call not escaped\";\n  } else {\n    error = \"function call pattern not followed\";\n  }\n\n  if (error != null) {\n    report(t, n, UNSAFE_THIS, error, propName);\n  }\n}\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 22,
+                "message": {
+                    "content": "The correct hunk at the infill location is:\n```java\n      if (functionType.hasThisType() &&\n          !(n.getParent().isGetProp() || n.getParent().isGetElem())) {\n        report(t, n, INVALID_THIS_TYPE);\n        ensureTyped(t, n);\n        return;\n      }\n```\nThis will check if the function has an explicit 'this' type and if it is being called in a legal way, else it will report an error and ensure that the node is typed to prevent further errors.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 23,
+                "message": {
+                    "content": "The correct hunk to replace the infill location is:\n```java\n      if (functionType.getTypeOfThis() != null) {\n        Node parent = n.getParent();\n        if (parent == null || !NodeUtil.isGet(parent)) {\n          report(t, n, CANNOT_CALL_WITH_NON_GET);\n        }\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 24,
+                "message": {
+                    "content": "The correct hunk to fill in the gap is as follows:\n\n```java\n      if (functionType.getTypeOfThis() != null &&\n          !(n.getParent().isGetProp() ||\n            n.getParent().isGetElem() ||\n            n.getParent().isCall() && n.getParent().getFirstChild() == n)) {\n        report(t, n, INVALID_THIS_TYPE);\n      }\n```\n\nThis corrects the issue where functions with an explicit `this` type must be called in a `GETPROP` or `GETELEM`. If not, the `INVALID_THIS_TYPE` warning is reported.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 25,
+                "message": {
+                    "content": "The correct hunk to fix the issue is:\n```java\n      if (functionJSDocInfo != null && functionJSDocInfo.hasThisType()) {\n        Node parent = n.getParent();\n        if (parent == null || (!parent.isGetProp() && !parent.isGetElem())) {\n          report(t, n, EXPECTED_this_PROP_ACCESS, functionJSDocInfo.getThisType().toString());\n        }\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 26,
+                "message": {
+                    "content": "The correct hunk to fix the bug in `visitCall` can be:\n```java\n      if (functionType.getThisType() != null && !NodeUtil.isGet(child.getParent())) {\n        report(t, child, FUNCTION_WITH_NON_PROPERTY_THIS, childType.toString());\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 27,
+                "message": {
+                    "content": "The correct hunk at the infill location is:\n```java\n      if (functionType.getTypeOfThis() != null && !NodeUtil.isGet(functionType.getTypeOfThis())) {\n        report(t, n, INVALID_THIS_TYPE);\n      }\n```\nThis will check if a function has an explicit `this` type and that it is being called in a `GETPROP` or `GETELEM`.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 28,
+                "message": {
+                    "content": "The correct hunk to fix the issue is:\n\n```java\n      if (functionType.getTypeOfThis().isExplicitPrimitive()) {\n        Node parent = n.getParent();\n        if (!NodeUtil.isGet(parent) && !NodeUtil.isGetElem(parent)) {\n          report(t, n, EXPLICIT_THIS, childType.toString());\n        }\n      }\n```\n\nThis will check if the function has an explicit `this` type and whether it is being called through a valid GETPROP or GETELEM node. If not, it will report an error using the `report` function.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 29,
+                "message": {
+                    "content": "The correct hunk to fix the issue is:\n```java\n      if (functionType.getTypeOfThis() != null && !NodeUtil.isGetOrSetKey(child.getParent())) {\n        report(t, child, INVALID_THIS_TYPE, childType.toString());\n        ensureTyped(t, n);\n        return;\n      }\n```\nThis adds a check that functions with explicit 'this' types must be called in a GETPROP or GETELEM.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 30,
+                "message": {
+                    "content": "The correct hunk for the infill location would be:\n```java\n      String functionName = functionType.getDisplayName();\n      JSType thisType = functionType.getTypeOfThis();\n      boolean calledWithThis = false;\n      if (thisType != null && thisType.isNoResolvedType()) {\n        calledWithThis = true;\n      } else {\n        Node parent = n.getParent();\n        while (!parent.isScript() && !parent.isBlock() && !parent.isEmpty()) {\n          if (parent.isGetProp() || parent.isGetElem()) {\n            calledWithThis = true;\n            break;\n          }\n          parent = parent.getParent();\n        }\n      }\n      if (calledWithThis && thisType == null) {\n        report(t, n, FUNCTION_WITHOUT_TYPE_ANNOTATION_WARNING,\n            functionName, \"this\");\n      }\n```\nThis fixes the issue with non-natively constructed functions called directly and with explicit 'this' types.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 31,
+                "message": {
+                    "content": "The correct hunk for the infill location is:\n```java\n      JSDocInfo info = NodeUtil.getBestJSDocInfo(child);\n      if (info != null && info.hasThisType()) {\n        Node parent = n.getParent();\n        if (!(NodeUtil.isGet(parent) || NodeUtil.isGetProp(parent))) {\n          report(t, n, EXPLICIT_THIS, childType.toString());\n        }\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 32,
+                "message": {
+                    "content": "The correct hunk to fill in the gap in the code is:\n```java\n      JSType thisType = functionType.getTypeOfThis();\n      if (thisType != null && !isGetpropOrGetelem(n.getParent())) {\n        report(t, n, FUNCTION_WITHOUT_GETPROP_GETELEM, childType.toString());\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 33,
+                "message": {
+                    "content": "The following hunk can be added at the infill location to fix the bug:\n\n```java\n      ObjectType thisType = functionType.getTypeOfThis();\n      if (thisType != null && !NodeUtil.isGetOrSetKey(child, true)) {\n        report(t, n, INVALID_THIS_TYPE, thisType.toString());\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 34,
+                "message": {
+                    "content": "The correct hunk at the infill location is:\n```java\n    if (functionType.getTypeOfThis() != null && !NodeUtil.isGetElementOrPropertyParent(n.getParent())) {\n      report(t, n, EXPLICIT_THIS, childType.toString());\n    }\n\n    visitParameterList(t, n, functionType);\n    ensureTyped(t, n, functionType.getReturnType());\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 35,
+                "message": {
+                    "content": "The correct hunk to fix the bug is:\n```java\n// Functions with explicit 'this' types must be called in a GETPROP or GETELEM\nif (functionType.getTypeOfThis() != null && !child.isGetProp() && !child.isGetElem()) {\n  report(t, child, EXPECTED_THIS_TYPE, functionType.getTypeOfThis().toString());\n}\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 36,
+                "message": {
+                    "content": "The correct hunk to fill in the gap is:\n\n```java\n      boolean isCallInGetPropOrGetElem = NodeUtil.isGet(child.getParent());\n      JSType thisType = functionType.getTypeOfThis();\n      if (thisType != null && !isCallInGetPropOrGetElem) {\n        report(t, n, THIS_IS_BIND, childType.toString());\n      }\n\n      visitParameterList(t, n, functionType);\n      ensureTyped(t, n, functionType.getReturnType());\n```\n\nThis adds a check to see if the function has an explicit `this` type and whether it is called in a `GETPROP` or `GETELEM`. If the function has an explicit `this` type but is called in a regular function call, it reports a warning.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 37,
+                "message": {
+                    "content": "The correct hunk to fix the issue is:\n```java\n      if (functionType.getTypeOfThis() != null && !NodeUtil.isGet(functionType.getTypeOfThis().getRoot())) {\n        report(t, n, EXPLICIT_THIS);\n      }\n\n      visitParameterList(t, n, functionType);\n      ensureTyped(t, n, functionType.getReturnType());\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 38,
+                "message": {
+                    "content": "The correct hunk at the infill location should check if the function has an explicit 'this' type and is called in a GETPROP or GETELEM. It can be fixed by the following hunk:\n```java\n      if (functionType.getTypeOfThis() != null &&\n          !n.getParent().isGetProp() &&\n          !n.getParent().isGetElem()) {\n        report(t, n, INVALID_THIS_TYPE);\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 39,
+                "message": {
+                    "content": "The correct hunk at the infill location is:\n```java\nif (functionType.getTypeOfThis() != null) {\n        Node parent = n.getParent();\n        if (parent == null ||\n            !(parent.isGetElem() || parent.isGetProp())) {\n          report(t, n, FUNCTION_WITHOUT_DOT_THIS_CALL, childType.toString());\n        }\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 40,
+                "message": {
+                    "content": "The following hunk should be added at the infill location to fix the bug:\n```java\n      JSDocInfo fnJSDocInfo = NodeUtil.getBestJSDocInfo(child);\n      JSType thisType = fnJSDocInfo != null ? fnJSDocInfo.getTypeOfThis() : null;\n      if (thisType != null && !NodeUtil.isGetOrSetKey(child.getParent())) {\n        report(t, n, INVALID_THIS_TYPE, childType.toString());\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 41,
+                "message": {
+                    "content": "One possible correct hunk is:\n\n```java\n      // Functions with explicit 'this' types must be called in a GETPROP\n      // or GETELEM.\n      if (functionType.hasThisType() && !(n.getParent().isGetProp() || n.getParent().isGetElem())) {\n        report(t, n, INVALID_THIS, childType.toString());\n      }\n\n      visitParameterList(t, n, functionType);\n      ensureTyped(t, n, functionType.getReturnType());\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 42,
+                "message": {
+                    "content": "The following code can fix the issue:\n```java\n      ObjectType thisType = functionType.getTypeOfThis();\n      if (thisType != null) {\n        Node parent = n.getParent();\n        if (parent == null || !(parent.isGetProp() || parent.isGetElem())) {\n          report(t, n, INVALID_THIS_TYPE,\n                 \"Calling a function with 'this' bound to type '\" +\n                 thisType.toString() + \"', but the function is not called \" +\n                 \"by any property access on it\");\n        }\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 43,
+                "message": {
+                    "content": "The correct hunk to fill in the infill location is:\n```java\n      if (functionType.isConstructor() && functionJSDocInfo != null\n          && !functionJSDocInfo.hasThisType() && !functionType.isNativeObjectType()) {\n        // Reports warning if there is no 'this' type, except for native object types.\n        report(t, n, CONSTRUCTOR_WITHOUT_THIS_TYPE, childType.toString());\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 44,
+                "message": {
+                    "content": "The correct hunk to fix the issue is:\n```java\n      if (functionType.getTypeOfThis() != null\n          && !NodeUtil.isGet(functionType.getNominalSourceType())) {\n        report(\n            t,\n            child,\n            FUNCTION_THIS_PARAMETER_WITHOUT_GETPROP_OR_GETELEM,\n            childType.toString());\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 45,
+                "message": {
+                    "content": "The correct hunk at the infill location is:\n```java\n      // Functions with explicit 'this' types must be called in a GETPROP\n      // or GETELEM.\n      Node parent = n.getParent();\n      if (!NodeUtil.isGet(parent) && !NodeUtil.isGetElem(parent)) {\n        for (JSType thisType : functionType.getTypeOfThis().getAlternatesWithoutUndefined()) {\n          if (!(thisType instanceof FunctionType || thisType.isInterface())) {\n            report(t, n, INCORRECT_THIS_TYPE, thisType.toString());\n          }\n        }\n      }\n\n      visitParameterList(t, n, functionType);\n      ensureTyped(t, n, functionType.getReturnType());\n    } else {\n      ensureTyped(t, n);\n    }\n```\n",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 46,
+                "message": {
+                    "content": "The correct hunk for the infill location is:\n\n```java\n      JSDocInfo fnJSDocInfo = NodeUtil.getBestJSDocInfo(child);\n      if (fnJSDocInfo != null && fnJSDocInfo.hasThisType()) {\n        Node parent = n.getParent();\n        if (parent.isGetElem() || (parent.isGetProp()\n            && n == parent.getLastChild())) {\n          // Allow calls through GETPROP or GETELEM for functions\n          // with an explicit 'this' type.\n        } else {\n          report(t, n, INVALID_THIS_TYPE, childType.toString());\n        }\n      }\n```\nThis hunk adds a condition to check for whether a function has an explicit 'this' type and if so, whether it is being called in a GETPROP or a GETELEM. If not, it reports an error.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 47,
+                "message": {
+                    "content": "The correct hunk at the infill location is:\n```java\n      ObjectType thisType = functionType.getTypeOfThis();\n      if (thisType != null) {\n        Node parent = n.getParent();\n        if (!parent.isGetProp() && !parent.isGetElem()) {\n          report(t, n, FUNCTION_WITHOUT_GET_THIS, childType.toString());\n        }\n      }\n\n      visitParameterList(t, n, functionType);\n      ensureTyped(t, n, functionType.getReturnType());\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 48,
+                "message": {
+                    "content": "The correct hunk to fix the bug is as follows:\n\n```java\n// Functions with explicit 'this' types must be called in a GETPROP or GETELEM.\nif (functionType.isThisTypeExplicit()) {\n  Node parent = n.getParent();\n  if (!NodeUtil.isGet(parent) && !NodeUtil.isGetElem(parent)) {\n    report(t, n, INVALID_THIS_TYPE, childType.toString());\n  }\n}\n``` \n\nThis code should be placed at the infill location.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 49,
+                "message": {
+                    "content": "The correct hunk at the infill location is:\n```java\n      ObjectType thisType = functionType.getTypeOfThis();\n      if (thisType != null &&\n          !NodeUtil.isGet(thisType.getReferenceName().getNode())) {\n        report(t, n, FUNCTION_WITHOUT_GET_CALL, childType.toString());\n      }\n\n      visitParameterList(t, n, functionType);\n      ensureTyped(t, n, functionType.getReturnType());\n    } else {\n      ensureTyped(t, n);\n    }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 50,
+                "message": {
+                    "content": "The infill location for this code is for checking if functions with explicit 'this' types are called in a GETPROP or GETELEM. It can be fixed by adding the following hunk at the infill location:\n```java\nif (functionType.getTypeOfThis() != null) {\n  Node parent = n.getParent();\n  if (parent == null ||\n      !NodeUtil.isGet(parent) ||\n      parent.getFirstChild() != n) {\n    report(t, n, EXPLICIT_THIS, childType.toString());\n  }\n}\n```\nThis will report an error if a function with an explicit 'this' type is not called in a GETPROP or GETELEM.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 51,
+                "message": {
+                    "content": "It can be fixed by the following hunk:\n```java\n      if (functionType.getTypeOfThis() != null &&\n          !NodeUtil.isGet(functionType.getTypeOfThis().getRoot())) {\n        report(t, n, FUNCTION_THIS_PARAM_MISMATCH, childType.toString());\n      }\n```\n",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 52,
+                "message": {
+                    "content": "The correct hunk to fix the bug is:\n```java\n      if (functionType.getTypeOfThis() != null &&\n          !t.getEnclosingNode(NodeUtil.isGet(functionType.getTypeOfThis())) &&\n          !t.getEnclosingNode(NodeUtil.isOptChainGet(functionType.getTypeOfThis()))) {\n        report(t, n, EXPLICIT_THIS, childType.toString());\n      }\n\n      visitParameterList(t, n, functionType);\n      ensureTyped(t, n, functionType.getReturnType());\n    } else {\n      ensureTyped(t, n);\n    }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 53,
+                "message": {
+                    "content": "The correct hunk to fix the issue is:\n```java\n      // Functions with explicit 'this' types must be called in a GETPROP or GETELEM.\n      JSType thisType = functionType.getTypeOfThis();\n      Node parent = n.getParent();\n      if (thisType != null && !(NodeUtil.isGet(parent) || NodeUtil.isGetElem(parent))) {\n        report(t, n, FUNCTION_CALLED_NOT_IN_GETPROP_GETELEM, childType.toString());\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 54,
+                "message": {
+                    "content": "The correct hunk for the infill location is:\n```java\n      JSDocInfo fnJSDocInfo = child.getJSDocInfo();\n      if (fnJSDocInfo != null && fnJSDocInfo.hasThisType() &&\n          !(n.getParent().isGetElem() || n.getParent().isGetProp())) {\n        report(t, n, EXPLICIT_THIS, childType.toString());\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 55,
+                "message": {
+                    "content": "The correct hunk for the infill location is:\n```java\n      // Functions with explicit 'this' types must be called in a GETPROP or GETELEM.\n      Node parent = n.getParent();\n      if (!NodeUtil.isGet(parent) && !NodeUtil.isGetElem(parent) && functionType.hasThisType()) {\n        report(t, n, EXPLICIT_THIS, childType.toString());\n      }\n```",
+                    "role": "assistant"
+                }
+            }
+        ],
+        "created": 1691115007,
+        "id": "chatcmpl-7jeYR2DKUZy8OIbplKGwnsK5Hzide",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion",
+        "usage": {
+            "completion_tokens": 6320,
+            "prompt_tokens": 754,
+            "total_tokens": 7074
+        }
+    }
+}
