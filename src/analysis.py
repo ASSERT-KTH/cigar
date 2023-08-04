@@ -52,7 +52,7 @@ class Analysis:
                                                             max_tries=max_tries,
                                                             max_conv_length=prog_params.capr_max_conv_length)
                         elif self.apr.name.lower() == "rapidcapr":
-                            max_tries = 2 * prog_params.rapidcapr_max_fpps_try_per_mode + prog_params.rapidcapr_max_mpps_try_per_mode
+                            max_tries = prog_params.rapidcapr_max_rounds * 2 * prog_params.rapidcapr_max_fpps_try_per_mode + prog_params.rapidcapr_max_mpps_try_per_mode
                             repair_results = self.apr.repair(bug=bug,
                                                              max_fpps_try_per_mode=prog_params.rapidcapr_max_fpps_try_per_mode,
                                                              max_mpps_try_per_mode=prog_params.rapidcapr_max_mpps_try_per_mode,
