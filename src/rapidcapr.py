@@ -68,6 +68,6 @@ class RapidCapr(object):
             total_length += proposed_patches.total_length()
 
             if proposed_patches.contains_plausible_patch() == True:
-                    break
+                break
         
         return (plausible_patches, plausible_patch_diffs, total_cost, first_plausible_patch_try, None, total_call_tries, test_failure_count, test_error_count, total_length)
