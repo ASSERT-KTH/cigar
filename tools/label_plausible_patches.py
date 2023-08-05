@@ -47,12 +47,14 @@ def label_bug(bug_details, plausible_patch_diffs_of_bug, fixed_patch_folder):
     MARK_FIXED = "mark fixed"
     NEXT_PATCH = "next patch"
     PREVIOUS_PATCH = "previous patch"
+    GET_BUGGY_LINES = "get buggy lines"
     GET_FIXED_LINES = "get fixed lines"
     GET_MASKED_CODE = "get masked code"
+    GET_FIXED_CODE = "get fixed code"
     GET_PATCH_NAME = "get patch name"
     HELP = "help"
     SKIP_BUG = "skip bug"
-    commands = [MARK_FIXED, NEXT_PATCH, PREVIOUS_PATCH, GET_FIXED_LINES, GET_MASKED_CODE, GET_PATCH_NAME, HELP, SKIP_BUG]
+    commands = [MARK_FIXED, NEXT_PATCH, PREVIOUS_PATCH, GET_BUGGY_LINES, GET_FIXED_LINES, GET_FIXED_CODE, GET_MASKED_CODE, GET_PATCH_NAME, HELP, SKIP_BUG]
 
     i = 0
     print("".join([f"\n" for _ in range(50)]))
@@ -74,19 +76,25 @@ def label_bug(bug_details, plausible_patch_diffs_of_bug, fixed_patch_folder):
             print("Done.")
             break
         elif command == NEXT_PATCH:
-            i += 1
+            i = (i + 1) % len(plausible_patch_diffs_of_bug)
             print(f"\033[93m" + f"\nAnother proposed diff ({i+1}/{len(plausible_patch_diffs_of_bug)}) is for {bug_details['project']}-{bug_details['bug_id']} ({bug_details['bug_type']}):\n" + "\033[0m")
             print(f"{ordered_plausible_patch_diffs_of_bug[i][1]}")
         elif command == PREVIOUS_PATCH:
-            i -= 1
+            i = (i - 1) % len(plausible_patch_diffs_of_bug)
             print(f"\033[93m" + f"\nAnother proposed diff ({i+1}/{len(plausible_patch_diffs_of_bug)}) is for {bug_details['project']}-{bug_details['bug_id']} ({bug_details['bug_type']}):\n" + "\033[0m")
             print(f"{ordered_plausible_patch_diffs_of_bug[i][1]}")
+        elif command == GET_BUGGY_LINES:
+            print(f"\033[93m" + "\nThe buggy lines are:\n" + "\033[0m")
+            print(f"\033[92m" + bug_details["buggy_lines"] + "\033[0m\n")
         elif command == GET_FIXED_LINES:
             print(f"\033[93m" + "\nThe correct fix is:\n" + "\033[0m")
             print(f"\033[92m" + bug_details["fixed_lines"] + "\033[0m\n")
         elif command == GET_MASKED_CODE:
             print(f"\033[93m" + "\nThe masked code is:\n" + "\033[0m")
             print(f"{bug_details['masked_code']}")
+        elif command == GET_FIXED_CODE:
+            print(f"\033[93m" + "\nThe fixed code is:\n" + "\033[0m")
+            print(f"{bug_details['fixed_code']}")
         elif command == HELP:
             print(f"\033[93m" + "\nThe available commands are:\n" + "\033[0m")
             print(f"{commands}")
