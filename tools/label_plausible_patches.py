@@ -20,21 +20,21 @@ def main():
     ground_truth_fixed_patch_files = list(ground_truth_fixed_patch_folder.glob("*.diff"))
     
     remaining_bugs = [bug for bug in plausible_bugs if bug not in fixed_bugs]
-    # for bug in remaining_bugs:
-    #     bug_details = json.load(open(bug_details_cache_folder / f"{bug.split('_')[0]}-{bug.split('_')[1]}.json", "r"))
-    #     plausible_patch_diffs_of_bug = [(f, open(f, "r").read()) for f in plausible_patch_files if f"{f.stem.split('_')[0]}_{f.stem.split('_')[1]}" == bug]
+    for bug in remaining_bugs:
+        bug_details = json.load(open(bug_details_cache_folder / f"{bug.split('_')[0]}-{bug.split('_')[1]}.json", "r"))
+        plausible_patch_diffs_of_bug = [(f, open(f, "r").read()) for f in plausible_patch_files if f"{f.stem.split('_')[0]}_{f.stem.split('_')[1]}" == bug]
         
-    #     ground_truth_exists = False
-    #     ground_truth_fixed_patch_diffs = [open(f, "r").read() for f in ground_truth_fixed_patch_files if f"{f.stem.split('_')[0]}_{f.stem.split('_')[1]}" == bug]
+        ground_truth_exists = False
+        ground_truth_fixed_patch_diffs = [open(f, "r").read() for f in ground_truth_fixed_patch_files if f"{f.stem.split('_')[0]}_{f.stem.split('_')[1]}" == bug]
 
-    #     for file, diff in plausible_patch_diffs_of_bug:
-    #         if diff in ground_truth_fixed_patch_diffs:
-    #             run(["cp", file, f"{fixed_patch_folder}/"])
-    #             ground_truth_exists = True
-    #             break
+        for file, diff in plausible_patch_diffs_of_bug:
+            if diff in ground_truth_fixed_patch_diffs:
+                run(["cp", file, f"{fixed_patch_folder}/"])
+                ground_truth_exists = True
+                break
 
-    #     if not ground_truth_exists:
-    #         label_bug(bug_details=bug_details, plausible_patch_diffs_of_bug=plausible_patch_diffs_of_bug, fixed_patch_folder=fixed_patch_folder)
+        if not ground_truth_exists:
+            label_bug(bug_details=bug_details, plausible_patch_diffs_of_bug=plausible_patch_diffs_of_bug, fixed_patch_folder=fixed_patch_folder)
 
     fixed_patch_files = list(fixed_patch_folder.glob("*.diff"))
     update_summaries(output_folder, fixed_patch_files)
