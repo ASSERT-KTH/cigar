@@ -1,0 +1,111 @@
+{
+    "call": {
+        "messages": [
+            {
+                "content": "You are an automated program repair tool.",
+                "role": "system"
+            },
+            {
+                "content": "The following code contains a bug.\n```java\n    public Dfp multiply(final int x) {\n            return multiplyFast(x);\n    }\n```\nThe code fails on this test:\n```\ntestMultiply\n```\non this test line:\n```java\n            Assert.assertTrue(\"assersion failed \"+desc+\" x = \"+x.toString()+\" flags = \"+x.getField().getIEEEFlags(), b);\n```\nwith the following test error:\n```\njunit.framework.AssertionFailedError: assersion failed Multiply #37 x = NaN flags = 1\n```\nPlease provide the correct function.\nIt can be fixed by the following function:\n```java\n    public Dfp multiply(final int x) {\n        if (x >= 0 && x < RADIX) {\n            return multiplyFast(x);\n        } else {\n            return multiply(newInstance(x));\n        }\n    }\n```\nThe following code contains a bug.\n```java\n  public static Vector3D crossProduct(final Vector3D v1, final Vector3D v2) {\n\n\n      // rescale both vectors without losing precision,\n      // to ensure their norm are the same order of magnitude\n\n      // we reduce cancellation errors by preconditioning,\n      // we replace v1 by v3 = v1 - rho v2 with rho chosen in order to compute\n      // v3 without loss of precision. See Kahan lecture\n      // \"Computing Cross-Products and Rotations in 2- and 3-Dimensional Euclidean Spaces\"\n      // available at http://www.cs.berkeley.edu/~wkahan/MathH110/Cross.pdf\n\n      // compute rho as an 8 bits approximation of v1.v2 / v2.v2\n\n\n      // compute cross product from v3 and v2 instead of v1 and v2\n      return new Vector3D(v1.y * v2.z - v1.z * v2.y, v1.z * v2.x - v1.x * v2.z, v1.x * v2.y - v1.y * v2.x);\n\n  }\n```\nThe code fails on this test:\n```\ntestCrossProductCancellation\n```\non this test line:\n```java\n        Assert.assertEquals(z, v.getZ(), 1.0e-12);\n```\nwith the following test error:\n```\njunit.framework.AssertionFailedError: expected:<1.0> but was:<0.0>\n```\nPlease provide the correct function.",
+                "role": "user"
+            }
+        ],
+        "model": "gpt-3.5-turbo-0301",
+        "n": 10,
+        "temperature": 1,
+        "top_p": 1
+    },
+    "response": {
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "index": 0,
+                "message": {
+                    "content": "The following is the corrected code for the given bug:\n\n```java\npublic static Vector3D crossProduct(final Vector3D v1, final Vector3D v2) {\n\n    // rescale both vectors without losing precision,\n    // to ensure their norm are the same order of magnitude\n\n    double scaleFactor1 = v1.getNorm() / v2.getNorm();\n    double scaleFactor2 = 1.0;\n\n    if (Double.isNaN(scaleFactor1)) {\n\n        scaleFactor1 = 1.0;\n        scaleFactor2 = v2.getNorm() / v1.getNorm();\n\n    } else if (Double.isInfinite(scaleFactor1)) {\n\n        scaleFactor1 = 0.0;\n        scaleFactor2 = Double.NaN;\n\n    }\n\n    Vector3D w1 = new Vector3D(scaleFactor1, v2);\n    Vector3D w2 = new Vector3D(scaleFactor2, v1);\n\n    // we reduce cancellation errors by preconditioning,\n    // we replace w1 by w = w1 - alpha w2 with alpha chosen in order to compute\n    // w without loss of precision. See Kahan lecture\n    // \"Computing Cross-Products and Rotations in 2- and 3-Dimensional Euclidean Spaces\"\n    // available at http://www.cs.berkeley.edu/~wkahan/MathH110/Cross.pdf\n\n    // compute alpha as an 8 bits approximation of w1.w2 / w2.w2\n    double alpha = (w1.x*w2.x + w1.y*w2.y + w1.z*w2.z) / w2.getNormSq();\n    alpha = FastMath.rint(alpha * 256.0) / 256.0;\n\n    // compute w without any cancellation error\n    Vector3D w = new Vector3D(1.0, w1, -alpha, w2);\n\n    // compute cross product from v1 and v2\n    return w.cross(v1);\n\n}\n```\n\nThis code takes care of rescaling the vectors and handling special cases to avoid losing precision. It also uses a modified algorithm to compute the cross product that reduces cancellation errors.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 1,
+                "message": {
+                    "content": "The following function should fix the bug:\n```java\npublic static Vector3D crossProduct(final Vector3D v1, final Vector3D v2) {\n\n    double v1X = v1.getX();\n    double v1Y = v1.getY();\n    double v1Z = v1.getZ();\n    double v2X = v2.getX();\n    double v2Y = v2.getY();\n    double v2Z = v2.getZ();\n\n    // rescale both vectors without losing precision,\n    // to ensure their norm are the same order of magnitude\n    double factor1 = DomainUtils.linearCombination(v1X, v2X, v1Y, v2Y, v1Z, v2Z);\n    double factor2 = 1.0 / DomainUtils.linearCombination(v2X, v2X, v2Y, v2Y, v2Z, v2Z);\n    v1X = factor1 * v2X * factor2;\n    v1Y = factor1 * v2Y * factor2;\n    v1Z = factor1 * v2Z * factor2;\n\n    // we reduce cancellation errors by preconditioning,\n    // we replace v1 by v3 = v1 - rho v2 with rho chosen in order to compute\n    // v3 without loss of precision. See Kahan lecture\n    // \"Computing Cross-Products and Rotations in 2- and 3-Dimensional Euclidean Spaces\"\n    // available at http://www.cs.berkeley.edu/~wkahan/MathH110/Cross.pdf\n\n    // compute rho as an 8 bits approximation of v1.v2 / v2.v2\n    double rho = DomainUtils.linearCombination(v1X, v2X, v1Y, v2Y, v1Z, v2Z);\n\n    // compute cross product from v3 and v2 instead of v1 and v2\n    return new Vector3D(DomainUtils.linearCombination(v1Y, v2Z, -1, v1Z, v2Y, rho * v2X),\n                        DomainUtils.linearCombination(v1Z, v2X, -1, v1X, v2Z, rho * v2Y),\n                        DomainUtils.linearCombination(v1X, v2Y, -1, v1Y, v2X, rho * v2Z));\n}\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 2,
+                "message": {
+                    "content": "The following code should fix the bug:\n```java\npublic static Vector3D crossProduct(final Vector3D v1, final Vector3D v2) {\n\n    final double v1X = v1.getX();\n    final double v1Y = v1.getY();\n    final double v1Z = v1.getZ();\n    final double v2X = v2.getX();\n    final double v2Y = v2.getY();\n    final double v2Z = v2.getZ();\n\n    // rescale both vectors without losing precision,\n    // to ensure their norm are the same order of magnitude\n    final double ax = Math.abs(v1X);\n    final double ay = Math.abs(v1Y);\n    final double az = Math.abs(v1Z);\n    final double bx = Math.abs(v2X);\n    final double by = Math.abs(v2Y);\n    final double bz = Math.abs(v2Z);\n\n    double max = 0.0;\n    if (bx > max) {\n        max = bx;\n    }\n    if (by > max) {\n        max = by;\n    }\n    if (bz > max) {\n        max = bz;\n    }\n    if (ax > max) {\n        max = ax;\n    }\n    if (ay > max) {\n        max = ay;\n    }\n    if (az > max) {\n        max = az;\n    }\n\n    final double invMax = 1.0 / max;\n    final double v1XRescaled = v1X * invMax;\n    final double v1YRescaled = v1Y * invMax;\n    final double v1ZRescaled = v1Z * invMax;\n    final double v2XRescaled = v2X * invMax;\n    final double v2YRescaled = v2Y * invMax;\n    final double v2ZRescaled = v2Z * invMax;\n\n    // we reduce cancellation errors by preconditioning,\n    // we replace v1 by v3 = v1 - rho v2 with rho chosen in order to compute\n    // v3 without loss of precision. See Kahan lecture\n    // \"Computing Cross-Products and Rotations in 2- and 3-Dimensional Euclidean Spaces\"\n    // available at http://www.cs.berkeley.edu/~wkahan/MathH110/Cross.pdf\n\n    final double dot00 = v1XRescaled * v1XRescaled + v1YRescaled * v1YRescaled + v1ZRescaled * v1ZRescaled;\n    final double dot01 = v1XRescaled * v2XRescaled + v1YRescaled * v2YRescaled + v1ZRescaled * v2ZRescaled;\n    final double dot11 = v2XRescaled * v2XRescaled + v2YRescaled * v2YRescaled + v2ZRescaled * v2ZRescaled;\n    final double d = dot00 * dot11 - dot01 * dot01;\n    final double invD = 1.0 / d;\n    final double v3X = (v1XRescaled * dot11 - v2XRescaled * dot01) * invD;\n    final double v3Y = (v1YRescaled * dot11 - v2YRescaled * dot01) * invD;\n    final double v3Z = (v1ZRescaled * dot11 - v2ZRescaled * dot01) * invD;\n    final Vector3D v3 = new Vector3D(v3X, v3Y, v3Z);\n\n    // compute cross product from v3 and v2 instead of v1 and v2\n    return new Vector3D(v3.getY() * v2Z - v3.getZ() * v2Y, v3.getZ() * v2X - v3.getX() * v2Z, v3.getX() * v2Y - v3.getY() * v2X);\n\n}\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 3,
+                "message": {
+                    "content": "The following corrected function should pass the test:\n```java\npublic static Vector3D crossProduct(final Vector3D v1, final Vector3D v2) {\n\n    // rescale both vectors without losing precision,\n    // to ensure their norm are the same order of magnitude\n\n    // we reduce cancellation errors by preconditioning,\n    // we replace v1 by v3 = v1 - rho v2 with rho chosen in order to compute\n    // v3 without loss of precision. See Kahan lecture\n    // \"Computing Cross-Products and Rotations in 2- and 3-Dimensional Euclidean Spaces\"\n    // available at http://www.cs.berkeley.edu/~wkahan/MathH110/Cross.pdf\n\n    // compute rho as an 8 bits approximation of v1.v2 / v2.v2\n    double invNorm2 = 1.0 / v2.getNormSq();\n    double rho      = MathArrays.linearCombination(v1.x, v2.x, v1.y, v2.y, v1.z, v2.z) * invNorm2;\n    Vector3D  v3       = new Vector3D(1.0, v1, -rho, v2);\n\n    // compute cross product from v3 and v2 instead of v1 and v2\n    return new Vector3D(MathArrays.linearCombination(v3.y, v2.z, -v3.z, v2.y),\n                        MathArrays.linearCombination(v3.z, v2.x, -v3.x, v2.z),\n                        MathArrays.linearCombination(v3.x, v2.y, -v3.y, v2.x));\n\n}\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 4,
+                "message": {
+                    "content": "The following code fixes the bug:\n```java\npublic static Vector3D crossProduct(final Vector3D v1, final Vector3D v2) {\n\n    // rescale both vectors without losing precision,\n    // to ensure their norm are the same order of magnitude\n    double factor1 = v1.getNorm() / v2.getNorm();\n    double factor2 = 1.0 / (factor1 * v2.getNorm());\n\n    // we reduce cancellation errors by preconditioning,\n    // we replace v1 by v3 = v1 - rho v2 with rho chosen in order to compute\n    // v3 without loss of precision. See Kahan lecture\n    // \"Computing Cross-Products and Rotations in 2- and 3-Dimensional Euclidean Spaces\"\n    // available at http://www.cs.berkeley.edu/~wkahan/MathH110/Cross.pdf\n\n    // compute rho as an 8 bits approximation of v1.v2 / v2.v2\n    double rho = FastMath.rint(factor1 * Vector3D.dotProduct(v1.normalize(), v2.normalize()));\n    Vector3D v3 = v1.subtract(v2.scalarMultiply(rho * factor2));\n\n    // compute cross product from v3 and v2 instead of v1 and v2\n    return new Vector3D(v3.getY() * v2.getZ() - v3.getZ() * v2.getY(),\n                        v3.getZ() * v2.getX() - v3.getX() * v2.getZ(),\n                        v3.getX() * v2.getY() - v3.getY() * v2.getX());\n\n}\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 5,
+                "message": {
+                    "content": "The following code fixes the bug:\n```java\npublic static Vector3D crossProduct(final Vector3D v1, final Vector3D v2) {\n\n    // rescale both vectors without losing precision,\n    // to ensure their norm are the same order of magnitude\n    final double factor1 = v1.getNorm() / v2.getNorm();\n    final double factor2 = 1.0 / Math.sqrt(1 + factor1 * factor1);\n    final Vector3D rV2 = new Vector3D(factor2, new Vector3D(factor1 * factor2, v2));\n\n    // compute cross product from preconditioned vectors\n    return new Vector3D(rV2.y * v1.z - rV2.z * v1.y,\n                        rV2.z * v1.x - rV2.x * v1.z,\n                        rV2.x * v1.y - rV2.y * v1.x);\n}\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 6,
+                "message": {
+                    "content": "The following is the correct function:\n```java\npublic static Vector3D crossProduct(final Vector3D v1, final Vector3D v2) {\n    final double x = MathArrays.linearCombination(v1.getY(), v2.getZ(), -v1.getZ(), v2.getY());\n    final double y = MathArrays.linearCombination(v1.getZ(),v2.getX(),-v1.getX(),v2.getZ());\n    final double z = MathArrays.linearCombination(v1.getX(),v2.getY(),-v1.getY(),v2.getX());\n    return new Vector3D(x, y, z);\n}\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 7,
+                "message": {
+                    "content": "The following code fixes the bug:\n```java\npublic static Vector3D crossProduct(final Vector3D v1, final Vector3D v2) {\n\n    final double x = v1.y * v2.z - v1.z * v2.y;\n    final double y = v1.z * v2.x - v1.x * v2.z;\n    final double z = v1.x * v2.y - v1.y * v2.x;\n\n    // We need to rescale the result to ensure its norm is the same\n    // order of magnitude as the inputs\n    final double max = FastMath.max(FastMath.max(FastMath.abs(x), FastMath.abs(y)), FastMath.abs(z));\n    if (max <= Precision.SAFE_MIN) {\n        return Vector3D.ZERO;\n    }\n    final double invMax = 1.0 / max;\n\n    return new Vector3D(x * invMax, y * invMax, z * invMax);\n}\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 8,
+                "message": {
+                    "content": "The following code fixes the bug:\n```java\n  public static Vector3D crossProduct(final Vector3D v1, final Vector3D v2) {\n\n\n      // rescale both vectors without losing precision,\n      // to ensure their norm are the same order of magnitude\n      double v1Magnitude = v1.getNorm();\n      double v2Magnitude = v2.getNorm();\n      final double maxMagnitude = FastMath.max(v1Magnitude, v2Magnitude);\n      final double eps = maxMagnitude * 2.220446049250313E-16; // default precision\n      if (eps == 0) {\n          eps = 1e-16; // for extremely small vectors\n      }\n      double rho;\n      Vector3D rescaledVector1;\n      Vector3D rescaledVector2;\n      final boolean v1IsSmaller = v1Magnitude < v2Magnitude;\n      if (v1IsSmaller) {\n          rho = dotProduct(v1, v2) / v2Magnitude;\n          rescaledVector1 = v1;\n          rescaledVector2 = new Vector3D(rho, v2);\n      } else {\n          rho = dotProduct(v2, v1) / v1Magnitude;\n          rescaledVector2 = v2;\n          rescaledVector1 = new Vector3D(rho, v1);\n      }\n\n      // we replace v1 by v3 = v1 - rho v2 with rho chosen in order to compute\n      // v3 without loss of precision. See Kahan lecture\n      // \"Computing Cross-Products and Rotations in 2- and 3-Dimensional Euclidean Spaces\"\n      // available at http://www.cs.berkeley.edu/~wkahan/MathH110/Cross.pdf\n\n      // compute rho as an 8 bits approximation of v1.v2 / v2.v2\n\n\n      // compute cross product from v3 and v2 instead of v1 and v2\n      double x = rescaledVector1.y * rescaledVector2.z - rescaledVector1.z * rescaledVector2.y;\n      double y = rescaledVector1.z * rescaledVector2.x - rescaledVector1.x * rescaledVector2.z;\n      double z = rescaledVector1.x * rescaledVector2.y - rescaledVector1.y * rescaledVector2.x;\n\n      // compensate the effect of rescaling\n      double xmag = FastMath.abs(x);\n      double ymag = FastMath.abs(y);\n      double zmag = FastMath.abs(z);\n      if (v1IsSmaller) {\n          xmag *= v2Magnitude / maxMagnitude;\n          ymag *= v2Magnitude / maxMagnitude;\n          zmag *= v2Magnitude / maxMagnitude;\n      } else {\n          xmag *= v1Magnitude / maxMagnitude;\n          ymag *= v1Magnitude / maxMagnitude;\n          zmag *= v1Magnitude / maxMagnitude;\n      }\n      if ((FastMath.max(xmag, FastMath.max(ymag, zmag))) < eps) {\n          return new Vector3D(0, 0, 0);\n      }\n      return new Vector3D(x, y, z);\n\n  }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 9,
+                "message": {
+                    "content": "The following code fixes the bug:\n\n```java\npublic static Vector3D crossProduct(final Vector3D v1, final Vector3D v2) {\n\n    // rescale both vectors without losing precision,\n    // to ensure their norm are the same order of magnitude\n    final double factor1 = v1.getNorm() / v2.getNorm();\n    final double factor2 = 1.0 / (factor1 * v2.getNorm());\n    final Vector3D v3 = new Vector3D(factor1 * v1.getX() - factor2 * v1.dotProduct(v2) * v2.getX(),\n                                     factor1 * v1.getY() - factor2 * v1.dotProduct(v2) * v2.getY(),\n                                     factor1 * v1.getZ() - factor2 * v1.dotProduct(v2) * v2.getZ());\n\n    // compute cross-product from v3 and v2 instead of from v1 and v2\n    return new Vector3D(v3.getY() * v2.getZ() - v3.getZ() * v2.getY(),\n                        v3.getZ() * v2.getX() - v3.getX() * v2.getZ(),\n                        v3.getX() * v2.getY() - v3.getY() * v2.getX());\n\n}\n```\n\nThe modified method rescales the vectors v1 and v2 to ensure that they have the same order of magnitude. It then computes a new vector v3 which is not subject to the same cancellation errors as v1. Finally, it computes the cross product of v3 and v2, resulting in a more accurate answer.",
+                    "role": "assistant"
+                }
+            }
+        ],
+        "created": 1691274796,
+        "id": "chatcmpl-7kK7g8czW3VHYpVO1LFBydbSXZjM2",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion",
+        "usage": {
+            "completion_tokens": 3994,
+            "prompt_tokens": 527,
+            "total_tokens": 4521
+        }
+    }
+}
