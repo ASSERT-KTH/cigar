@@ -1,0 +1,34 @@
+diff --git a/src/org/mockito/internal/configuration/DefaultInjectionEngine.java b/src/org/mockito/internal/configuration/DefaultInjectionEngine.java
+index 213ebf351..9fb511683 100644
+--- a/src/org/mockito/internal/configuration/DefaultInjectionEngine.java
++++ b/src/org/mockito/internal/configuration/DefaultInjectionEngine.java
+@@ -88,9 +88,28 @@ public class DefaultInjectionEngine {
+         }
+     }
+ 
++
+     private void injectMockCandidate(Class<?> awaitingInjectionClazz, Set<Object> mocks, Object fieldInstance) {
+         for(Field field : orderedInstanceFieldsFrom(awaitingInjectionClazz)) {
+-            mockCandidateFilter.filterCandidate(mocks, field, fieldInstance).thenInject();
++Object candidate = null;
++try {
++    candidate = mockCandidateFilter.filterCandidate(mocks, field, fieldInstance).thenInject();
++    if (candidate != null) {
++        if (field.getType().isAssignableFrom(candidate.getClass())) {
++            field.setAccessible(true);
++            field.set(fieldInstance, field.getType().cast(candidate));
++        } else {
++            String message = String.format("Mock candidate %s is not compatible with field type %s", candidate.getClass().getSimpleName(), field.getType().getSimpleName());
++            throw new RuntimeException(message);
++        }
++    }
++} catch (IllegalAccessException e) {
++    throw new RuntimeException("Unable to inject mock candidate", e);
++} finally {
++    if (candidate != null) {
++        mocks.remove(candidate); // remove the used mock from the set of available mocks
++    }
++}
+         }
+     }
+ 
