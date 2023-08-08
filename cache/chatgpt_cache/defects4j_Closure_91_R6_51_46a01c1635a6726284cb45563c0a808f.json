@@ -1,0 +1,375 @@
+{
+    "call": {
+        "messages": [
+            {
+                "content": "You are an automated program repair tool.",
+                "role": "system"
+            },
+            {
+                "content": "The following code contains a buggy hunk that has been removed.\n```java\n  private boolean hasExceptionHandler(Node cfgNode) {\n>>> [ INFILL ] <<<\n    return false;\n  }\n```\nThis was the original buggy hunk which was removed by the infill location:\n```java\n\n```\nThe code fails on this test:\n```\ntestIssue794b\n```\non this test line:\n```java\n    test(EXTERN_FUNCTIONS, \"function _func() {\" + input + \"}\",\n```\nwith the following test error:\n```\njunit.framework.AssertionFailedError:\n```\nPlease provide the correct hunk at the infill location.\nIt can be fixed by the following hunk:\n```java\n    List<DiGraphEdge<Node, Branch>> branchEdges = getCfg().getOutEdges(cfgNode);\n    for (DiGraphEdge<Node, Branch> edge : branchEdges) {\n      if (edge.getValue() == Branch.ON_EX) {\n        return true;\n      }\n    }\n```\nThe following code contains a buggy hunk that has been removed.\n```java\n  public boolean shouldTraverse(NodeTraversal t, Node n, Node parent) {\n\n    if (n.getType() == Token.FUNCTION) {\n      // Don't traverse functions that are constructors or have the @this\n      // or @override annotation.\n      JSDocInfo jsDoc = getFunctionJsDocInfo(n);\n      if (jsDoc != null &&\n          (jsDoc.isConstructor() ||\n           jsDoc.isInterface() ||\n           jsDoc.hasThisType() ||\n           jsDoc.isOverride())) {\n        return false;\n      }\n\n      // Don't traverse functions unless they would normally\n      // be able to have a @this annotation associated with them. e.g.,\n      // var a = function() { }; // or\n      // function a() {} // or\n      // a.x = function() {}; // or\n      // var a = {x: function() {}};\n      int pType = parent.getType();\n      if (!(pType == Token.BLOCK ||\n            pType == Token.SCRIPT ||\n            pType == Token.NAME ||\n            pType == Token.ASSIGN ||\n\n            // object literal keys\n            pType == Token.STRING ||\n            pType == Token.NUMBER)) {\n        return false;\n      }\n\n      // Don't traverse functions that are getting lent to a prototype.\n>>> [ INFILL ] <<<\n    }\n\n    if (parent != null && parent.getType() == Token.ASSIGN) {\n      Node lhs = parent.getFirstChild();\n      Node rhs = lhs.getNext();\n\n      if (n == lhs) {\n        // Always traverse the left side of the assignment. To handle\n        // nested assignments properly (e.g., (a = this).property = c;),\n        // assignLhsChild should not be overridden.\n        if (assignLhsChild == null) {\n          assignLhsChild = lhs;\n        }\n      } else {\n        // Only traverse the right side if it's not an assignment to a prototype\n        // property or subproperty.\n        if (NodeUtil.isGet(lhs)) {\n          if (lhs.getType() == Token.GETPROP &&\n              lhs.getLastChild().getString().equals(\"prototype\")) {\n            return false;\n          }\n          Node llhs = lhs.getFirstChild();\n          if (llhs.getType() == Token.GETPROP &&\n              llhs.getLastChild().getString().equals(\"prototype\")) {\n            return false;\n          }\n        }\n      }\n    }\n\n    return true;\n  }\n```\nThis was the original buggy hunk which was removed by the infill location:\n```java\n\n```\nThe code fails on this test:\n```\ntestLendsAnnotation3\n```\non this test line:\n```java\n    testSame(\"/** @constructor */ function F() {}\" +\n```\nwith the following test error:\n```\njunit.framework.AssertionFailedError: Unexpected error(s): JSC_USED_GLOBAL_THIS. dangerous use of the global this object at testcode line 1 : 110 expected:<0> but was:<1>\n```\nPlease provide the correct hunk at the infill location.",
+                "role": "user"
+            }
+        ],
+        "model": "gpt-3.5-turbo-0301",
+        "n": 43,
+        "temperature": 1,
+        "top_p": 1
+    },
+    "response": {
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "index": 0,
+                "message": {
+                    "content": "The correct hunk at the infill location is:\n```java\n      // Don't traverse functions that are getting lent to a prototype.\n      if (parent.getFirstChild().getType() == Token.STRING_KEY &&\n          \"lends\".equals(parent.getFirstChild().getString())) {\n        return false;\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 1,
+                "message": {
+                    "content": "The correct hunk at the infill location is:\n```java\n      if (NodeUtil.isGet(lhs)) {\n        if (lhs.getType() == Token.GETPROP &&\n            lhs.getLastChild().getString().equals(\"prototype\")) {\n          return false;\n        }\n        Node llhs = lhs.getFirstChild();\n        if (llhs.getType() == Token.GETPROP &&\n            llhs.getLastChild().getString().equals(\"prototype\")) {\n          return false;\n        }\n        if (NodeUtil.isObjectLiteral(lhs) &&\n          NodeUtil.getObjectLiteralKeyName(lhs, n) == null) {\n          return false;\n        }\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 2,
+                "message": {
+                    "content": "The following hunk can be added at the infill location to fix the bug:\n\n```java\n      if (NodeUtil.isGet(lhs)) {\n        if (lhs.getType() == Token.GETPROP &&\n            lhs.getLastChild().getString().equals(\"prototype\")) {\n          return false;\n        }\n        Node llhs = lhs.getFirstChild();\n        if (llhs.getType() == Token.GETPROP &&\n            llhs.getLastChild().getString().equals(\"prototype\")) {\n          return false;\n        }\n        Node parentOfLhs = lhs.getParent();\n        int parentOfLhsType = parentOfLhs == null ? Token.EMPTY : parentOfLhs.getType();\n        if (parentOfLhsType == Token.OBJECTLIT &&\n            parentOfLhs.getParent().getType() == Token.EXPR_RESULT &&\n            parentOfLhs.getNext() == null &&\n            NodeUtil.getEnclosingType(n) == null) {\n          // Bails out if the function is used for assigning to a object field\n          // that is being created in the same scope.\n          return false;\n        }\n      }\n```\n\nThis hunk adds an extra check for whether the left-hand side of the assignment corresponds to an object property that is being created in the same scope. If this is the case, the function should not be skipped. \n\n",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 3,
+                "message": {
+                    "content": "The following hunk can fix the code:\n\n```java\n      // Don't traverse functions that are getting lent to a prototype.\n      if (parent.getType() == Token.ASSIGN) {\n        Node lhs = parent.getFirstChild();\n        Node rhs = lhs.getNext();\n        if (lhs.getType() == Token.GETPROP &&\n            lhs.getLastChild().getString().equals(\"prototype\")) {\n          return false;\n        }\n        if (NodeUtil.isGet(lhs) && lhs.getFirstChild().getType() == Token.NAME) {\n          Var v = t.getScope().getVar(lhs.getFirstChild().getString());\n          JSDocInfo varJsDoc = var.getJSDocInfo();\n          if (varJsDoc != null && varJsDoc.isConstructor()) {\n            return false;\n          }\n          if (v != null && (v.isExtern() || v.isGlobal())) {\n            // Don't traverse functions being copied into an externs or globals object.\n            return false;\n          }\n        }\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 4,
+                "message": {
+                    "content": "The correct hunk for the infill location is:\n```java\n      // Don't traverse functions that are getting lent to a prototype.\n      if (NodeUtil.isInFunction(getCfg().getEntry().getValue(), n)) {\n        return false;\n      }\n```\n",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 5,
+                "message": {
+                    "content": "The correct hunk at the infill location can be:\n```java\n      // Don't traverse functions that are getting lent to a prototype.\n      if (NodeUtil.isNameDeclaration(parent.getParent())) {\n        Var v = t.getScope().getVar(parent.getFirstChild().getString());\n        if (v != null && v.isLendToExtern()) {\n          return false;\n        }\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 6,
+                "message": {
+                    "content": "It can be fixed by the following hunk:\n```java\n      if (parent != null && parent.getType() == Token.ASSIGN) {\n        Node lhs = parent.getFirstChild();\n        Node rhs = lhs.getNext();\n\n        if (n == lhs) {\n          // Always traverse the left side of the assignment. To handle\n          // nested assignments properly (e.g., (a = this).property = c;),\n          // assignLhsChild should not be overridden.\n          if (assignLhsChild == null) {\n            assignLhsChild = lhs;\n          }\n          return true;\n        } else {\n          // Only traverse the right side if it's not an assignment to a prototype\n          // property or subproperty.\n          if (NodeUtil.isGet(lhs)) {\n            if (lhs.getType() == Token.GETPROP &&\n                lhs.getLastChild().getString().equals(\"prototype\")) {\n              return false;\n            }\n            Node llhs = lhs.getFirstChild();\n            if (llhs.getType() == Token.GETPROP &&\n                llhs.getLastChild().getString().equals(\"prototype\")) {\n              return false;\n            }\n          }\n        }\n      }\n\n      return true;\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 7,
+                "message": {
+                    "content": "It can be fixed by the following hunk:\n```java\n      JSDocInfo jsDoc = NodeUtil.getBestJSDocInfo(n);\n      if (jsDoc != null &&\n          jsDoc.isConstructor()) {\n        return false;\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 8,
+                "message": {
+                    "content": "The correct hunk at the infill location is:\n\n```java\nif (n.getJSDocInfo() != null && n.getJSDocInfo().isConstructor() && parent.isExprResult()) {\n  return false; // Don't traverse constructor assignments.\n}\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 9,
+                "message": {
+                    "content": "The correct hunk for the infill location is:\n```java\n      if (NodeUtil.isGet(lhs)) {\n        if (lhs.getType() == Token.GETPROP &&\n            lhs.getLastChild().getString().equals(\"prototype\")) {\n          return false;\n        }\n        Node llhs = lhs.getFirstChild();\n        if (llhs.getType() == Token.GETPROP &&\n            llhs.getLastChild().getString().equals(\"prototype\")) {\n          return false;\n        }\n        if (llhs.isName() && llhs.getString().equals(\"exports\") &&\n            rhs.isObjectLit()) {\n          return false;\n        }\n      }\n```\nThis will fix the test failure on `testLendsAnnotation3`.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 10,
+                "message": {
+                    "content": "It can be fixed by the following hunk:\n```java\n      // Don't traverse functions that are getting lent to a prototype.\n      if (isPropertyDeclarationOnPrototype(parent)) {\n        return false;\n      }\n```\nMake sure to add the following imported method to the imports section:\n```java\nimport static com.google.javascript.jscomp.parsing.parser.util.JSDocInfoPrinter.isPropertyDeclarationOnPrototype;\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 11,
+                "message": {
+                    "content": "The correct hunk to fix the issue is:\n```java\n        if (NodeUtil.isGet(lhs)) {\n          if (lhs.getType() == Token.GETPROP &&\n              lhs.getLastChild().getString().equals(\"prototype\")) {\n            return false;\n          }\n          Node llhs = lhs.getFirstChild();\n          if (llhs.getType() == Token.GETPROP &&\n              llhs.getLastChild().getString().equals(\"prototype\")) {\n            return false;\n          }\n          if (NodeUtil.isName(llhs) && llhs.getString().equals(\"goog\")) {\n            return false;\n          }\n        }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 12,
+                "message": {
+                    "content": "The correct hunk to fix the issue is:\n\n```java\nif (parent != null && parent.getType() == Token.ASSIGN) {\n  Node lhs = parent.getFirstChild();\n  Node rhs = lhs.getNext();\n\n  if (n == lhs) {\n    // Always traverse the left side of the assignment. To handle\n    // nested assignments properly (e.g., (a = this).property = c;),\n    // assignLhsChild should not be overridden.\n    if (assignLhsChild == null) {\n      assignLhsChild = lhs;\n    }\n  } else if (n == rhs) {\n    // Only traverse the right side if it's not an assignment to a prototype\n    // property or subproperty.\n    if (NodeUtil.isGet(lhs)) {\n      if (lhs.getType() == Token.GETPROP &&\n          lhs.getLastChild().getString().equals(\"prototype\")) {\n        return false;\n      }\n      Node llhs = lhs.getFirstChild();\n      if (llhs.getType() == Token.GETPROP &&\n          llhs.getLastChild().getString().equals(\"prototype\")) {\n        return false;\n      }\n    }\n  }\n}\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 13,
+                "message": {
+                    "content": "The correct hunk at the infill location can be:\n```java\n      // Don't traverse functions that are getting lent to a prototype.\n      Node maybeStripped = n;\n      while (NodeUtil.isName(maybeStripped)) {\n        if (NodeUtil.isLValue(maybeStripped) || maybeStripped.isFunction()) {\n          break;\n        }\n        maybeStripped = maybeStripped.getFirstChild();\n      }\n      if (NodeUtil.isGet(parent) && NodeUtil.isGet(maybeStripped)) {\n        return false;\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 14,
+                "message": {
+                    "content": "```\n      // Don't traverse functions that are getting lent to a prototype.\n      if (NodeUtil.isObjectLitKey(parent)) {\n        Node owner = parent.getParent();\n        if (owner.getType() == Token.ASSIGN) {\n          Node lhs = owner.getFirstChild();\n          if (NodeUtil.isGet(lhs)) {\n            if (lhs.getType() == Token.GETPROP &&\n                lhs.getLastChild().getString().equals(\"prototype\")) {\n              return false;\n            }\n            Node llhs = lhs.getFirstChild();\n            if (llhs.getType() == Token.GETPROP &&\n                llhs.getLastChild().getString().equals(\"prototype\")) {\n              return false;\n            }\n          }\n        }\n      }\n```\n",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 15,
+                "message": {
+                    "content": "It can be fixed by the following hunk:\n```java\n      // Don't traverse functions that are getting lent to a prototype.\n      if (NodeUtil.isGet(parent)) {\n        Node obj = parent.getFirstChild();\n        if (obj.getType() == Token.GETPROP &&\n            obj.getLastChild().getString().equals(\"prototype\")) {\n          return false;\n        }\n        Node parentParent = parent.getParent();\n        if (parentParent != null &&\n            NodeUtil.isGet(parentParent) &&\n            parentParent.getFirstChild().isQualifiedName() &&\n            parentParent.getFirstChild().getQualifiedName().equals(\"Object.defineProperty\")) {\n          return false;\n        }\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 16,
+                "message": {
+                    "content": "It can be fixed by the following hunk:\n```java\n      if (parent != null && parent.getType() == Token.ASSIGN) {\n        Node lhs = parent.getFirstChild();\n        Node rhs = lhs.getNext();\n\n        if (n == lhs) {\n          // Always traverse the left side of the assignment. To handle\n          // nested assignments properly (e.g., (a = this).property = c;),\n          // assignLhsChild should not be overridden.\n          if (assignLhsChild == null) {\n            assignLhsChild = lhs;\n          }\n        } else {\n          // Only traverse the right side if it's not an assignment to a prototype\n          // property or subproperty.\n          if (NodeUtil.isGet(lhs)) {\n            if (lhs.getType() == Token.GETPROP &&\n                lhs.getLastChild().getString().equals(\"prototype\")) {\n              return false;\n            }\n            Node llhs = lhs.getFirstChild();\n            if (llhs.getType() == Token.GETPROP &&\n                llhs.getLastChild().getString().equals(\"prototype\")) {\n              return false;\n            }\n          }\n\n          // Don't traverse functions that are getting lent to a prototype.\n          if (isPrototypeProperty(rhs)) {\n            return false;\n          }\n        }\n      }\n```\nThe issue was caused due to missing code that checks if a function is being lent to a prototype. The fix makes sure to check if the right-hand side of an assignment involving a prototype property is a function, and only traverses it if it is not a function.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 17,
+                "message": {
+                    "content": "It can be fixed by the following hunk:\n```java\n      // Don't traverse functions that are getting lent to a prototype.\n      if (NodeUtil.isGet(parent) &&\n          parent.getFirstChild().getType() == Token.NAME &&\n          parent.getFirstChild().matchesQualifiedName(\"Object.prototype\")) {\n        return false;\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 18,
+                "message": {
+                    "content": "The correct hunk at the infill location is:\n```java\n      if (parent != null && parent.getType() == Token.ASSIGN) {\n        Node lhs = parent.getFirstChild();\n        Node rhs = lhs.getNext();\n\n        if (n == lhs) {\n          // Always traverse the left side of the assignment. To handle\n          // nested assignments properly (e.g., (a = this).property = c;),\n          // assignLhsChild should not be overridden.\n          if (assignLhsChild == null) {\n            assignLhsChild = lhs;\n          }\n        } else {\n          // Only traverse the right side if it's not an assignment to a prototype\n          // property or subproperty.\n          if (NodeUtil.isGet(lhs)) {\n            if (lhs.getType() == Token.GETPROP &&\n                lhs.getLastChild().getString().equals(\"prototype\")) {\n              if (NodeUtil.isGet(rhs)) {\n                return false;\n              }\n            }\n            Node llhs = lhs.getFirstChild();\n            if (llhs.getType() == Token.GETPROP &&\n                llhs.getLastChild().getString().equals(\"prototype\")) {\n              if (NodeUtil.isGet(rhs)) {\n                return false;\n              }\n            }\n          }\n        }\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 19,
+                "message": {
+                    "content": "The following hunk can fix the bug:\n\n```java\nif (parent != null && parent.getType() == Token.ASSIGN) {\n      Node lhs = parent.getFirstChild();\n      Node rhs = lhs.getNext();\n\n      if (n == lhs) {\n        // Always traverse the left side of the assignment. To handle\n        // nested assignments properly (e.g., (a = this).property = c;),\n        // assignLhsChild should not be overridden.\n        if (assignLhsChild == null) {\n          assignLhsChild = lhs;\n        }\n      } else {\n        // Only traverse the right side if it's not an assignment to a prototype\n        // property or subproperty.\n        if (NodeUtil.isGet(lhs)) {\n          if (lhs.getType() == Token.GETPROP &&\n              lhs.getLastChild().getString().equals(\"prototype\")) {\n            return false;\n          }\n          Node llhs = lhs.getFirstChild();\n          if (llhs.getType() == Token.GETPROP &&\n              llhs.getLastChild().getString().equals(\"prototype\")) {\n            return false;\n          }\n        }\n        if (rhs != null && NodeUtil.isFunctionExpression(rhs)) {\n          return false;\n        }\n      }\n    }\n```\n\nThis is fixing the issue when a function is getting lent to a prototype. It needs to be skipped during the traversal.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 20,
+                "message": {
+                    "content": "It can be fixed by the following hunk:\n```java\n      if (n.isFromExterns()) {\n        return false;\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 21,
+                "message": {
+                    "content": "It can be fixed by the following hunk:\n```java\n      if (parent != null && parent.getType() == Token.ASSIGN) {\n          Node lhs = parent.getFirstChild();\n          Node rhs = lhs.getNext();\n\n          if (n == lhs) {\n            // Always traverse the left side of the assignment. To handle\n            // nested assignments properly (e.g., (a = this).property = c;),\n            // assignLhsChild should not be overridden.\n            if (assignLhsChild == null) {\n              assignLhsChild = lhs;\n            }\n          } else {\n            // Only traverse the right side if it's not an assignment to a prototype\n            // property or subproperty.\n            if (NodeUtil.isGet(lhs)) {\n              if (lhs.getLastChild().getString().equals(\"prototype\")) {\n                if (lhs.getType() == Token.GETPROP) {\n                  return lhs.getFirstChild() == n;\n                } else if (lhs.getType() == Token.GETELEM) {\n                  return true;\n                }\n              } else if (lhs.getType() == Token.NAME &&\n                         lhs.getString().equals(\"module\") &&\n                         parent.getParent().getType() == Token.EXPR_RESULT) {\n                // Skip everything in the body of a module definition.\n                return false;\n              }\n            }\n          }\n        }\n```\nThe updated method handles the cases where `isGet()` can't be used because of type-3 or nested properties.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 22,
+                "message": {
+                    "content": "It can be fixed by the following hunk:\n```java\n      if (n.getJSDocInfo() != null && n.getJSDocInfo().isConstructor()) {\n        return false;\n      }\n```\n",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 23,
+                "message": {
+                    "content": "It can be fixed by the following hunk:\n```java\n      if (parent != null && parent.getType() == Token.ASSIGN) {\n        Node lhs = parent.getFirstChild();\n        Node rhs = lhs.getNext();\n\n        if (n == lhs) {\n          // Always traverse the left side of the assignment. To handle\n          // nested assignments properly (e.g., (a = this).property = c;),\n          // assignLhsChild should not be overridden.\n          if (assignLhsChild == null) {\n            assignLhsChild = lhs;\n          }\n        } else {\n          // Only traverse the right side if it's not an assignment to a prototype\n          // property or subproperty.\n          boolean isLhsGetProp = NodeUtil.isGet(lhs);\n          if (isLhsGetProp) {\n            Node llhs = lhs.getFirstChild();\n            isLhsGetProp = llhs.getType() == Token.GETPROP &&\n                llhs.getLastChild().getString().equals(\"prototype\");\n          }\n          if (isLhsGetProp) {\n            return false;\n          }\n        }\n      }\n```\n",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 24,
+                "message": {
+                    "content": "It can be fixed by the following hunk:\n```java\n      // Don't traverse functions that are getting lent to a prototype.\n      if (n.getFirstChild().getType() == Token.GETPROP &&\n          \"prototype\".equals(n.getFirstChild().getLastChild().getString())) {\n        return false;\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 25,
+                "message": {
+                    "content": "The correct hunk at the infill location to fix the failing test `testLendsAnnotation3` is:\n```java\n      // Don't traverse functions that are getting lent to a prototype.\n      if (isLValueOfLValue(lhs, \"prototype\")) {\n        return false;\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 26,
+                "message": {
+                    "content": "The correct hunk to fix the issue can be:\n```java\n      // Don't traverse functions that are getting lent to a prototype.\n      if (isLValueOfAssignParent(parent) && isPrototypeAssignment(parent.getParent())) {\n        return false;\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 27,
+                "message": {
+                    "content": "It can be fixed by the following hunk:\n```java\n      // Don't traverse functions that are getting lent to a prototype.\n      if (NodeUtil.isLhsOfAssign(node)) {\n        Node maybeGetProp = node.getParent();\n\n        // Don't traverse if the function is in a GOOG.inherits call.\n        if (maybeGetProp != null &&\n            maybeGetProp.getType() == Token.GETPROP &&\n            maybeGetProp.getLastChild().getString().equals(\"inherits\")) {\n          return false;\n        }\n\n        if (maybeGetProp != null &&\n            maybeGetProp.getType() == Token.GETPROP &&\n            maybeGetProp.getFirstChild().getType() == Token.NAME &&\n            \"prototype\".equals(maybeGetProp.getLastChild().getString())) {\n          return false;\n        }\n\n        maybeGetProp = maybeGetProp.getParent();\n        if (maybeGetProp != null &&\n            maybeGetProp.getType() == Token.GETPROP &&\n            maybeGetProp.getFirstChild().getType() == Token.NAME &&\n            \"prototype\".equals(maybeGetProp.getLastChild().getString())) {\n          return false;\n        }\n      }\n```\n",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 28,
+                "message": {
+                    "content": "It can be fixed by the following hunk:\n```java\n      Node lhs = parent.getFirstChild();\n      Node rhs = lhs.getNext();\n\n      if (n == lhs) {\n        // Always traverse the left side of the assignment. To handle\n        // nested assignments properly (e.g., (a = this).property = c;),\n        // assignLhsChild should not be overridden.\n        if (assignLhsChild == null) {\n          assignLhsChild = lhs;\n        }\n>>> [ INFILL ] <<<\n      } else {\n        // Only traverse the right side if it's not an assignment to a prototype\n        // property or subproperty.\n        if (NodeUtil.isGet(lhs)) {\n          if (lhs.getType() == Token.GETPROP &&\n              lhs.getLastChild().getString().equals(\"prototype\")) {\n            return false;\n          }\n          Node llhs = lhs.getFirstChild();\n          if (llhs.getType() == Token.GETPROP &&\n              llhs.getLastChild().getString().equals(\"prototype\")) {\n            return false;\n          }\n        }\n        if (NodeUtil.isFunctionExpression(rhs)) {\n          Node funcNode = NodeUtil.getEnclosingFunction(rhs);\n          if (isLendToNonObjectLiteralPrototype(lhs, rhs)) {\n            disableCheck(\n                t.report(funcNode, JSError.make(JSC_USED_GLOBAL_THIS)));\n          }\n        }\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 29,
+                "message": {
+                    "content": "The following hunk should replace the infill location:\n```java\n      if (NodeUtil.isLValue(parent)) {\n        Node left = parent.getFirstChild();\n        if (NodeUtil.isGet(left)) {\n          // If not lending to a prototype property or subproperty, always traverse.\n          if (left.getType() != Token.GETPROP ||\n              !left.getLastChild().getString().equals(\"prototype\")) {\n            return true;\n          }\n        }\n      }\n      return false;\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 30,
+                "message": {
+                    "content": "The correct hunk at the infill location would be:\n```java\n      // Don't traverse functions that are getting lent to a prototype.\n      Node maybeAssign = parent.getFirstChild();\n      if (maybeAssign.getType() == Token.ASSIGN) {\n        Node lhs = maybeAssign.getFirstChild();\n        Node rhs = maybeAssign.getLastChild();\n\n        if (lhs.getLastChild().getString().equals(\"prototype\") &&\n            rhs == n) {\n          return false;\n        }\n      }\n```\nThis fix will handle cases where functions are assigned to a prototype property or subproperty.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 31,
+                "message": {
+                    "content": "It can be fixed by the following hunk:\n```java\n    if (n.isFunction()) {\n      // Don't traverse functions that are constructors or have the @this\n      // or @override annotation.\n      JSDocInfo jsDoc = NodeUtil.getBestJSDocInfo(n);\n      if (jsDoc != null && (jsDoc.isConstructor() || jsDoc.isInterface() || jsDoc.hasThisType() || jsDoc.isOverride())) {\n        return false;\n      }\n\n      // Don't traverse functions unless they would normally be able to have a\n      // @this annotation associated with them, e.g.,\n      //   var a = function() { }; or\n      //   a.x = function() {};\n      if (!NodeUtil.mayHaveLocalHoistableThis(n)) {\n        return false;\n      }\n\n      // Don't traverse functions that are getting lent to a prototype.\n      if (parent != null && NodeUtil.isLValue(parent)) {\n        Node lrsh = parent.getFirstChild();\n        if (lrsh != null) {\n          Node lhs = lrsh.getFirstChild();\n          if (lhs != null) {\n            if (NodeUtil.isGet(lhs) && lhs.getLastChild().getString().equals(\"prototype\")) {\n              return false;\n            }\n            Node llhs = lhs.getFirstChild();\n            if (llhs != null && llhs.getType() == Token.GETPROP && llhs.getLastChild().getString().equals(\"prototype\")) {\n              return false;\n            }\n          }\n        }\n      }\n    }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 32,
+                "message": {
+                    "content": "It can be fixed by the following hunk:\n```java\n      // Don't traverse functions that are getting lent to a prototype.\n      if (NodeUtil.isGet(parent)) {\n        Node getTarget = parent.getFirstChild();\n        if (NodeUtil.isGet(getTarget) &&\n            getTarget.getLastChild().getString().equals(\"prototype\")) {\n          return false;\n        }\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 33,
+                "message": {
+                    "content": "It can be fixed by the following hunk:\n```java\n      if (NodeUtil.mayHaveSideEffects(n)) {\n        // if this function definition may have side-effects (such as code\n        // generation), then don't traverse it because traversing it now might\n        // interfere with codegen later. E.g., in\n        // var f = function() { return 1; };\n        // a(); f(); b();\n        // if we traverse f(), then we'll move its definition to the top\n        // level, and we'll end up with\n        // var f; a(); f(); b(); f=function(){return1};\n        // f will be invoked prematurely.\n        return false;\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 34,
+                "message": {
+                    "content": "It can be fixed by the following hunk:\n```java\n      // Don't traverse functions that are getting lent to a prototype.\n      if (NodeUtil.isGet(parent.getFirstChild())) {\n        Node lhs = parent.getFirstFirstChild();\n        if (lhs.getLastChild().getString().equals(\"prototype\")) {\n          return false;\n        }\n        Node llhs = lhs.getFirstChild();\n        if (llhs.getLastChild().getString().equals(\"prototype\")) {\n          return false;\n        }\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 35,
+                "message": {
+                    "content": "It can be fixed by the following hunk:\n```java\n      // Don't traverse functions that are getting lent to a prototype.\n      if (isLendToThis(n)) {\n        return false;\n      }\n```\nand add the following method to the class:\n```java\n  /**\n   * Returns true if a function node is being lent to \"this\".\n   */\n  private boolean isLendToThis(Node n) {\n    if (n.getType() != Token.FUNCTION || !n.getBooleanProp(Node.IS_LIT_FUNCTION)) {\n      return false;\n    }\n    Node parent = n.getParent();\n    if (parent == null || parent.getParent() == null) {\n      return false;\n    }\n    Node maybeCall = parent.getParent();\n    if (maybeCall.getType() != Token.CALL) {\n      return false;\n    }\n    // If \"this\" is an argument, the function is used as a constructor.\n    Node maybeThis = maybeCall.getFirstChild();\n    if (maybeThis.isThis()) {\n      return true;\n    }\n    // If the function is the outer function of a .call or .apply invocation,\n    // \"this\" could be any expression. Assume it is lending to \"this\".\n    if (parent.isCall()) {\n      Node callee = parent.getFirstChild();\n      if (callee.getLastChild().getString().equals(\"call\") ||\n          callee.getLastChild().getString().equals(\"apply\")) {\n        return true;\n      }\n    }\n    return false;\n  }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 36,
+                "message": {
+                    "content": "It can be fixed by the following hunk:\n```java\n      // Don't traverse functions that are getting lent to a prototype.\n      Node gramps = parent.getParent();\n      if (gramps != null && NodeUtil.isClassPrototype(gramps)) {\n        return false;\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 37,
+                "message": {
+                    "content": "It can be fixed by the following hunk:\n```java\n    if (n.getParent().getType() == Token.ASSIGN) {\n      Node assignedValue = n.getNext();\n      if (assignedValue.getType() == Token.FUNCTION ||\n          assignedValue.getType() == Token.FUNCTION_EXPR) {\n        Node assignedObj = n.getFirstChild();\n        if (assignedObj.getType() == Token.GETPROP &&\n            assignedObj.getNext().getString().equals(\"prototype\")) {\n          // Don't traverse functions that are getting lent to a prototype.\n          return false;\n        }\n      }\n    }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 38,
+                "message": {
+                    "content": "The correct hunk for the infill location is:\n```java\n      Node enclosingObjectFunction = NodeUtil.getEnclosingFunction(n.getParent());\n      JSDocInfo enclosingInfo = null;\n      if (enclosingObjectFunction != null) {\n        enclosingInfo = getFunctionJsDocInfo(enclosingObjectFunction);\n        if (enclosingInfo == null || !enclosingInfo.isConstructor()) {\n          return false;\n        }\n      }\n```\nThis should replace:\n```java\n      if (parent.getType() != Token.OBJECTLIT &&\n          parent.getType() != Token.CATCH &&\n          parent.getType() != Token.EXPORT_SPECS &&\n          parent.getType() != Token.SCRIPT) {\n        return false;\n      }\n\n      Node enclosingFunction = NodeUtil.getEnclosingFunction(n);\n      JSDocInfo enclosingInfo = null;\n      if (enclosingFunction != null) {\n        enclosingInfo = getFunctionJsDocInfo(enclosingFunction);\n        if (enclosingInfo == null || !enclosingInfo.isConstructor()) {\n          return false;\n        }\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 39,
+                "message": {
+                    "content": "It can be fixed by the following hunk:\n```java\n      if (NodeUtil.isFunctionExpression(n) && NodeUtil.isGet(parent)) {\n        Node getTarget = parent.getFirstChild();\n        if (getTarget.getLastChild().getString().equals(\"prototype\")) {\n          return false;\n        }\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 40,
+                "message": {
+                    "content": "It can be fixed by the following hunk:\n```java\n      // Don't traverse functions that are getting lent to a prototype.\n      if (n.isFromExterns() && (n.getContext() == null || isLended(n))) {\n        return false;\n      }\n```\nNote: `isLended` is a helper method that determines if a function is being lent to a prototype.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 41,
+                "message": {
+                    "content": "It can be fixed by the following hunk:\n```java\n      // Don't traverse functions that are getting lent to a prototype.\n      if (NodeUtil.isLValue(parent) &&\n          isPrototypeProperty(parent.getParent()) &&\n          NodeUtil.isGet(parent) &&\n          parent.getFirstChild().getNext().getString().equals(\"prototype\")) {\n        return false;\n      }\n```\n",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 42,
+                "message": {
+                    "content": "It can be fixed by the following hunk:\n```java\n      // Don't traverse functions that are getting lent to a prototype.\n      if (NodeUtil.isLValue(parent) && parent.getLastChild().isGetProp() &&\n          parent.getLastChild().getLastChild().getString().equals(\"prototype\")) {\n        return false;\n      }\n```",
+                    "role": "assistant"
+                }
+            }
+        ],
+        "created": 1691441326,
+        "id": "chatcmpl-7l1ReXv87XHIM68BDDroaCYA2HCcg",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion",
+        "usage": {
+            "completion_tokens": 6182,
+            "prompt_tokens": 874,
+            "total_tokens": 7056
+        }
+    }
+}

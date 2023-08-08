@@ -1,0 +1,127 @@
+{
+    "call": {
+        "messages": [
+            {
+                "content": "You are an automated program repair tool.",
+                "role": "system"
+            },
+            {
+                "content": "The following code contains a bug.\n```java\n    protected BasePeriod(long duration) {\n        this(duration, null, null);\n        // bug [3264409]\n    }\n```\nThe code fails on this test:\n```\ntestToPeriod_fixedZone\n```\non this test line:\n```java\n            assertEquals(0, test.getWeeks());\n```\nwith the following test error:\n```\njunit.framework.AssertionFailedError: expected:<0> but was:<64>\n```\nPlease provide the correct function.\nIt can be fixed by the following function:\n```java\n    protected BasePeriod(long duration) {\n        super();\n        // bug [3264409]\n        iType = PeriodType.time();\n        int[] values = ISOChronology.getInstanceUTC().get(this, duration);\n        iType = PeriodType.standard();\n        iValues = new int[8];\n        System.arraycopy(values, 0, iValues, 4, 4);\n    }\n```\nThe following code contains a bug.\n```java\n    public int[] add(ReadablePartial partial, int fieldIndex, int[] values, int valueToAdd) {\n        // overridden as superclass algorithm can't handle\n        // 2004-02-29 + 48 months -> 2008-02-29 type dates\n        if (valueToAdd == 0) {\n            return values;\n        }\n            // month is largest field and being added to, such as month-day\n        if (DateTimeUtils.isContiguous(partial)) {\n            long instant = 0L;\n            for (int i = 0, isize = partial.size(); i < isize; i++) {\n                instant = partial.getFieldType(i).getField(iChronology).set(instant, values[i]);\n            }\n            instant = add(instant, valueToAdd);\n            return iChronology.get(partial, instant);\n        } else {\n            return super.add(partial, fieldIndex, values, valueToAdd);\n        }\n    }\n```\nThe code fails on this test:\n```\ntestPlusMonths_int_negativeFromLeap\n```\non this test line:\n```java\n        MonthDay result = test.plusMonths(-1);\n```\nwith the following test error:\n```\norg.joda.time.IllegalFieldValueException: Value 29 for dayOfMonth must be in the range [1,28]\n```\nPlease provide the correct function.",
+                "role": "user"
+            }
+        ],
+        "model": "gpt-3.5-turbo-0301",
+        "n": 12,
+        "temperature": 1,
+        "top_p": 1
+    },
+    "response": {
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "index": 0,
+                "message": {
+                    "content": "The following function should fix the bug:\n```java\npublic int[] add(ReadablePartial partial, int fieldIndex, int[] values, int valueToAdd) {\n    // overridden as superclass algorithm can't handle\n    // 2004-02-29 + 48 months -> 2008-02-29 type dates\n    if (valueToAdd == 0) {\n        return values;\n    }\n    // month is largest field and being added to, such as month-day\n    if (DateTimeUtils.isContiguous(partial)) {\n        long instant = 0L;\n        for (int i = 0, isize = partial.size(); i < isize; i++) {\n            instant = partial.getFieldType(i).getField(iChronology).set(instant, values[i]);\n        }\n        instant = add(instant, valueToAdd);\n        try {\n            return iChronology.get(partial, instant);\n        } catch (IllegalFieldValueException e) {\n            if (fieldIndex < 0 || fieldIndex >= partial.size()) {\n                throw e;\n            }\n            // find the largest unit which may have caused the problem\n            DateTimeFieldType type = partial.getFieldType(fieldIndex);\n            if (type == null || !type.isSupported(iChronology)) {\n                throw e;\n            }\n            int oldValue = values[fieldIndex];\n            int max = type.getField(iChronology).getMaximumValue(instant);\n            int min = type.getField(iChronology).getMinimumValue(instant);\n            int range = max - min + 1;\n            int[] work = new int[partial.size()];\n            System.arraycopy(values, 0, work, 0, work.length);\n            for (int added = 0; added < range; added++) {\n                work[fieldIndex] = ((added + oldValue - min) % range) + min;\n                try {\n                    return iChronology.get(partial, instant + (work[fieldIndex] - oldValue) * type.getField(iChronology).getDurationField().getUnitMillis());\n                } catch (IllegalFieldValueException ignore) {\n                }\n            }\n            throw e;\n        }\n    } else {\n        return super.add(partial, fieldIndex, values, valueToAdd);\n    }\n}\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 1,
+                "message": {
+                    "content": "The following code fixes the bug:\n```java\npublic int[] add(ReadablePartial partial, int fieldIndex, int[] values, int valueToAdd) {\n    // overridden as superclass algorithm can't handle\n    // 2004-02-29 + 48 months -> 2008-02-29 type dates\n    if (valueToAdd == 0) {\n        return values;\n    }\n    // month is largest field and being added to, such as month-day\n    if (DateTimeUtils.isContiguous(partial)) {\n        long instant = 0L;\n        for (int i = 0, isize = partial.size(); i < isize; i++) {\n            int value = values[i];\n            if (i == fieldIndex) {\n                value = iChronology.getField(fieldIndex).add(value, valueToAdd);\n            }\n            instant = partial.getFieldType(i).getField(iChronology).set(instant, value);\n        }\n        return iChronology.get(partial, add(instant, valueToAdd));\n    } else {\n        return super.add(partial, fieldIndex, values, valueToAdd);\n    }\n}\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 2,
+                "message": {
+                    "content": "The bug can be fixed by checking if the addition of months would result in an invalid date and adjusting accordingly. Here is the corrected function:\n\n```java\npublic int[] add(ReadablePartial partial, int fieldIndex, int[] values, int valueToAdd) {\n    // overridden as superclass algorithm can't handle\n    // 2004-02-29 + 48 months -> 2008-02-29 type dates\n    if (valueToAdd == 0) {\n        return values;\n    }\n    // month is largest field and being added to, such as month-day\n    if (DateTimeUtils.isContiguous(partial)) {\n        long instant = 0L;\n        for (int i = 0, isize = partial.size(); i < isize; i++) {\n            instant = partial.getFieldType(i).getField(iChronology).set(instant, values[i]);\n        }\n\n        // Check if adding months would result in an invalid date\n        int months = valueToAdd % 12;\n        int years = valueToAdd / 12;\n        int monthOfYear = iChronology.monthOfYear().get(instant);\n        int year = iChronology.year().get(instant);\n        if (monthOfYear + months > 12) {\n            years += 1;\n            months -= 12;\n        } else if (monthOfYear + months < 1) {\n            years -= 1;\n            months += 12;\n        }\n\n        // Add years and months\n        instant = iChronology.year().add(instant, years);\n        instant = iChronology.monthOfYear().add(instant, months);\n\n        // Adjust day of month if needed for leap years\n        int dayOfMonth = iChronology.dayOfMonth().get(instant);\n        if (dayOfMonth > iChronology.daysInMonth().get(instant)) {\n            dayOfMonth = iChronology.daysInMonth().get(instant);\n        }\n        instant = iChronology.dayOfMonth().set(instant, dayOfMonth);\n\n        return iChronology.get(partial, instant);\n    } else {\n        return super.add(partial, fieldIndex, values, valueToAdd);\n    }\n}\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 3,
+                "message": {
+                    "content": "The following code should fix the bug:\n```java\n    public int[] add(ReadablePartial partial, int fieldIndex, int[] values, int valueToAdd) {\n        // overridden as superclass algorithm can't handle\n        // 2004-02-29 + 48 months -> 2008-02-29 type dates\n        if (valueToAdd == 0) {\n            return values;\n        }\n        // month is largest field and being added to, such as month-day\n        if (DateTimeUtils.isContiguous(partial)) {\n            long instant = 0L;\n            for (int i = 0, isize = partial.size(); i < isize; i++) {\n                instant = partial.getFieldType(i).getField(iChronology).set(instant, values[i]);\n            }\n            // fixed to add months first, then adjust dayOfMonth if necessary\n            if (fieldIndex == 0) {\n                // month is largest field and being added to\n                int newMonthValue = iChronology.monthOfYear().add(instant, valueToAdd);\n                int maxDayOfMonth = iChronology.dayOfMonth().getMaximumValue(newMonthValue);\n                int newDayOfMonth = values[1];\n                if (newDayOfMonth > maxDayOfMonth) {\n                    newDayOfMonth = maxDayOfMonth;\n                }\n                instant = iChronology.dayOfMonth().set(instant, newDayOfMonth);\n                instant = iChronology.monthOfYear().set(instant, newMonthValue);\n            } else {\n                instant = add(instant, valueToAdd);\n            }\n            return iChronology.get(partial, instant);\n        } else {\n            return super.add(partial, fieldIndex, values, valueToAdd);\n        }\n    }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 4,
+                "message": {
+                    "content": "The bug in the code is that it fails to adjust the date to a valid day of the month after performing a month-based addition or subtraction. To fix the bug, we need to use the `DateAdjuster` API of Joda-Time to adjust the date to a valid day of the month. Here's the corrected code:\n\n```java\n    public int[] add(ReadablePartial partial, int fieldIndex, int[] values, int valueToAdd) {\n        // overridden as superclass algorithm can't handle\n        // 2004-02-29 + 48 months -> 2008-02-29 type dates\n        if (valueToAdd == 0) {\n            return values;\n        }\n        // month is largest field and being added to, such as month-day\n        if (DateTimeUtils.isContiguous(partial)) {\n            // Build a date-time from the partial fields\n            Chronology chrono = partial.getChronology();\n            LocalDateTime dt = LocalDateTime.now(chrono);\n            for (int i = 0; i < partial.size(); i++) {\n                DateTimeField field = partial.getField(i);\n                dt = field.set(dt, values[i]);\n            }\n            // Add the value to the date-time and adjust the result to a valid day of the month\n            dt = dt.plusMonths(valueToAdd);\n            dt = dt.dayOfMonth().withMaximumValue();\n            // Extract the updated fields from the adjusted date-time\n            int[] updatedValues = new int[partial.size()];\n            for (int i = 0; i < partial.size(); i++) {\n                DateTimeField field = partial.getField(i);\n                updatedValues[i] = field.get(dt);\n            }\n            return updatedValues;\n        } else {\n            return super.add(partial, fieldIndex, values, valueToAdd);\n        }\n    }\n```\n\nWith this fix in place, the `add` method should behave correctly and the failing test case should pass.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 5,
+                "message": {
+                    "content": "The following function should fix the bug:\n```java\n    public int[] add(ReadablePartial partial, int fieldIndex, int[] values, int valueToAdd) {\n        // overridden as superclass algorithm can't handle\n        // 2004-02-29 + 48 months -> 2008-02-29 type dates\n        if (valueToAdd == 0) {\n            return values;\n        }\n        // month is largest field and being added to, such as month-day\n        if (DateTimeUtils.isContiguous(partial)) {\n            int[] newValues = partial.getValues();\n            newValues[fieldIndex] = FieldUtils.safeAdd(values[fieldIndex], valueToAdd);\n            Chronology chrono = partial.getChronology();\n            try {\n                chrono.getDateTimeMillis(newValues[0], newValues[1], newValues[2], 0);\n            } catch (IllegalArgumentException ex) {\n                if (values[1] != 2 && values[2] != 29) {\n                    throw ex;\n                }\n                int monthEnd = chrono.dayOfMonth().getMaximumValue(newValues[0], newValues[1]);\n                if (values[2] > monthEnd) {\n                    newValues[2] = monthEnd;\n                }\n                long instant = chrono.getDateTimeMillis(newValues[0], newValues[1], newValues[2], 0);\n                LocalDate date = new LocalDate(instant, chrono);\n                if (date.getMonthOfYear() != newValues[1]) {\n                    newValues[2] = monthEnd;\n                    instant = chrono.getDateTimeMillis(newValues[0], newValues[1], newValues[2], 0);\n                }\n                return chrono.get(partial.withValues(newValues), instant);\n            }\n            long instant = chrono.getDateTimeMillis(newValues[0], newValues[1], newValues[2], 0);\n            return chrono.get(partial, add(instant, valueToAdd));\n        } else {\n            return super.add(partial, fieldIndex, values, valueToAdd);\n        }\n    }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 6,
+                "message": {
+                    "content": "The bug in the code is that it does not account for leap years when adding or subtracting months from a date. Here is the corrected function:\n\n```java\npublic int[] add(ReadablePartial partial, int fieldIndex, int[] values, int valueToAdd) {\n    if (valueToAdd == 0) {\n        return values;\n    }\n\n    if (DateTimeUtils.isContiguous(partial)) {\n        long instant = 0L;\n        for (int i = 0, isize = partial.size(); i < isize; i++) {\n            instant = partial.getFieldType(i).getField(iChronology).set(instant, values[i]);\n        }\n\n        // Add the months with the adjusted year and month fields\n        Chronology chrono = iChronology;\n        int monthsToAdd = valueToAdd;\n        int year = chrono.year().get(instant);\n        int month = chrono.monthOfYear().get(instant);\n        int day = chrono.dayOfMonth().get(instant);\n\n        while (monthsToAdd > 0) {\n            int daysInMonth = chrono.dayOfMonth().getMaximumValue(year, month);\n\n            if (day > daysInMonth) {\n                day = daysInMonth;\n            }\n\n            if (month == 12) {\n                year++;\n                month = 1;\n            } else {\n                month++;\n            }\n\n            monthsToAdd--;\n        }\n\n        while (monthsToAdd < 0) {\n            if (month == 1) {\n                year--;\n                month = 12;\n            } else {\n                month--;\n            }\n\n            int daysInMonth = chrono.dayOfMonth().getMaximumValue(year, month);\n            if (day > daysInMonth) {\n                day = daysInMonth;\n            }\n\n            monthsToAdd++;\n        }\n\n        instant = chrono.year().set(instant, year);\n        instant = chrono.monthOfYear().set(instant, month);\n        instant = chrono.dayOfMonth().set(instant, day);\n\n        return chrono.get(partial, instant);\n    } else {\n        return super.add(partial, fieldIndex, values, valueToAdd);\n    }\n}\n```\n\nThis code correctly calculates the day of the month when adjusting the year and month fields to account for leap years.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 7,
+                "message": {
+                    "content": "The following function should fix the bug:\n```java\n    public int[] add(ReadablePartial partial, int fieldIndex, int[] values, int valueToAdd) {\n        // overridden as superclass algorithm can't handle\n        // 2004-02-29 + 48 months -> 2008-02-29 type dates\n        if (valueToAdd == 0) {\n            return values;\n        }\n        // month is largest field and being added to, such as month-day\n        if (fieldIndex == 1) { \n            int month = values[1] + valueToAdd;\n            int year = values[0];\n            if (month > 0) {\n                year += month / 12;\n                month = month % 12;\n            } else { // month <= 0\n                year += (month - 11) / 12;\n                month = (month - 11) % 12 + 11;\n            }\n            // get the last day of the month to make sure that the day is valid\n            int day = values[2];\n            int lastDayOfMonth = iChronology.dayOfMonth().getMaximumValue(year, month);\n            if (day > lastDayOfMonth) {\n                day = lastDayOfMonth;\n            }\n            return new int[] {year, month, day};\n        } else if (DateTimeUtils.isContiguous(partial)) {\n            long instant = 0L;\n            for (int i = 0, isize = partial.size(); i < isize; i++) {\n                instant = partial.getFieldType(i).getField(iChronology).set(instant, values[i]);\n            }\n            instant = add(instant, valueToAdd);\n            return iChronology.get(partial, instant);\n        } else {\n            return super.add(partial, fieldIndex, values, valueToAdd);\n        }\n    }\n```\nNote that we added a check for the field index to ensure that we are only dealing with the month field. In this case, we calculate the new year and month values based on the original values and the value to add. We then get the last day of the month to ensure that our day value is valid. Finally, we return the new year, month, and day values in an array. If the field index is not for the month field, we call the superclass's add method to handle the addition.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 8,
+                "message": {
+                    "content": "The following function should fix the bug:\n```java\npublic int[] add(ReadablePartial partial, int fieldIndex, int[] values, int valueToAdd) {\n        if (valueToAdd == 0) {\n            return values;\n        }\n        if (DateTimeUtils.isContiguous(partial)) {\n            Chronology chrono = partial.getChronology();\n            long instant = 0L;\n            for (int i = 0, isize = partial.size(); i < isize; i++) {\n                int value = values[i];\n                DateTimeField field = partial.getField(i);\n                if (i == fieldIndex) {\n                    value = field.add(value, valueToAdd);\n                }\n                instant = field.set(instant, value);\n            }\n            instant = add(instant, valueToAdd);\n            return chrono.get(partial, instant);\n        } else {\n            return super.add(partial, fieldIndex, values, valueToAdd);\n        }\n    }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 9,
+                "message": {
+                    "content": "The following function fixes the bug:\n```java\n    public int[] add(ReadablePartial partial, int fieldIndex, int[] values, int valueToAdd) {\n        // overridden as superclass algorithm can't handle\n        // 2004-02-29 + 48 months -> 2008-02-29 type dates\n        if (valueToAdd == 0) {\n            return values;\n        }\n        // month is largest field and being added to, such as month-day\n        if (DateTimeUtils.isContiguous(partial)) {\n            long instant = 0L;\n            boolean lenient = iChronology.isLenient();\n            for (int i = 0, isize = partial.size(); i < isize; i++) {\n                DateTimeField field = partial.getField(i);\n                int parsedValue = field.getValues().get(i);\n                int fieldValue;\n                if (i == fieldIndex) {\n                    fieldValue = field.add(parsedValue, valueToAdd);\n                } else {\n                    fieldValue = parsedValue;\n                }\n                instant = field.getField().set(instant, fieldValue);\n            }\n            instant = add(instant, valueToAdd);\n            return iChronology.get(partial, instant);\n        } else {\n            return super.add(partial, fieldIndex, values, valueToAdd);\n        }\n    }\n```\nThe issue is that the original function is not handling the case where adding months to a leap year day can go beyond the last day of February, as in the test case where Feb 29th plus -1 month should result in Jan 29th. The fix is to use the `add` method provided by the field rather than just incrementing the value by the amount to add. Additionally, the function now handles the case where the partial is not contiguous by calling the superclass implementation.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 10,
+                "message": {
+                    "content": "The following function should fix the bug:\n```java\npublic int[] add(ReadablePartial partial, int fieldIndex, int[] values, int valueToAdd) {\n    // overridden as superclass algorithm can't handle\n    // 2004-02-29 + 48 months -> 2008-02-29 type dates\n    if (valueToAdd == 0) {\n        return values;\n    }\n    // month is largest field and being added to, such as month-day\n    if (DateTimeUtils.isContiguous(partial)) {\n        // getPartialMillis handles chronology internally\n        long instant = DateTimeUtils.getInstantChronology(partial.getChronology()).getDateTimeMillis(0,\n                values[0], values[1], values[2], values[3]);\n        instant = add(instant, valueToAdd);\n        Chronology chrono = DateTimeUtils.getInstantChronology(partial.getChronology());\n        return chrono.get(partial, instant);\n    } else {\n        return super.add(partial, fieldIndex, values, valueToAdd);\n    }\n}\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 11,
+                "message": {
+                    "content": "The following function resolves the bug:\n\n```java\n    public int[] add(ReadablePartial partial, int fieldIndex, int[] values, int valueToAdd) {\n        if (valueToAdd == 0) {\n            return values;\n        }\n\n        boolean keepTime = false;\n        for (int i = 0; i < fieldIndex; i++) {\n            if (values[i] != 0) {\n                keepTime = true;\n                break;\n            }\n        }\n        if (keepTime) {\n            long instant = 0L;\n            for (int i = 0; i < fieldIndex; i++) {\n                instant = partial.getFieldType(i).getField(iChronology).set(instant, values[i]);\n            }\n            Partial filled = partial.getChronology().set(partial, instant);\n            filled = filled.plusMonths(valueToAdd);\n            int[] newValues = new int[values.length];\n            for (int i = 0; i < fieldIndex; i++) {\n                newValues[i] = filled.getValue(i);\n            }\n            for (int i = fieldIndex; i < newValues.length; i++) {\n                newValues[i] = values[i];\n            }\n            if (!DateTimeUtils.isContiguous(partial)) {\n                newValues = partial.getChronology().retain(filled, newValues);\n            }\n            return newValues;\n        } else {\n            Chronology chrono = partial.getChronology().withUTC();\n            long instant = 0L;\n            for (int i = 0; i < fieldIndex; i++) {\n                instant = partial.getFieldType(i).getField(chrono).set(instant, values[i]);\n            }\n            instant = add(instant, valueToAdd);\n            int[] newValues = chrono.get(partial, instant);\n            if (!DateTimeUtils.isContiguous(partial)) {\n                newValues = partial.getChronology().retain(chrono, newValues);\n            }\n            return newValues;\n        }\n    }\n```",
+                    "role": "assistant"
+                }
+            }
+        ],
+        "created": 1691430202,
+        "id": "chatcmpl-7kyYEbUtEYI1h3nh3CNLGGZIFJQrn",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion",
+        "usage": {
+            "completion_tokens": 4426,
+            "prompt_tokens": 510,
+            "total_tokens": 4936
+        }
+    }
+}
