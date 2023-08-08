@@ -35,7 +35,7 @@ class ProgParams:
     rapidcapr_total_token_limit_target = 3000
     rapidcapr_max_sample_count = 100
     rapidcapr_similarity_threshold = 0.5
-    rapidcapr_max_rounds = 6
+    rapidcapr_max_rounds = 7
 
     ### Logging Parameters ###
     logging_level=logging.INFO
