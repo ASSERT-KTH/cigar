@@ -1,0 +1,103 @@
+{
+    "call": {
+        "messages": [
+            {
+                "content": "You are an automated program repair tool.",
+                "role": "system"
+            },
+            {
+                "content": "The following code contains a bug.\n```java\n    protected BasePeriod(long duration) {\n        this(duration, null, null);\n        // bug [3264409]\n    }\n```\nThe code fails on this test:\n```\ntestToPeriod_fixedZone\n```\non this test line:\n```java\n            assertEquals(0, test.getWeeks());\n```\nwith the following test error:\n```\njunit.framework.AssertionFailedError: expected:<0> but was:<64>\n```\nPlease provide the correct function.\nIt can be fixed by the following function:\n```java\n    protected BasePeriod(long duration) {\n        super();\n        // bug [3264409]\n        iType = PeriodType.time();\n        int[] values = ISOChronology.getInstanceUTC().get(this, duration);\n        iType = PeriodType.standard();\n        iValues = new int[8];\n        System.arraycopy(values, 0, iValues, 4, 4);\n    }\n```\nThe following code contains a bug.\n```java\n    public Period normalizedStandard(PeriodType type) {\n        type = DateTimeUtils.getPeriodType(type);\n        long millis = getMillis();  // no overflow can happen, even with Integer.MAX_VALUEs\n        millis += (((long) getSeconds()) * ((long) DateTimeConstants.MILLIS_PER_SECOND));\n        millis += (((long) getMinutes()) * ((long) DateTimeConstants.MILLIS_PER_MINUTE));\n        millis += (((long) getHours()) * ((long) DateTimeConstants.MILLIS_PER_HOUR));\n        millis += (((long) getDays()) * ((long) DateTimeConstants.MILLIS_PER_DAY));\n        millis += (((long) getWeeks()) * ((long) DateTimeConstants.MILLIS_PER_WEEK));\n        Period result = new Period(millis, type, ISOChronology.getInstanceUTC());\n        int years = getYears();\n        int months = getMonths();\n        if (years != 0 || months != 0) {\n            years = FieldUtils.safeAdd(years, months / 12);\n            months = months % 12;\n            if (years != 0) {\n                result = result.withYears(years);\n            }\n            if (months != 0) {\n                result = result.withMonths(months);\n            }\n        }\n        return result;\n    }\n```\nThe code fails on this test:\n```\ntestNormalizedStandard_periodType_months1\n```\non this test line:\n```java\n        Period result = test.normalizedStandard(PeriodType.months());\n```\nwith the following test error:\n```\njava.lang.UnsupportedOperationException: Field is not supported\n```\nPlease provide the correct function.",
+                "role": "user"
+            }
+        ],
+        "model": "gpt-3.5-turbo-0301",
+        "n": 9,
+        "temperature": 1,
+        "top_p": 1
+    },
+    "response": {
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "index": 0,
+                "message": {
+                    "content": "The following code should fix the bug by checking if the requested field is supported by the period type before attempting to normalize it:\n\n```java\n    public Period normalizedStandard(PeriodType type) {\n        type = DateTimeUtils.getPeriodType(type);\n        long millis = getMillis();  // no overflow can happen, even with Integer.MAX_VALUEs\n        millis += (((long) getSeconds()) * ((long) DateTimeConstants.MILLIS_PER_SECOND));\n        millis += (((long) getMinutes()) * ((long) DateTimeConstants.MILLIS_PER_MINUTE));\n        millis += (((long) getHours()) * ((long) DateTimeConstants.MILLIS_PER_HOUR));\n        millis += (((long) getDays()) * ((long) DateTimeConstants.MILLIS_PER_DAY));\n        if (type.isSupported(DurationFieldType.weeks())) {\n            millis += (((long) getWeeks()) * ((long) DateTimeConstants.MILLIS_PER_WEEK));\n        }\n        Period result = new Period(millis, type, ISOChronology.getInstanceUTC());\n        int years = getYears();\n        int months = getMonths();\n        if (years != 0 || months != 0) {\n            years = FieldUtils.safeAdd(years, months / 12);\n            months = months % 12;\n            if (years != 0) {\n                result = result.withYears(years);\n            }\n            if (months != 0 && type.isSupported(DurationFieldType.months())) {\n                result = result.withMonths(months);\n            }\n        }\n        return result;\n    }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 1,
+                "message": {
+                    "content": "The following code resolves the bug in the `normalizedStandard` function:\n```java\npublic Period normalizedStandard(PeriodType type) {\n    type = DateTimeUtils.getPeriodType(type);\n    MutablePeriod mp = new MutablePeriod(this);\n    mp.normalize();\n    Period result = mp.toPeriod(type, ISOChronology.getInstanceUTC());\n    return result;\n}\n```\nThe `MutablePeriod` class is used to do the normalization of the period, and then the `toPeriod` function is called to create the `Period` object.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 2,
+                "message": {
+                    "content": "The following code fixes the bug:\n```java\n    public Period normalizedStandard(PeriodType type) {\n        type = DateTimeUtils.getPeriodType(type);\n        boolean conversionMonthUsed = (type.getFieldIndex(DurationFieldType.months()) >= 0);\n        boolean conversionYearUsed = (type.getFieldIndex(DurationFieldType.years()) >= 0);\n\n        long millis = getMillis();  // no overflow can happen, even with Integer.MAX_VALUEs\n        millis += (((long) getSeconds()) * ((long) DateTimeConstants.MILLIS_PER_SECOND));\n        millis += (((long) getMinutes()) * ((long) DateTimeConstants.MILLIS_PER_MINUTE));\n        millis += (((long) getHours()) * ((long) DateTimeConstants.MILLIS_PER_HOUR));\n        millis += (((long) getDays()) * ((long) DateTimeConstants.MILLIS_PER_DAY));\n        millis += (((long) getWeeks()) * ((long) DateTimeConstants.MILLIS_PER_WEEK));\n\n        long newMillis =  ISOChronology.getInstanceUTC().add(null, millis, years, months);\n        years = 0;\n        months = 0;\n\n        Period result = new Period(newMillis, type, ISOChronology.getInstanceUTC());\n\n        if (conversionMonthUsed || conversionYearUsed) {\n            int years = getYears();\n            int months = getMonths();\n            if (years != 0 || months != 0) {\n                years = FieldUtils.safeAdd(years, months / 12);\n                months = months % 12;\n                if (years != 0 && conversionYearUsed) {\n                    result = result.withYears(years);\n                }\n                if (months != 0 && conversionMonthUsed) {\n                    result = result.withMonths(months);\n                }\n            }\n        }\n        return result;\n    }\n```\n",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 3,
+                "message": {
+                    "content": "The following code fixes the bug:\n```java\n    public Period normalizedStandard(PeriodType type) {\n        type = DateTimeUtils.getPeriodType(type);\n        long millis = getMillis();  // no overflow can happen, even with Integer.MAX_VALUEs\n        millis += (((long) getSeconds()) * ((long) DateTimeConstants.MILLIS_PER_SECOND));\n        millis += (((long) getMinutes()) * ((long) DateTimeConstants.MILLIS_PER_MINUTE));\n        millis += (((long) getHours()) * ((long) DateTimeConstants.MILLIS_PER_HOUR));\n        millis += (((long) getDays()) * ((long) DateTimeConstants.MILLIS_PER_DAY));\n        millis += (((long) getWeeks()) * ((long) DateTimeConstants.MILLIS_PER_WEEK));\n        boolean convertFields = (type != null) && (type.getFields() != null);\n        Period result = new Period(millis, type, ISOChronology.getInstanceUTC());\n        int years = getYears();\n        int months = getMonths();\n        if (convertFields) {\n            years = ISOChronology.getInstanceUTC().years().getDurationField()\n                    .getDifferenceAsInt(ISOChronology.getInstanceUTC().getDateTimeMillis(0L, this), ISOChronology.getInstanceUTC().getDateTimeMillis(millis, result));\n            months = ISOChronology.getInstanceUTC().months().getDurationField()\n                    .getDifferenceAsInt(ISOChronology.getInstanceUTC().getDateTimeMillis(0L, this), ISOChronology.getInstanceUTC().getDateTimeMillis(millis, result));\n        }\n        if (years != 0) {\n            result = result.withYears(years);\n        }\n        if (months != 0) {\n            result = result.withMonths(months);\n        }\n        return result;\n    }\n```\nThis fix uses the duration fields of the `ISOChronology` to calculate the number of years and months in the period, instead of relying on unsupported fields. The `convertFields` flag is added to only perform this calculation if the period type contains fields that can be converted to years and months.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 4,
+                "message": {
+                    "content": "The following function is corrected:\n```java\n    public Period normalizedStandard(PeriodType type) {\n        type = DateTimeUtils.getPeriodType(type);\n        long millis = getMillis();  // no overflow can happen, even with Integer.MAX_VALUEs\n        millis += (((long) getSeconds()) * ((long) DateTimeConstants.MILLIS_PER_SECOND));\n        millis += (((long) getMinutes()) * ((long) DateTimeConstants.MILLIS_PER_MINUTE));\n        millis += (((long) getHours()) * ((long) DateTimeConstants.MILLIS_PER_HOUR));\n        millis += (((long) getDays()) * ((long) DateTimeConstants.MILLIS_PER_DAY));\n        Period result = new Period(millis, type, ISOChronology.getInstanceUTC());\n        int years = getYears();\n        int months = getMonths();\n        if (years != 0) {\n            if (months != 0) {\n                years += months / 12;\n                months = months % 12;\n            }\n            result = result.withYears(years);\n        } else if (months != 0) {\n            result = result.withMonths(months);\n        }\n        return result;\n    }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 5,
+                "message": {
+                    "content": "The following code fixes the bug:\n```java\n    public Period normalizedStandard(PeriodType type) {\n        type = DateTimeUtils.getPeriodType(type);\n        long millis = getMillis();\n        millis += (((long) getSeconds()) * ((long) DateTimeConstants.MILLIS_PER_SECOND));\n        millis += (((long) getMinutes()) * ((long) DateTimeConstants.MILLIS_PER_MINUTE));\n        millis += (((long) getHours()) * ((long) DateTimeConstants.MILLIS_PER_HOUR));\n        millis += (((long) getDays()) * ((long) DateTimeConstants.MILLIS_PER_DAY));\n        millis += (((long) getWeeks()) * ((long) DateTimeConstants.MILLIS_PER_WEEK));\n\n        Chronology chrono = ISOChronology.getInstanceUTC();\n        long resolvedDuration = millis;\n        if (type.isTimePeriod()) {\n            resolvedDuration = chrono.getDurationField().add(millis, millis);\n            resolvedDuration = chrono.seconds().getDurationField().add(resolvedDuration, (long) getSeconds());\n            resolvedDuration = chrono.minutes().getDurationField().add(resolvedDuration, (long) getMinutes());\n            resolvedDuration = chrono.hours().getDurationField().add(resolvedDuration, (long) getHours());\n            resolvedDuration = chrono.days().getDurationField().add(resolvedDuration, (long) getDays());\n            resolvedDuration = chrono.weeks().getDurationField().add(resolvedDuration, (long) getWeeks());\n        } else {\n            long endMillis = chrono.add(millis, getMonths());\n            endMillis = chrono.years().add(endMillis, getYears());\n            resolvedDuration = chrono.getDurationField().getDifference(endMillis, millis);\n        }\n        return new Period(resolvedDuration, type, ISOChronology.getInstanceUTC());\n    }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 6,
+                "message": {
+                    "content": "The following code fixes the bug:\n```java\n    public Period normalizedStandard(PeriodType type) {\n        type = DateTimeUtils.getPeriodType(type);\n        long millis = getMillis();  // no overflow can happen, even with Integer.MAX_VALUEs\n        millis += (((long) getSeconds()) * ((long) DateTimeConstants.MILLIS_PER_SECOND));\n        millis += (((long) getMinutes()) * ((long) DateTimeConstants.MILLIS_PER_MINUTE));\n        millis += (((long) getHours()) * ((long) DateTimeConstants.MILLIS_PER_HOUR));\n        millis += (((long) getDays()) * ((long) DateTimeConstants.MILLIS_PER_DAY));\n        millis += (((long) (getWeeks() * 7)) * ((long) DateTimeConstants.MILLIS_PER_DAY));\n        Period result = new Period(millis, type, ISOChronology.getInstanceUTC());\n        int years = getYears();\n        int months = getMonths();\n        if (years != 0 || months != 0) {\n            years = FieldUtils.safeAdd(years, months / 12);\n            months = months % 12;\n            if (years != 0) {\n                result = result.withYears(years);\n            }\n            if (months != 0) {\n                result = result.withMonths(months);\n            }\n        }\n        return result;\n    }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 7,
+                "message": {
+                    "content": "The bug in the `normalizedStandard` function is caused by trying to create a `Period` object with `PeriodType.months()`, which is not supported. To fix this, we need to check whether the period type includes months and adjust the calculation accordingly. Here is the corrected function:\n\n```java\npublic Period normalizedStandard(PeriodType type) {\n    type = DateTimeUtils.getPeriodType(type);\n    boolean supportsMonths = (type.getIndexedField(ChronologyFieldType.monthOfYear()) != null);\n    boolean supportsYears = (type.getIndexedField(ChronologyFieldType.year()) != null);\n    long millis = getMillis();  // no overflow can happen, even with Integer.MAX_VALUEs\n    millis += (((long) getSeconds()) * ((long) DateTimeConstants.MILLIS_PER_SECOND));\n    millis += (((long) getMinutes()) * ((long) DateTimeConstants.MILLIS_PER_MINUTE));\n    millis += (((long) getHours()) * ((long) DateTimeConstants.MILLIS_PER_HOUR));\n    millis += (((long) getDays()) * ((long) DateTimeConstants.MILLIS_PER_DAY));\n    if (supportsMonths || supportsYears) {\n        // calculate millis for the duration of the months\n        DateTime start = getStart().withTimeAtStartOfDay();\n        DateTime end = getEnd().withTimeAtStartOfDay();\n        int months = Months.monthsBetween(start, end).getMonths();\n        if (supportsYears) {\n            int years = Math.floorDiv(months, 12);\n            months = Math.floorMod(months, 12);\n            millis += (((long) years) * ((long) DateTimeConstants.MILLIS_PER_YEAR));\n        }\n        millis += (((long) months) * ((long) DateTimeConstants.MILLIS_PER_MONTH));\n    } else {\n        millis += (((long) getWeeks()) * ((long) DateTimeConstants.MILLIS_PER_WEEK));\n    }\n    Period result = new Period(millis, type, ISOChronology.getInstanceUTC());\n    return result;\n}\n```\n\nThis function now checks whether the given period type includes months or years and adjusts the calculation accordingly. If it does, we calculate the duration between the start and end of the period in terms of months, and add the appropriate number of years and months to the calculated milliseconds. Otherwise, we just add the duration in weeks.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 8,
+                "message": {
+                    "content": "The following code should fix the bug:\n```java\npublic Period normalizedStandard(PeriodType type) {\n    // Normalize to make sure no field values are unsupported\n    Period normalized = normalizedStandard();\n    Type typeCopy = PeriodType.convertRequestedType(type);\n    PeriodType normalizedType = normalized.getPeriodType();\n    if (typeCopy.equals(normalizedType)) {\n        return normalized;\n    }\n\n    // Use a copy of this period to allow unsupported fields to be removed\n    Period copy = new Period(this);\n    copy.normalize();\n    copy.iType = normalizedType;\n    return new Period(copy, typeCopy);\n}\n```",
+                    "role": "assistant"
+                }
+            }
+        ],
+        "created": 1691562970,
+        "id": "chatcmpl-7lX5e7fqMyKjuegYKozcjLrfcqgbk",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion",
+        "usage": {
+            "completion_tokens": 2717,
+            "prompt_tokens": 567,
+            "total_tokens": 3284
+        }
+    }
+}
