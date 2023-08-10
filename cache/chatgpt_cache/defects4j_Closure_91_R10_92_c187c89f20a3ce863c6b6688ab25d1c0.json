@@ -1,0 +1,103 @@
+{
+    "call": {
+        "messages": [
+            {
+                "content": "You are an automated program repair tool.",
+                "role": "system"
+            },
+            {
+                "content": "The following code contains a buggy hunk that has been removed.\n```java\n  public boolean shouldTraverse(NodeTraversal t, Node n, Node parent) {\n\n    if (n.getType() == Token.FUNCTION) {\n      // Don't traverse functions that are constructors or have the @this\n      // or @override annotation.\n      JSDocInfo jsDoc = getFunctionJsDocInfo(n);\n      if (jsDoc != null &&\n          (jsDoc.isConstructor() ||\n           jsDoc.isInterface() ||\n           jsDoc.hasThisType() ||\n           jsDoc.isOverride())) {\n        return false;\n      }\n\n      // Don't traverse functions unless they would normally\n      // be able to have a @this annotation associated with them. e.g.,\n      // var a = function() { }; // or\n      // function a() {} // or\n      // a.x = function() {}; // or\n      // var a = {x: function() {}};\n      int pType = parent.getType();\n      if (!(pType == Token.BLOCK ||\n            pType == Token.SCRIPT ||\n            pType == Token.NAME ||\n            pType == Token.ASSIGN ||\n\n            // object literal keys\n            pType == Token.STRING ||\n            pType == Token.NUMBER)) {\n        return false;\n      }\n\n      // Don't traverse functions that are getting lent to a prototype.\n>>> [ INFILL ] <<<\n    }\n\n    if (parent != null && parent.getType() == Token.ASSIGN) {\n      Node lhs = parent.getFirstChild();\n      Node rhs = lhs.getNext();\n\n      if (n == lhs) {\n        // Always traverse the left side of the assignment. To handle\n        // nested assignments properly (e.g., (a = this).property = c;),\n        // assignLhsChild should not be overridden.\n        if (assignLhsChild == null) {\n          assignLhsChild = lhs;\n        }\n      } else {\n        // Only traverse the right side if it's not an assignment to a prototype\n        // property or subproperty.\n        if (NodeUtil.isGet(lhs)) {\n          if (lhs.getType() == Token.GETPROP &&\n              lhs.getLastChild().getString().equals(\"prototype\")) {\n            return false;\n          }\n          Node llhs = lhs.getFirstChild();\n          if (llhs.getType() == Token.GETPROP &&\n              llhs.getLastChild().getString().equals(\"prototype\")) {\n            return false;\n          }\n        }\n      }\n    }\n\n    return true;\n  }\n```\nThis was the original buggy hunk which was removed by the infill location:\n```java\n\n```\nThe code fails on this test:\n```\ntestLendsAnnotation3\n```\non this test line:\n```java\n    testSame(\"/** @constructor */ function F() {}\" +\n```\nwith the following test error:\n```\njunit.framework.AssertionFailedError: Unexpected error(s): JSC_USED_GLOBAL_THIS. dangerous use of the global this object at testcode line 1 : 110 expected:<0> but was:<1>\n```\nThe following hunks:\n```java\n      Node fnNameNode = n.getFirstChild();\n      if (fnNameNode.getType() == Token.NAME && assignLhsChild == fnNameNode && fnNameNode.getNext() == null) {\n        // Traverse a function expression even if it is part of an assignment statement\n        // And we are on the left hand side and there is no RHS of ASSIGN just this function.\n        return true;\n      }\n```\n```java\n      // Don't traverse functions that are getting lent to a prototype.\n      if (NodeUtil.isGet(parent) && parent.getFirstChild().getLastChild().getString().equals(\"prototype\")) {\n        return false;\n      }\n```\n```java\n      if (parent != null && NodeUtil.isPrototypeProperty(parent)) {\n        // Don't traverse functions in prototype properties.\n        return false;\n      }\n```\n```java\n      Node grandparent = parent.getParent();\n      if (grandparent != null && grandparent.getType() == Token.ASSIGN) {\n        Node gLhs = grandparent.getFirstChild();\n        if (gLhs != null && gLhs.getType() == Token.GETPROP) {\n          return false;\n        }\n      }\n```\n```java\n      // Don't traverse functions that are getting lent to a prototype.\n      if (n.getNext() != null && n.getNext().getType() == Token.GETPROP &&\n          n.getNext().getLastChild().getString().equals(\"prototype\")) {\n        return false;\n      }\n```\nFailed with the following test error:\n```\njunit.framework.AssertionFailedError: Unexpected error(s): JSC_USED_GLOBAL_THIS. dangerous use of the global this object at testcode line 1 : 110 expected:<0> but was:<1>\n```\nThe following hunk:\n```java\nif (parent != null && parent.getType() == Token.ASSIGN) {\n  Node lhs = parent.getFirstChild();\n  Node rhs = lhs.getNext();\n\n  if (n == lhs) {\n    // Always traverse the left side of the assignment. To handle\n    // nested assignments properly (e.g., (a = this).property = c;),\n    // assignLhsChild should not be overridden.\n    if (assignLhsChild == null) {\n      assignLhsChild = lhs;\n    }\n  } else {\n    // Only traverse the right side if it's not an assignment to a prototype\n    // property or subproperty.\n    if (NodeUtil.isGet(lhs)) {\n      if (lhs.getLastChild().getString().equals(\"prototype\")) {\n        return false;\n      }\n      Node llhs = lhs.getFirstChild();\n      if (llhs.getType() == Token.GETPROP &&\n          llhs.getLastChild().getString().equals(\"prototype\")) {\n        return false;\n      }\n    }\n  }\n}\n```\nFailed with the following test error:\n```\njava.lang.RuntimeException: INTERNAL COMPILER ERROR.\n```\nThe following hunk:\n```java\n      Node grandParent = parent.getParent();\n      if (grandParent != null && !NodeUtil.isPrototypePropertyDeclaration(grandParent)) {\n        return false;\n      }\n```\nFailed with the following test error:\n```\njunit.framework.AssertionFailedError: There should be one error. expected:<1> but was:<0>\n```\nPlease provide the correct hunk at the infill location.",
+                "role": "user"
+            },
+            {
+                "content": "The correct hunk for the infill location is:\n```java\n      Node grandparent = parent.getParent();\n      if (grandparent != null &&\n          (grandparent.getType() == Token.EXPR_RESULT ||\n          (grandparent.getType() == Token.VAR &&\n          grandparent.getParent() != null &&\n          grandparent.getParent().getType() == Token.SCRIPT))) {\n        return false;\n      }\n```",
+                "role": "assistant"
+            },
+            {
+                "content": "The fixed version is still not correct. code has the following test error:\n```\njunit.framework.AssertionFailedError: There should be one error. expected:<1> but was:<0>\n```\nPlease provide the correct hunk at the infill location.",
+                "role": "user"
+            }
+        ],
+        "model": "gpt-3.5-turbo-0301",
+        "n": 8,
+        "temperature": 1,
+        "top_p": 1
+    },
+    "response": {
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "index": 0,
+                "message": {
+                    "content": "I apologize for the mistake. Here is the corrected hunk for the infill location:\n```java\n// Don't traverse functions that are getting lent to a prototype.\nif (parent != null && NodeUtil.isGet(parent) && parent.getFirstChild().getLastChild().getString().equals(\"prototype\")) {\n  return false;\n}\nif (parent.getParent() != null && NodeUtil.isPrototypeProperty(parent.getParent())) {\n  // Don't traverse functions in prototype properties.\n  return false;\n}\nif (NodeUtil.isObjectLitKey(parent)) {\n  Node objectLit = parent.getParent();\n  // Don't traverse functions in for-in loops if the object lit is the RHS\n  // of a comma expression; it probably is a temporary object.\n  if (objectLit.getType() != Token.FOR_IN &&\n      objectLit.getType() != Token.OBJECTLIT) {\n    return false;\n  }\n}\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 1,
+                "message": {
+                    "content": "My apologies for the oversight. Here is the correct hunk to fix the issue:\n```java\n      Node grandparent = parent.getParent();\n      if (grandparent != null && (NodeUtil.isNameDeclaration(grandparent) || grandparent.getType() == Token.EXPR_RESULT)) {\n        Node greatGrandparent = grandparent.getParent();\n        if (greatGrandparent != null && NodeUtil.isForIn(greatGrandparent)) {\n          // Don't traverse for-in bodies searching for properties.\n          return false;\n        }\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 2,
+                "message": {
+                    "content": "I apologize for the mistake in my previous answer. Here is the updated hunk for the infill location:\n```java\n      Node grandparent = parent.getParent();\n      if (grandparent != null &&\n          (grandparent.getType() == Token.EXPR_RESULT ||\n          (grandparent.getType() == Token.VAR &&\n          grandparent.getParent() != null &&\n          grandparent.getParent().getType() == Token.SCRIPT))) {\n        return false;\n      }\n      if (grandparent != null && grandparent.getType() == Token.ASSIGN) {\n        lhs = grandparent.getFirstChild();\n        rhs = lhs.getNext();\n\n        if (n != lhs || !NodeUtil.isGet(lhs) || lhs.getLastChild().getString().equals(\"prototype\")) {\n          return false;\n        }\n        grandparent = grandparent.getParent();\n        if (grandparent != null && grandparent.getType() == Token.EXPR_RESULT) {\n          grandparent = grandparent.getParent();\n        }\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 3,
+                "message": {
+                    "content": "I apologize for the mistake. Here is the correct hunk for the infill location:\n```java\n      Node grandParent = NodeUtil.getEnclosingStatement(parent);\n      if (grandParent != null && !NodeUtil.isPrototypePropertyDeclaration(grandParent)) {\n        return false;\n      }\n``` \nThis should fix the issue and pass the failing test.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 4,
+                "message": {
+                    "content": "My apologies, let me provide another hunk for the infill location:\n```java\n// Don't traverse functions that are getting lent to a prototype.\nif (NodeUtil.isGet(parent) &&\n    parent.getFirstChild().getLastChild().getString().equals(\"prototype\")) {\n  return false;\n}\n\n// Don't traverse functions in prototype properties.\nif (NodeUtil.isPrototypeProperty(parent)) {\n  return false;\n}\n\n// Don't traverse functions being assigned to prototype properties.\nNode grandparent = parent.getParent();\nif (grandparent != null && grandparent.getType() == Token.ASSIGN) {\n  Node lhs = grandparent.getFirstChild();\n  if (lhs.getType() == Token.GETPROP &&\n      lhs.getLastChild().getString().equals(\"prototype\")) {\n    return false;\n  }\n}\n\n// Don't traverse functions being assigned to a global variable in a way\n// that might make the function accidentally usable in the global scope.\nif (NodeUtil.isNameDeclaration(parent.getParent())) {\n  if (NodeUtil.isGlobalName(parent.getFirstChild(), parent.getParent()) ||\n      NodeUtil.isFunctionExpression(n)) {\n    return false;\n  }\n}\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 5,
+                "message": {
+                    "content": "I apologize for the mistake. Here's the correct hunk for the infill location:\n```java\n      Node grandparent = parent.getParent();\n      if (grandparent != null && grandparent.getType() == Token.CALL &&\n          (grandparent.getFirstChild().getType() == Token.GETPROP &&\n           (grandparent.getFirstChild().getLastChild().getString().equals(\"bind\") ||\n            grandparent.getFirstChild().getLastChild().getString().equals(\"apply\") ||\n            grandparent.getFirstChild().getLastChild().getString().equals(\"call\")) ||\n           grandparent.getFirstChild().getType() == Token.NAME &&\n           (grandparent.getFirstChild().getString().equals(\"bind\") ||\n            grandparent.getFirstChild().getString().equals(\"apply\") ||\n            grandparent.getFirstChild().getString().equals(\"call\")))) {\n        return false;\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 6,
+                "message": {
+                    "content": "I apologize for the mistake. The correct hunk for the infill location is:\n```java\n      Node functionNode = NodeUtil.getEnclosingFunction(n);\n      if (NodeUtil.getEnclosingType(functionNode) == Token.OBJECTLIT &&\n          (NodeUtil.isObjectLitProperty(n, functionNode) ||\n          NodeUtil.isObjectLitProperty(parent, functionNode))) {\n        return false;\n      }\n\n      Node grandparent = parent.getParent();\n      if (grandparent != null &&\n          (grandparent.getType() == Token.EXPR_RESULT ||\n          (grandparent.getType() == Token.VAR &&\n          grandparent.getParent() != null &&\n          grandparent.getParent().getType() == Token.SCRIPT))) {\n        return false;\n      }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 7,
+                "message": {
+                    "content": "I apologize for the mistake in my previous infill. Here is the correct hunk for the infill location:\n```java\n      Node grandparent = parent.getParent();\n      if (grandparent != null &&\n          (grandparent.getType() == Token.EXPR_RESULT ||\n           grandparent.getType() == Token.VAR ||\n           grandparent.getType() == Token.LET ||\n           grandparent.getType() == Token.CONST)) {\n        return false;\n      }\n``` \nPlease let me know if you have any further issues.",
+                    "role": "assistant"
+                }
+            }
+        ],
+        "created": 1691684152,
+        "id": "chatcmpl-7m2cCHcfzAVuOowvnG53GmupFx2z1",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion",
+        "usage": {
+            "completion_tokens": 1217,
+            "prompt_tokens": 1487,
+            "total_tokens": 2704
+        }
+    }
+}
