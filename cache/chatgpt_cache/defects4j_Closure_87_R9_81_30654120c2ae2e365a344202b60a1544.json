@@ -1,0 +1,143 @@
+{
+    "call": {
+        "messages": [
+            {
+                "content": "You are an automated program repair tool.",
+                "role": "system"
+            },
+            {
+                "content": "The following code contains a bug.\n```java\n  private boolean hasExceptionHandler(Node cfgNode) {\n    return false;\n  }\n```\nThe code fails on this test:\n```\ntestIssue794b\n```\non this test line:\n```java\n    test(EXTERN_FUNCTIONS, \"function _func() {\" + input + \"}\",\n```\nwith the following test error:\n```\njunit.framework.AssertionFailedError:\n```\nPlease provide the correct function.\nIt can be fixed by the following function:\n```java\n  private boolean hasExceptionHandler(Node cfgNode) {\n    List<DiGraphEdge<Node, Branch>> branchEdges = getCfg().getOutEdges(cfgNode);\n    for (DiGraphEdge<Node, Branch> edge : branchEdges) {\n      if (edge.getValue() == Branch.ON_EX) {\n        return true;\n      }\n    }\n    return false;\n  }\n```\nThe following code contains a bug.\n```java\n  private boolean isFoldableExpressBlock(Node n) {\n    if (n.getType() == Token.BLOCK) {\n      if (n.hasOneChild()) {\n        Node maybeExpr = n.getFirstChild();\n          // IE has a bug where event handlers behave differently when\n          // their return value is used vs. when their return value is in\n          // an EXPR_RESULT. It's pretty freaking weird. See:\n          // http://code.google.com/p/closure-compiler/issues/detail?id=291\n          // We try to detect this case, and not fold EXPR_RESULTs\n          // into other expressions.\n\n            // We only have to worry about methods with an implicit 'this'\n            // param, or this doesn't happen.\n\n          return NodeUtil.isExpressionNode(maybeExpr);\n      }\n    }\n\n    return false;\n  }\n```\nThe code fails on this test:\n```\ntestIssue291\n```\non this test line:\n```java\n    testSame(js);\n```\nwith the following test error:\n```\njunit.framework.AssertionFailedError:\n```\nPlease provide the correct function.",
+                "role": "user"
+            }
+        ],
+        "model": "gpt-3.5-turbo-0301",
+        "n": 14,
+        "temperature": 1,
+        "top_p": 1
+    },
+    "response": {
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "index": 0,
+                "message": {
+                    "content": "The correct function can be:\n```java\n  private boolean isFoldableExpressBlock(Node n) {\n    if (n.getType() == Token.BLOCK) {\n      if (n.hasOneChild()) {\n        Node maybeExpr = n.getFirstChild();\n        // IE has a bug where event handlers behave differently when\n        // their return value is used vs. when their return value is in\n        // an EXPR_RESULT. It's pretty freaking weird. See:\n        // http://code.google.com/p/closure-compiler/issues/detail?id=291\n        // We try to detect this case, and not fold EXPR_RESULTs\n        // into other expressions.\n        if (!maybeExpr.isExprResult() && !NodeUtil.mayHaveSideEffects(maybeExpr)) {\n          // We only have to worry about methods with an implicit 'this'\n          // param, or this doesn't happen.\n          if (maybeExpr.isCall() || NodeUtil.referencesThis(maybeExpr)) {\n            return NodeUtil.isExpressionNode(maybeExpr);\n          }\n        }\n      }\n    }\n    return false;\n  }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 1,
+                "message": {
+                    "content": "The following function should fix the bug:\n```java\n  private boolean isFoldableExpressBlock(Node n) {\n    if (n.getType() == Token.BLOCK) {\n      if (n.hasOneChild()) {\n        Node maybeExpr = n.getFirstChild();\n          if (NodeUtil.mayBeExpression(maybeExpr) && !NodeUtil.isExpressionResultUsed(maybeExpr)) {\n            return true;\n          }\n      }\n    }\n\n    return false;\n  }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 2,
+                "message": {
+                    "content": "The bug in the code is due to the incorrect handling of the case where the block has more than one child. The following function should fix the issue:\n\n```java\n  private boolean isFoldableExpressBlock(Node n) {\n    if (n.getType() == Token.BLOCK) {\n      if (n.getFirstChild() != null && n.getFirstChild().getNext() == null) {\n        Node maybeExpr = n.getFirstChild();\n        // IE has a bug where event handlers behave differently when\n        // their return value is used vs. when their return value is in\n        // an EXPR_RESULT. It's pretty freaking weird. See:\n        // http://code.google.com/p/closure-compiler/issues/detail?id=291\n        // We try to detect this case, and not fold EXPR_RESULTs\n        // into other expressions.\n\n        // We only have to worry about methods with an implicit 'this'\n        // param, or this doesn't happen.\n\n        return NodeUtil.isExpressionNode(maybeExpr);\n      }\n    }\n\n    return false;\n  }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 3,
+                "message": {
+                    "content": "The following function should fix the bug:\n```java\n  private boolean isFoldableExpressBlock(Node n) {\n    if (n.getType() == Token.BLOCK) {\n      if (n.hasOneChild()) {\n        Node maybeExpr = n.getFirstChild();\n        if (NodeUtil.isExpressionNode(maybeExpr)) {\n          if (maybeExpr.isReturn()) {\n            Node functionParent = maybeExpr.getAncestor(NodeUtil.MATCH_FUNCTION);\n            if (functionParent != null && functionParent.getLastChild().equals(maybeExpr)) {\n              return NodeUtil.has(functionParent, new NodeUtil.ErrorPredicate() {\n                @Override\n                public boolean matches(Node n) {\n                  if (n.isExprResult()) {\n                    // We can fold EXPR_RESULT nodes into the return value that\n                    // we are about to inline.\n                    return !n.getParent().isCall();\n                  } else {\n                    // We should not fold nodes that:\n                    // 1. are VARs (their value may already be used elsewhere)\n                    // 2. have other side effects (besides the value)\n                    // 3. have non-constant operands\n                    // 4. are not foldable\n                    return !NodeUtil.isStatement(n) &&\n                           !NodeUtil.mayHaveSideEffects(n) &&\n                           !n.isName() &&\n                           !n.isString() &&\n                           !n.isNumber() &&\n                           !n.isRegExp() &&\n                           !n.isFunction() &&\n                           (!n.isUnary() || !NodeUtil.isExpressionFoldable(n.getLastChild())) &&\n                           (!n.isBinary() || (!NodeUtil.isExpressionFoldable(n.getFirstChild()) ||\n                                               !NodeUtil.isExpressionFoldable(n.getLastChild())));\n                  }\n                }\n              });\n            }\n          } else {\n            return true;\n          }\n        }\n      }\n    }\n\n    return false;\n  }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 4,
+                "message": {
+                    "content": "The correct function can be as follows:\n```java\n  private boolean isFoldableExpressBlock(Node n) {\n    if (n.getType() == Token.BLOCK && n.hasOneChild()) {\n      Node maybeExpr = n.getFirstChild();\n      // IE has a bug where event handlers behave differently when\n      // their return value is used vs. when their return value is in\n      // an EXPR_RESULT. It's pretty freaking weird. See:\n      // http://code.google.com/p/closure-compiler/issues/detail?id=291\n      // We try to detect this case, and not fold EXPR_RESULTs\n      // into other expressions.\n\n      // We only have to worry about methods with an implicit 'this'\n      // param, or this doesn't happen.\n      if (NodeUtil.isExpressionNode(maybeExpr) &&\n          maybeExpr.getType() != Token.FUNCTION &&\n          maybeExpr.getType() != Token.OBJECTLIT) {\n        return true;\n      }\n    }\n    return false;\n  }\n```\n",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 5,
+                "message": {
+                    "content": "The following function should fix the bug in the code:\n```java\n  private boolean isFoldableExpressBlock(Node n) {\n    if (n.getType() == Token.EXPR_RESULT && n.getFirstChild().getType() == Token.CALL) {\n      Node call = n.getFirstChild();\n      Node name = call.getFirstChild();\n      if (name.getType() == Token.NAME \n            || (name.getType() == Token.GETPROP && name.getLastChild().getString().equals(\"call\"))) {\n        return true;\n      }\n    }\n    if (n.getType() == Token.BLOCK) {\n      if (n.hasOneChild() && !NodeUtil.isControlStructure(n.getFirstChild())) {\n        return true;\n      }\n    }\n\n    return false;\n  }\n```\nThis implementation covers the case mentioned in the comment and takes care of other cases.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 6,
+                "message": {
+                    "content": "The following code should fix the bug:\n```java\n  private boolean isFoldableExpressBlock(Node n) {\n    if (n.getType() == Token.BLOCK) {\n      if (n.hasOneChild()) {\n        Node maybeExpr = n.getFirstChild();\n          // IE has a bug where event handlers behave differently when\n          // their return value is used vs. when their return value is in\n          // an EXPR_RESULT. It's pretty freaking weird. See:\n          // http://code.google.com/p/closure-compiler/issues/detail?id=291\n          // We try to detect this case, and not fold EXPR_RESULTs\n          // into other expressions.\n\n            // We only have to worry about methods with an implicit 'this'\n            // param, or this doesn't happen.\n          Node parent = n.getParent();\n          if (parent != null &&\n              parent.getType() == Token.EXPR_RESULT &&\n              !NodeUtil.isFunctionExpression(parent.getFirstChild())) {\n            return false;\n          }\n          return NodeUtil.isExpressionNode(maybeExpr);\n      }\n    }\n\n    return false;\n  }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 7,
+                "message": {
+                    "content": "The following function should fix the bug:\n```java\n  private boolean isFoldableExpressBlock(Node n) {\n    if (n.getType() == Token.BLOCK) {\n      if (n.hasOneChild()) {\n        Node maybeExpr = n.getFirstChild();\n        if (maybeExpr.getType() == Token.RETURN) {\n          return false;\n        }\n        if (!NodeUtil.mayBeExpression(maybeExpr)) {\n          return false;\n        }\n        // IE has a bug where event handlers behave differently when\n        // their return value is used vs. when their return value is in\n        // an EXPR_RESULT. It's pretty freaking weird. See:\n        // http://code.google.com/p/closure-compiler/issues/detail?id=291\n        // We try to detect this case, and not fold EXPR_RESULTs\n        // into other expressions.\n        boolean isUsingIeBug = NodeUtil.isInvocationResultUsed(maybeExpr);\n        if (isUsingIeBug && maybeExpr.isCall()) {\n          Node child = maybeExpr.getFirstChild();\n          if (!child.isGetProp() || !child.getLastChild().getString().equals(\"returnValue\")) {\n            isUsingIeBug = false;\n          }\n        }\n        if (isUsingIeBug) {\n          return false;\n        }\n        // We only have to worry about methods with an implicit 'this'\n        // param, or this doesn't happen.\n        if (NodeUtil.functionHasInlineJsdocs(n)) {\n          return false;\n        }\n        return true;\n      }\n    }\n\n    return false;\n  }\n```\n",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 8,
+                "message": {
+                    "content": "The following function should fix the bug:\n```java\n  private boolean isFoldableExpressBlock(Node n) {\n    if (n.getType() == Token.BLOCK) {\n      if (n.hasOneChild()) {\n        Node maybeExpr = n.getFirstChild();\n        if (NodeUtil.isStatementBlock(n.getParent()) && NodeUtil.isExpressionResultUsed(n.getParent())) {\n          return false;\n        }\n        return NodeUtil.isExpressionNode(maybeExpr);\n      }\n    }\n\n    return false;\n  }\n```\nNote that this fix includes the check for the IE bug described in the comment.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 9,
+                "message": {
+                    "content": "The following function fixes the bug in the code:\n```java\n  private boolean isFoldableExpressBlock(Node n) {\n    if (n.getType() == Token.BLOCK && n.hasOneChild()) {\n      Node maybeExpr = n.getFirstChild();\n      // IE has a bug where event handlers behave differently when\n      // their return value is used vs. when their return value is in\n      // an EXPR_RESULT. It's pretty freaking weird. See:\n      // http://code.google.com/p/closure-compiler/issues/detail?id=291\n      // We try to detect this case, and not fold EXPR_RESULTs\n      // into other expressions.\n      if (maybeExpr.getType() == Token.EXPR_RESULT) {\n        if (maybeExpr.hasOneChild() && !NodeUtil.mayHaveSideEffects(maybeExpr)) {\n          Node innerExpr = maybeExpr.getFirstChild();\n          if (innerExpr.isCall() && !innerExpr.getFirstChild().hasChildren()\n              && innerExpr.getLastChild().isFunction()) {\n            return false;\n          }\n        }\n      } else {\n        return NodeUtil.isExpressionNode(maybeExpr);\n      }\n    }\n    return false;\n  }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 10,
+                "message": {
+                    "content": "The correct function is:\n```java\n  private boolean isFoldableExpressBlock(Node n) {\n    if (n.getType() == Token.BLOCK) {\n      if (n.hasOneChild()) {\n        Node maybeExpr = n.getFirstChild();\n\n        // IE has a bug where event handlers behave differently when\n        // their return value is used vs. when their return value is in\n        // an EXPR_RESULT. It's pretty freaking weird. See:\n        // http://code.google.com/p/closure-compiler/issues/detail?id=291\n        // We try to detect this case, and not fold EXPR_RESULTs\n        // into other expressions.\n\n        // We only have to worry about methods with an implicit 'this'\n        // param, or this doesn't happen.\n        if (maybeExpr.getType() == Token.EXPR_RESULT) {\n          Node grandChild = maybeExpr.getFirstChild();\n          if (grandChild.getType() == Token.CALL) {\n            Node target = grandChild.getFirstChild();\n            if (target.getType() == Token.GETPROP) {\n              Node obj = target.getFirstChild();\n              if (obj.getType() == Token.THIS) {\n                return false;\n              }\n            }\n          }\n        }\n        return NodeUtil.isExpressionNode(maybeExpr);\n      }\n    }\n\n    return false;\n  }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 11,
+                "message": {
+                    "content": "Here is a possible fix for the `isFoldableExpressBlock` method:\n```java\nprivate boolean isFoldableExpressBlock(Node n) {\n    if (n.getType() == Token.BLOCK && n.hasOneChild()) {\n      Node maybeExpr = n.getFirstChild();\n\n      // Do not fold EXPR_RESULTs if they are event handlers in Internet Explorer\n      if (NodeUtil.isExpressionNode(maybeExpr) && n.getParent().getType() != Token.EXPR_RESULT) {\n        Node maybeFunction = n.getParent().getParent();\n        if (maybeFunction != null && maybeFunction.getType() == Token.FUNCTION && NodeUtil.has(this);\n\n          // only methods with an implicit 'this' param have this issue\n          return true;\n        }\n      }\n    }\n\n    return false;\n}\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 12,
+                "message": {
+                    "content": "The following function should fix the bug:\n```java\n  private boolean isFoldableExpressBlock(Node n) {\n    if (n.getType() == Token.BLOCK) {\n      if (n.hasOneChild()) {\n        Node maybeExpr = n.getFirstChild();\n        // IE has a bug where event handlers behave differently when\n        // their return value is used vs. when their return value is in\n        // an EXPR_RESULT. It's pretty freaking weird. See:\n        // http://code.google.com/p/closure-compiler/issues/detail?id=291\n        // We try to detect this case, and not fold EXPR_RESULTs\n        // into other expressions.\n        if (NodeUtil.isFunctionObjectWithName(maybeExpr, \"addEventListener\")) {\n          return maybeExpr.getLastChild().getType() != Token.EXPR_RESULT;\n        }\n        return NodeUtil.isExpressionNode(maybeExpr);\n      }\n    }\n    return false;\n  }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 13,
+                "message": {
+                    "content": "The bug in the `isFoldableExpressBlock` method is that it doesn't properly handle the case where the single child of the block node is a `RETURN` node with an `EXPR_RESULT` child. In this case, the method incorrectly returns `true` and allows the block to be folded, which can cause issues like the one in the failing test case.\n\nHere's an updated implementation that properly handles the `RETURN` case and only allows folding if the block contains a single expression node (other than `RETURN`):\n\n```java\nprivate boolean isFoldableExpressBlock(Node n) {\n  if (n.getType() == Token.BLOCK) {\n    if (n.hasOneChild()) {\n      Node maybeExpr = n.getFirstChild();\n      if (maybeExpr.isReturn()) {\n        Node retChild = maybeExpr.getFirstChild();\n        return NodeUtil.isExpressionNode(retChild);\n      } else {\n        return NodeUtil.isExpressionNode(maybeExpr);\n      }\n    }\n  }\n  return false;\n}\n```",
+                    "role": "assistant"
+                }
+            }
+        ],
+        "created": 1691595145,
+        "id": "chatcmpl-7lfSbRMHIpVFpQ735CXTvt1GjjJ5v",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion",
+        "usage": {
+            "completion_tokens": 3061,
+            "prompt_tokens": 443,
+            "total_tokens": 3504
+        }
+    }
+}
