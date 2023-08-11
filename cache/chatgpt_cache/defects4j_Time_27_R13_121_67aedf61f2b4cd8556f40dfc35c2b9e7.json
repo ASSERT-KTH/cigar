@@ -1,0 +1,119 @@
+{
+    "call": {
+        "messages": [
+            {
+                "content": "You are an automated program repair tool.",
+                "role": "system"
+            },
+            {
+                "content": "The following code contains a bug.\n```java\n    protected BasePeriod(long duration) {\n        this(duration, null, null);\n        // bug [3264409]\n    }\n```\nThe code fails on this test:\n```\ntestToPeriod_fixedZone\n```\non this test line:\n```java\n            assertEquals(0, test.getWeeks());\n```\nwith the following test error:\n```\njunit.framework.AssertionFailedError: expected:<0> but was:<64>\n```\nPlease provide the correct function.\nIt can be fixed by the following function:\n```java\n    protected BasePeriod(long duration) {\n        super();\n        // bug [3264409]\n        iType = PeriodType.time();\n        int[] values = ISOChronology.getInstanceUTC().get(this, duration);\n        iType = PeriodType.standard();\n        iValues = new int[8];\n        System.arraycopy(values, 0, iValues, 4, 4);\n    }\n```\nThe following code contains a bug.\n```java\n    private static PeriodFormatter toFormatter(List<Object> elementPairs, boolean notPrinter, boolean notParser) {\n        if (notPrinter && notParser) {\n            throw new IllegalStateException(\"Builder has created neither a printer nor a parser\");\n        }\n        int size = elementPairs.size();\n        if (size >= 2 && elementPairs.get(0) instanceof Separator) {\n            Separator sep = (Separator) elementPairs.get(0);\n                PeriodFormatter f = toFormatter(elementPairs.subList(2, size), notPrinter, notParser);\n                sep = sep.finish(f.getPrinter(), f.getParser());\n                return new PeriodFormatter(sep, sep);\n        }\n        Object[] comp = createComposite(elementPairs);\n        if (notPrinter) {\n            return new PeriodFormatter(null, (PeriodParser) comp[1]);\n        } else if (notParser) {\n            return new PeriodFormatter((PeriodPrinter) comp[0], null);\n        } else {\n            return new PeriodFormatter((PeriodPrinter) comp[0], (PeriodParser) comp[1]);\n        }\n    }\n```\nThe code fails on this test:\n```\ntestBug2495455\n```\non this test line:\n```java\n        pfmt2.parsePeriod(\"PT1003199059S\");\n```\nwith the following test error:\n```\njava.lang.IllegalArgumentException: Invalid format: \"PT1003199059S\" is malformed at \"1003199059S\"\n```\nPlease provide the correct function.",
+                "role": "user"
+            }
+        ],
+        "model": "gpt-3.5-turbo-0301",
+        "n": 11,
+        "temperature": 1,
+        "top_p": 1
+    },
+    "response": {
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "index": 0,
+                "message": {
+                    "content": "The bug in the code seems to be related to the fact that it does not consider the case where the number of seconds is longer than the maximum value that can be represented by an integer. This causes an `IllegalArgumentException` to be thrown by the `parsePeriod` method.\n\nHere's the corrected code that should fix the bug:\n\n```java\nprivate static PeriodFormatter toFormatter(List<Object> elementPairs, boolean notPrinter, boolean notParser) {\n        if (notPrinter && notParser) {\n            throw new IllegalStateException(\"Builder has created neither a printer nor a parser\");\n        }\n        int size = elementPairs.size();\n        if (size >= 2 && elementPairs.get(0) instanceof Separator) {\n            Separator sep = (Separator) elementPairs.get(0);                \n            PeriodFormatter f = toFormatter(elementPairs.subList(2, size), notPrinter, notParser);\n            sep = sep.finish(f.getPrinter(), f.getParser());\n            return new PeriodFormatter(sep, sep);\n        }\n\n        Object[] comp = createComposite(elementPairs);\n        if (notPrinter) {\n            return new PeriodFormatter(null, (PeriodParser) comp[1]);\n        } else if (notParser) {\n            return new PeriodFormatter((PeriodPrinter) comp[0], null);\n        } else {\n            return new PeriodFormatter((PeriodPrinter) comp[0], new MyPeriodParser((PeriodParser) comp[1]));\n        }\n}\n\nprivate static class MyPeriodParser implements PeriodParser {\n    private static final long MAX_VALUE = (long) Integer.MAX_VALUE * PeriodType.standard().getFieldTypes()[6].getUnitMillis();\n    private final PeriodParser wrapped;\n\n    public MyPeriodParser(PeriodParser wrapped) {\n        this.wrapped = wrapped;\n    }\n\n    @Override\n    public int parseInto(ReadWritablePeriod period, String text, int position, Locale locale) {\n        int newPos = wrapped.parseInto(period, text, position, locale);\n\n        // check if the period has overshot the maximum value of an integer\n        if (period.toDurationFrom(null).getMillis() > MAX_VALUE) {\n            throw new IllegalArgumentException(\"Duration is too large\");\n        }\n\n        return newPos;\n    }\n\n    @Override\n    public void parseInto(MutablePeriod period, String text, int position, Locale locale) {\n        wrapped.parseInto(period, text, position, locale);\n\n        // check if the period has overshot the maximum value of an integer\n        if (period.toDurationFrom(null).getMillis() > MAX_VALUE) {\n            throw new IllegalArgumentException(\"Duration is too large\");\n        }\n    }\n}\n```\n\nThe corrected code uses a wrapper class called `MyPeriodParser` to intercept calls to the original `PeriodParser` implementation and check whether the resulting period exceeds the maximum value of an integer. If it does, an `IllegalArgumentException` is thrown.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 1,
+                "message": {
+                    "content": "The following fix may resolve the issue:\n```java\n    private static PeriodFormatter toFormatter(List<Object> elementPairs, boolean notPrinter, boolean notParser) {\n        if (notPrinter && notParser) {\n            throw new IllegalStateException(\"Builder has created neither a printer nor a parser\");\n        }\n        int size = elementPairs.size();\n        if (size >= 2 && elementPairs.get(0) instanceof Separator) {\n            Separator sep = (Separator) elementPairs.get(0);\n            if (size == 2) {\n                return new PeriodFormatter(sep, sep);\n            } else {\n                PeriodFormatter f = toFormatter(elementPairs.subList(2, size), notPrinter, notParser);\n                sep = sep.finish(f.getPrinter(), f.getParser());\n                return new PeriodFormatter(sep, sep);\n            }\n        }\n        Object[] comp = createComposite(elementPairs);\n        if (notPrinter) {\n            return new PeriodFormatter(null, (PeriodParser) comp[1]);\n        } else if (notParser) {\n            return new PeriodFormatter((PeriodPrinter) comp[0], null);\n        } else {\n            return new PeriodFormatter((PeriodPrinter) comp[0], (PeriodParser) comp[1]);\n        }\n    }\n``` \nThe bug was that if the `elementPairs` list had only one pair (i.e. the PeriodFormatter constructor was called with just a Separator and another element), the code would throw an exception, since it does not check for this situation.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 2,
+                "message": {
+                    "content": "The bug in the code is that `Separator` objects are being removed from the `elementPairs` list but their associated `PeriodPrinter` and `PeriodParser` objects are not being removed with them. This causes a mismatch in the number of objects in the `comp` array and leads to the `Invalid format` error.\n\nThe code can be fixed by modifying the `if` block in the `toFormatter` method to remove the associated `PeriodPrinter` and `PeriodParser` objects along with the `Separator` object, like this:\n```java\nif (size >= 2 && elementPairs.get(0) instanceof Separator) {\n    Separator sep = (Separator) elementPairs.get(0);\n    Object[] remaining = elementPairs.subList(1, size).toArray();\n    List<Object> remainingList = new ArrayList<Object>();\n    for (Object obj : remaining) {\n        if (!(obj instanceof Separator)) {\n            remainingList.add(obj);\n        }\n    }\n    PeriodFormatter f = toFormatter(remainingList, notPrinter, notParser);\n    sep = sep.finish(f.getPrinter(), f.getParser());\n    return new PeriodFormatter(sep, sep);\n}\n```\nThis modified code removes the `Separator` object and all associated `PeriodPrinter` and `PeriodParser` objects from the `elementPairs` list, and passes the remaining objects to the `toFormatter` method. This ensures that the `comp` array contains the correct number and types of objects.\n\nThe corrected function is:\n```java\nprivate static PeriodFormatter toFormatter(List<Object> elementPairs, boolean notPrinter, boolean notParser) {\n    if (notPrinter && notParser) {\n        throw new IllegalStateException(\"Builder has created neither a printer nor a parser\");\n    }\n    int size = elementPairs.size();\n    if (size >= 2 && elementPairs.get(0) instanceof Separator) {\n        Separator sep = (Separator) elementPairs.get(0);\n        Object[] remaining = elementPairs.subList(1, size).toArray();\n        List<Object> remainingList = new ArrayList<Object>();\n        for (Object obj : remaining) {\n            if (!(obj instanceof Separator)) {\n                remainingList.add(obj);\n            }\n        }\n        PeriodFormatter f = toFormatter(remainingList, notPrinter, notParser);\n        sep = sep.finish(f.getPrinter(), f.getParser());\n        return new PeriodFormatter(sep, sep);\n    }\n    Object[] comp = createComposite(elementPairs);\n    if (notPrinter) {\n        return new PeriodFormatter(null, (PeriodParser) comp[1]);\n    } else if (notParser) {\n        return new PeriodFormatter((PeriodPrinter) comp[0], null);\n    } else {\n        return new PeriodFormatter((PeriodPrinter) comp[0], (PeriodParser) comp[1]);\n    }\n}\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 3,
+                "message": {
+                    "content": "The following function should fix the bug:\n```java\nprivate static PeriodFormatter toFormatter(List<Object> elementPairs, boolean notPrinter, boolean notParser) {\n    if (notPrinter && notParser) {\n        throw new IllegalStateException(\"Builder has created neither a printer nor a parser\");\n    }\n    int size = elementPairs.size();\n    if (size >= 2 && elementPairs.get(0) instanceof Separator) {\n        Separator sep = (Separator) elementPairs.get(0);\n        PeriodFormatter f = toFormatter(elementPairs.subList(1, size), notPrinter, notParser);\n        sep = sep.finish(f.getPrinter(), f.getParser());\n        return new PeriodFormatter(sep, sep);\n    }\n    Object[] comp = createComposite(elementPairs);\n    if (notPrinter) {\n        return new PeriodFormatter(null, (PeriodParser) comp[1]);\n    } else if (notParser) {\n        return new PeriodFormatter((PeriodPrinter) comp[0], null);\n    } else {\n        return new PeriodFormatter((PeriodPrinter) comp[0], (PeriodParser) comp[1]);\n    }\n}\n```\nThe fix is to change the sublist indices when invoking the recursive call to `toFormatter` to exclude the separator element that has already been processed and get the correct sub-list of element pairs that still need to be processed.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 4,
+                "message": {
+                    "content": "The following code should fix the bug:\n\n```java\nprivate static PeriodFormatter toFormatter(List<Object> elementPairs, boolean notPrinter, boolean notParser) {\n    if (notPrinter && notParser) {\n        throw new IllegalStateException(\"Builder has created neither a printer nor a parser\");\n    }\n    int size = elementPairs.size();\n    if (size >= 2 && elementPairs.get(0) instanceof Separator) {\n        Separator sep = (Separator) elementPairs.get(0);\n        int i = 2;\n        for (; i < size && elementPairs.get(i) instanceof Separator; i++) {\n            sep = sep.finish((PeriodPrinter) null, (PeriodParser) null);\n            sep = sep.start((Separator) elementPairs.get(i));\n        }\n        elementPairs = elementPairs.subList(i - 1, size);\n        PeriodFormatter f = toFormatter(elementPairs, notPrinter, notParser);\n        sep = sep.finish(f.getPrinter(), f.getParser());\n        return new PeriodFormatter(sep, sep);\n    }\n    \n    Object[] comp = createComposite(elementPairs);\n    if (notPrinter) {\n        return new PeriodFormatter(null, (PeriodParser) comp[1]);\n    } else if (notParser) {\n        return new PeriodFormatter((PeriodPrinter) comp[0], null);\n    } else {\n        return new PeriodFormatter((PeriodPrinter) comp[0], (PeriodParser) comp[1]);\n    }\n}\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 5,
+                "message": {
+                    "content": "The following function should fix the bug:\n```java\n    private static PeriodFormatter toFormatter(List<Object> elementPairs, boolean notPrinter, boolean notParser) {\n        if (notPrinter && notParser) {\n            throw new IllegalStateException(\"Builder has created neither a printer nor a parser\");\n        }\n        int size = elementPairs.size();\n        if (size >= 2 && elementPairs.get(0) instanceof Separator) {\n            Separator sep = (Separator) elementPairs.get(0);\n            List<Object> subList = elementPairs.subList(1, size);\n            List<Object> subList2 = new ArrayList<>(subList.size());\n            for (Object obj : subList) {\n                if (obj instanceof Separator) {\n                    subList2.add(obj);\n                } else {\n                    Object[] inner = (Object[]) obj;\n                    inner[3] = toFormatter((List<Object>) inner[3],!notPrinter, !notParser);\n                    subList2.add(inner);\n                }\n            }\n            sep = sep.finish(toFormatter(subList2, !notPrinter, !notParser).getPrinter(), \n                    toFormatter(subList2, !notPrinter, !notParser).getParser());\n            return new PeriodFormatter(sep, sep);\n        }\n        Object[] comp = createComposite(elementPairs);\n        if (notPrinter) {\n            return new PeriodFormatter(null, (PeriodParser) comp[1]);\n        } else if (notParser) {\n            return new PeriodFormatter((PeriodPrinter) comp[0], null);\n        } else {\n            return new PeriodFormatter((PeriodPrinter) comp[0], (PeriodParser) comp[1]);\n        }\n    }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 6,
+                "message": {
+                    "content": "The following function should fix the bug:\n```java\n    private static PeriodFormatter toFormatter(List<Object> elementPairs, boolean notPrinter, boolean notParser) {\n        if (notPrinter && notParser) {\n            throw new IllegalStateException(\"Builder has created neither a printer nor a parser\");\n        }\n        int size = elementPairs.size();\n        if (size >= 2 && elementPairs.get(0) instanceof Separator) {\n            Separator sep = (Separator) elementPairs.get(0);\n            PeriodFormatter f = toFormatter(elementPairs.subList(2, size), notPrinter, notParser);\n            sep = sep.finish(f.getPrinter(), f.getParser());\n            return new PeriodFormatter(f.getPrinter().withPrefix(sep), f.getParser().withPrefix(sep));\n        }\n        Object[] comp = createComposite(elementPairs);\n        if (notPrinter) {\n            return new PeriodFormatter(null, (PeriodParser) comp[1]);\n        } else if (notParser) {\n            return new PeriodFormatter((PeriodPrinter) comp[0], null);\n        } else {\n            return new PeriodFormatter((PeriodPrinter) comp[0], (PeriodParser) comp[1]);\n        }\n    }\n```\nThis function ensures that a separator between two elements is properly handled and not skipped over. Specifically, the printer and parser used for the subsequent elements are prefixed with the separator.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 7,
+                "message": {
+                    "content": "The following function should fix the bug:\n```java\nprivate static PeriodFormatter toFormatter(List<Object> elementPairs, boolean notPrinter, boolean notParser) {\n    if (notPrinter && notParser) {\n        throw new IllegalStateException(\"Builder has created neither a printer nor a parser\");\n    }\n    int size = elementPairs.size();\n    if (size >= 2 && elementPairs.get(0) instanceof Separator) {\n        Separator sep = (Separator) elementPairs.get(0);\n        List<Object> subList = elementPairs.subList(2, size);\n        PeriodFormatter f = toFormatter(subList, notPrinter, notParser);\n        sep = sep.finish(f.getPrinter(), f.getParser());\n        return new PeriodFormatter(sep, sep);\n    }\n    Object[] comp = createComposite(elementPairs);\n    if (notPrinter) {\n        if (comp[1] == null) {\n            return null;\n        }\n        return new PeriodFormatter(null, (PeriodParser) comp[1]);\n    } else if (notParser) {\n        if (comp[0] == null) {\n            return null;\n        }\n        return new PeriodFormatter((PeriodPrinter) comp[0], null);\n    } else {\n        return new PeriodFormatter((PeriodPrinter) comp[0], (PeriodParser) comp[1]);\n    }\n}\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 8,
+                "message": {
+                    "content": "The following function should fix the bug:\n```java\n    private static PeriodFormatter toFormatter(List<Object> elementPairs, boolean notPrinter, boolean notParser) {\n        int size = elementPairs.size();\n        if (notPrinter && notParser) {\n            throw new IllegalStateException(\"Builder has created neither a printer nor a parser\");\n        } else if (size == 0) {\n            if (notParser) {\n                return PeriodFormatterBuilder.emptyFormatter().toFormatter();\n            } else {\n                throw new IllegalArgumentException(\"No parser supplied\");\n            }\n        }\n        Object[] comp = createComposite(elementPairs);\n        if (notPrinter) {\n            if(comp[1] == null){\n                return PeriodFormatterBuilder.emptyFormatter().toFormatter();\n            }else{\n                return new PeriodFormatter(null, (PeriodParser) comp[1]);\n            }\n        } else if (notParser) {\n            if(comp[0] == null){\n                return PeriodFormatterBuilder.emptyFormatter().toFormatter();\n            }else{\n                return new PeriodFormatter((PeriodPrinter) comp[0], null);\n            }\n        } else if(comp[0] == null && comp[1] == null){\n            return PeriodFormatterBuilder.emptyFormatter().toFormatter();\n        } else {\n            return new PeriodFormatter((PeriodPrinter) comp[0], (PeriodParser) comp[1]);\n        }\n    }\n```\nIn this fixed function, we handle empty format cases by returning an empty formatter. We also check for null values explicitly in the code, which fixes the test case.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 9,
+                "message": {
+                    "content": "The following modification should fix the bug:\n```java\nprivate static PeriodFormatter toFormatter(List<Object> elementPairs, boolean notPrinter, boolean notParser) {\n    if (notPrinter && notParser) {\n        throw new IllegalStateException(\"Builder has created neither a printer nor a parser\");\n    }\n    int size = elementPairs.size();\n    if (size >= 2 && elementPairs.get(0) instanceof Separator) {\n        Separator sep = (Separator) elementPairs.get(0);\n        PeriodFormatter f = toFormatter(elementPairs.subList(1, size), notPrinter, notParser);\n        sep = sep.finish(f.getPrinter(), f.getParser());\n        return new PeriodFormatter(sep, sep);\n    }\n    Object[] comp = createComposite(elementPairs);\n    if (notPrinter) {\n        return new PeriodFormatter(null, (PeriodParser) comp[1]);\n    } else if (notParser) {\n        return new PeriodFormatter((PeriodPrinter) comp[0], null);\n    } else {\n        return new PeriodFormatter((PeriodPrinter) comp[0], (PeriodParser) comp[1]);\n    }\n}\n```\nThe only modification made is in the conditional branch where `size >= 2 && elementPairs.get(0) instanceof Separator` is true. Here, `elementPairs.subList(2, size)` was changed to `elementPairs.subList(1, size)` to avoid skipping an element.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 10,
+                "message": {
+                    "content": "The following function should fix the bug:\n```java\n    private static PeriodFormatter toFormatter(List<Object> elementPairs, boolean notPrinter, boolean notParser) {\n        if (notPrinter && notParser) {\n            throw new IllegalStateException(\"Builder has created neither a printer nor a parser\");\n        }\n        int size = elementPairs.size();\n        if (size >= 2 && elementPairs.get(0) instanceof Separator) {\n            Separator sep = (Separator) elementPairs.get(0);\n            PeriodFormatter f = toFormatter(elementPairs.subList(2, size), notPrinter, notParser);\n            sep = sep.finish(f.getPrinter(), f.getParser());\n            return new PeriodFormatter(f.getPrinter(), f.getParser()).withSeparator(sep);\n        }\n        Object[] comp = createComposite(elementPairs);\n        if (notPrinter) {\n            return new PeriodFormatter(null, (PeriodParser) comp[1]);\n        } else if (notParser) {\n            return new PeriodFormatter((PeriodPrinter) comp[0], null);\n        } else {\n            return new PeriodFormatter((PeriodPrinter) comp[0], (PeriodParser) comp[1]);\n        }\n    }\n```\nThe `toFormatter` method should now add the separator to the final `PeriodFormatter` object using the `withSeparator` method instead of creating a new `PeriodFormatter` with the same start and end separator. The bug was caused by the final `PeriodFormatter` object not having a separator.",
+                    "role": "assistant"
+                }
+            }
+        ],
+        "created": 1691758743,
+        "id": "chatcmpl-7mM1H0tVAPK1zjQfrCiudohzFIfjm",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion",
+        "usage": {
+            "completion_tokens": 3839,
+            "prompt_tokens": 537,
+            "total_tokens": 4376
+        }
+    }
+}
