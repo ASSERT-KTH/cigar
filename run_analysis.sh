@@ -56,7 +56,7 @@ parallel --jobs $num_of_parallel_jobs --bar --joblog parallel.log --results para
 
 # For each project order the summary file by bug id, first line is header
 for project in "${pool[@]}"; do
-    tail -n +2 "${output_dir}/${project}_summary.csv" | sort -t, -k3,3n > "${output_dir}/${project}_summary.csv.tmp"
+    tail -n +1 "${output_dir}/${project}_summary.csv" | sort -t, -k3,3n > "${output_dir}/${project}_summary.csv.tmp"
     head -n 1 "${output_dir}/${project}_summary.csv" > "${output_dir}/${project}_summary.csv"
     cat "${output_dir}/${project}_summary.csv.tmp" >> "${output_dir}/${project}_summary.csv"
     rm "${output_dir}/${project}_summary.csv.tmp"
