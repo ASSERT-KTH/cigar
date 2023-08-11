@@ -1,0 +1,103 @@
+{
+    "call": {
+        "messages": [
+            {
+                "content": "You are an automated program repair tool.",
+                "role": "system"
+            },
+            {
+                "content": "The following code contains a bug.\n```java\n  private boolean hasExceptionHandler(Node cfgNode) {\n    return false;\n  }\n```\nThe code fails on this test:\n```\ntestIssue794b\n```\non this test line:\n```java\n    test(EXTERN_FUNCTIONS, \"function _func() {\" + input + \"}\",\n```\nwith the following test error:\n```\njunit.framework.AssertionFailedError:\n```\nPlease provide the correct function.\nIt can be fixed by the following function:\n```java\n  private boolean hasExceptionHandler(Node cfgNode) {\n    List<DiGraphEdge<Node, Branch>> branchEdges = getCfg().getOutEdges(cfgNode);\n    for (DiGraphEdge<Node, Branch> edge : branchEdges) {\n      if (edge.getValue() == Branch.ON_EX) {\n        return true;\n      }\n    }\n    return false;\n  }\n```\nThe following code contains a bug.\n```java\n  private FlowScope traverseNew(Node n, FlowScope scope) {\n\n    Node constructor = n.getFirstChild();\n    scope = traverse(constructor, scope);\n    JSType constructorType = constructor.getJSType();\n    JSType type = null;\n    if (constructorType != null) {\n      constructorType = constructorType.restrictByNotNullOrUndefined();\n      if (constructorType.isUnknownType()) {\n        type = getNativeType(UNKNOWN_TYPE);\n      } else {\n        FunctionType ct = constructorType.toMaybeFunctionType();\n        if (ct == null && constructorType instanceof FunctionType) {\n          // If constructorType is a NoObjectType, then toMaybeFunctionType will\n          // return null. But NoObjectType implements the FunctionType\n          // interface, precisely because it can validly construct objects.\n          ct = (FunctionType) constructorType;\n        }\n        if (ct != null && ct.isConstructor()) {\n          type = ct.getInstanceType();\n        }\n      }\n    }\n    n.setJSType(type);\n    for (Node arg = constructor.getNext(); arg != null; arg = arg.getNext()) {\n      scope = traverse(arg, scope);\n    }\n    return scope;\n  }\n```\nThe code fails on this test:\n```\ntestBackwardsInferenceNew\n```\non this test line:\n```java\n    assertEquals(\"{foo: (number|undefined)}\", getType(\"y\").toString());\n```\nwith the following test error:\n```\njunit.framework.ComparisonFailure: expected:<{[foo: (number|undefined)]}> but was:<{[]}>\n```\nPlease provide the correct function.",
+                "role": "user"
+            }
+        ],
+        "model": "gpt-3.5-turbo-0301",
+        "n": 9,
+        "temperature": 1,
+        "top_p": 1
+    },
+    "response": {
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "index": 0,
+                "message": {
+                    "content": "The following function fixes the bug:\n```java\n  /**\n   * Returns the JSType for a new expression.\n   *\n   * @param n The node representing the new expression.\n   * @param scope The current scope.\n   * @return The JSType for the new expression.\n   */\n  private JSType traverseNew(Node n, FlowScope scope) {\n    Node constructor = n.getFirstChild();\n    scope = traverse(constructor, scope);\n    JSType constructorType = constructor.getJSType();\n    JSType type = getNativeType(UNKNOWN_TYPE);\n    if (constructorType == null) {\n      n.setJSType(type);\n      return scope;\n    }\n\n    boolean unknownOrEmptyConstructor =\n        constructorType.isUnknownType() || constructorType.isEmptyType();\n    if (!unknownOrEmptyConstructor) {\n      FunctionType functionType = constructorType.toMaybeFunctionType();\n      if (functionType != null && functionType.isConstructor()) {\n        if (functionType.isGeneric()) {\n          if (n.getLastChild() != null) {\n            // Only infer @template types, not @param types.\n            // Resolve the function type using the template type syntax of the form:\n            // new constructor<T1, T2, ...>(...)\n            JSType[] templateTypes = new JSType[functionType.getTemplateTypeMap().size()];\n            for (int i = 1; i < n.getChildCount(); ++i) {\n              templateTypes[i - 1] =\n                  getJSType(n.getChildAt(i).getJSDocInfo().getTemplateTypeTransformations());\n            }\n            JSType resolvedFunctionType =\n                resolveGenericFunction(\n                    n, scope, functionType.getInstanceType(), functionType, templateTypes);\n            if (resolvedFunctionType != null && resolvedFunctionType.isFunctionType()) {\n              type = resolvedFunctionType.toMaybeFunctionType().getInstanceType();\n            }\n          }\n        } else {\n          type = functionType.getInstanceType();\n        }\n      } else {\n        type = constructorType.restrictByNotNullOrUndefined();\n      }\n    }\n\n    n.setJSType(type);\n    for (Node arg = constructor.getNext(); arg != null; arg = arg.getNext()) {\n      traverse(arg, scope);\n    }\n    return scope;\n  }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 1,
+                "message": {
+                    "content": "The following code should fix the bug:\n```java\nprivate FlowScope traverseNew(Node n, FlowScope scope) {\n  Node constructor = n.getFirstChild();\n  scope = traverse(constructor, scope);\n  JSType constructorType = constructor.getJSType();\n  JSType type = null;\n  if (constructorType != null) {\n    constructorType = constructorType.restrictByNotNullOrUndefined();\n    if (constructorType.isUnknownType()) {\n      type = getNativeType(UNKNOWN_TYPE);\n    } else {\n      FunctionType ct = constructorType.toMaybeFunctionType();\n      if (ct == null && constructorType.isFunctionType()) {\n        ct = constructorType.toMaybeFunctionType();\n      }\n      if (ct != null && ct.isConstructor()) {\n        type = ct.getInstanceType();\n      }\n    }\n  }\n  n.setJSType(type);\n  if (constructor.getNext() != null) {\n    // Constructor arguments are optional, so the NodeList may be empty.\n    for (Node arg = constructor.getNext().getFirstChild(); arg != null; arg = arg.getNext()) {\n      scope = traverse(arg, scope);\n    }\n  }\n  return scope;\n}\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 2,
+                "message": {
+                    "content": "The following function fixes the bug:\n```java\n  private FlowScope traverseNew(Node n, FlowScope scope) {\n\n    Node constructor = n.getFirstChild();\n    scope = traverse(constructor, scope);\n    JSType constructorType = constructor.getJSType();\n    JSType type = null;\n    if (constructorType != null) {\n      constructorType = constructorType.restrictByNotNullOrUndefined();\n      if (constructorType.isUnknownType()) {\n        type = getNativeType(UNKNOWN_TYPE);\n      } else {\n        FunctionType ct = constructorType.toMaybeFunctionType();\n        if (ct == null && constructorType.isSubtypeOf(getNativeObjectType()) && !constructorType.isSubtypeOf(getNativeFunctionType())) {\n          ct = getNativeObjectType().toMaybeFunctionType();\n        }\n        if (ct != null && ct.isConstructor()) {\n          type = ct.getInstanceType();\n        }\n        if (ct != null && ct.isFunctionPrototypeType()) {\n          type = getNativeObjectType();\n        }\n      }\n    }\n    n.setJSType(type);\n    for (Node arg = constructor.getNext(); arg != null; arg = arg.getNext()) {\n      scope = traverse(arg, scope);\n    }\n    return scope;\n  }\n```\n",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 3,
+                "message": {
+                    "content": "The following function should fix the bug:\n```java\n  private FlowScope traverseNew(Node n, FlowScope scope) {\n\n    // Traverse the constructor node\n    Node constructor = n.getFirstChild();\n    traverse(constructor, scope);\n\n    // Get the type of the constructor and restrict it to not null or undefined\n    JSType constructorType = constructor.getJSType();\n    if (constructorType != null) {\n      constructorType = constructorType.restrictByNotNullOrUndefined();\n    }\n\n    JSType type; // variable to store the inferred type of the new operation\n\n    if (constructorType == null || constructorType.isUnknownType()) {\n      // If the type of the constructor is unknown, set the inferred type to UNKNOWN_TYPE\n      type = getNativeType(UNKNOWN_TYPE);\n    } else {\n      // Get the instance type of the constructor\n      FunctionType ct = constructorType.toMaybeFunctionType();\n      if (ct == null && constructorType instanceof FunctionType) {\n        ct = (FunctionType) constructorType;\n      }\n\n      // Check if the constructor is a valid constructor\n      if (ct != null && ct.isConstructor()) {\n        // If the constructor is valid, set the inferred type to the instance type of the constructor\n        type = ct.getInstanceType();\n      } else {\n        // If the constructor is not valid, set the inferred type to NULL_TYPE\n        type = getNativeType(NULL_TYPE);\n      }\n    }\n\n    n.setJSType(type); // Set the inferred type of the new operation\n\n    // Traverse the arguments of the constructor\n    for (Node arg = constructor.getNext(); arg != null; arg = arg.getNext()) {\n      traverse(arg, scope);\n    }\n\n    return scope;\n  }\n```",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 4,
+                "message": {
+                    "content": "The following code fix should resolve the bug:\n```java\n  private FlowScope traverseNew(Node n, FlowScope scope) {\n\n    Node constructor = n.getFirstChild();\n    scope = traverse(constructor, scope);\n    JSType constructorType = constructor.getJSType();\n    JSType type = null;\n    if (constructorType != null) {\n      constructorType = constructorType.restrictByNotNullOrUndefined();\n      if (constructorType.isUnknownType()) {\n        type = getNativeType(UNKNOWN_TYPE);\n      } else {\n        FunctionType ct = constructorType.toMaybeFunctionType();\n        if (ct == null && constructorType.isSubtypeOf(getNativeObjectType())) {\n          ct = getNativeObjectType().toMaybeFunctionType();\n        }\n        if (ct != null && ct.isConstructor()) {\n          type = ct.getInstanceType();\n        }\n      }\n    }\n    n.setJSType(type);\n    for (Node arg = constructor.getNext(); arg != null; arg = arg.getNext()) {\n      scope = traverse(arg, scope);\n    }\n    return scope;\n  }\n```\nNote that this involves a single change, where `constructorType instanceof FunctionType` is replaced with `constructorType.isSubtypeOf(getNativeObjectType())`.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 5,
+                "message": {
+                    "content": "The following code fixes the bug:\n```java\n  private FlowScope traverseNew(Node n, FlowScope scope) {\n\n    Node constructor = n.getFirstChild();\n    scope = traverse(constructor, scope);\n    JSType constructorType = constructor.getJSType().restrictByNotNullOrUndefined();\n    JSType type = null;\n    if (constructorType.isUnknownType()) {\n      type = getNativeType(UNKNOWN_TYPE);\n    } else {\n      FunctionType ct = constructorType.toMaybeFunctionType();\n      if (ct == null && constructorType instanceof FunctionType) {\n        ct = (FunctionType) constructorType;\n      }\n      if (ct != null && ct.isConstructor()) {\n        type = ct.getInstanceType().instantiateGenerics(constructorType.getTemplateTypeMap());\n      }\n    }\n    n.setJSType(type);\n    for (Node arg = constructor.getNext(); arg != null; arg = arg.getNext()) {\n      scope = traverse(arg, scope);\n    }\n    return scope;\n  }\n```\nThe changes include:\n- Restricting the constructor type by `NotNull` or `Undefined`.\n- Instantiating generics on the instance type based on the template type map of the constructor type.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 6,
+                "message": {
+                    "content": "The following function should fix the bug:\n```java\n  private FlowScope traverseNew(Node n, FlowScope scope) {\n\n    Node constructor = n.getFirstChild();\n    scope = traverse(constructor, scope);\n    JSType constructorType = constructor.getJSType();\n    JSType type = null;\n    if (constructorType != null) {\n      constructorType = constructorType.restrictByNotNullOrUndefined();\n      if (constructorType.isUnknownType()) {\n        type = getNativeType(UNKNOWN_TYPE);\n      } else {\n        FunctionType ct = constructorType.toMaybeFunctionType();\n        if (ct == null && constructorType.isFunctionType()) {\n          ct = constructorType.toMaybeFunctionType();\n        }\n        if (ct != null && ct.isConstructor()) {\n          type = ct.getInstanceType();\n        }\n      }\n    }\n    if (type == null) {\n        type = getNativeType(NO_OBJECT_TYPE);\n    }\n    n.setJSType(type);\n    for (Node arg = constructor.getNext(); arg != null; arg = arg.getNext()) {\n      scope = traverse(arg, scope);\n    }\n    return scope;\n  }\n```\nThe bug was caused by the fact that NoObjectType was not being detected correctly, leading to the wrong type being set for some nodes. The fix corrects this and sets the correct type in cases where NoObjectType is detected.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 7,
+                "message": {
+                    "content": "The following code fixes the bug:\n```java\n  private FlowScope traverseNew(Node n, FlowScope scope) {\n\n    Node constructor = n.getFirstChild();\n    scope = traverse(constructor, scope);\n\n    JSType constructorType = constructor.getJSType();\n    JSType type = null;\n    if (constructorType != null) {\n      constructorType = constructorType.restrictByNotNullOrUndefined();\n      if (constructorType.isUnknownType()) {\n        type = getNativeType(UNKNOWN_TYPE);\n      } else {\n        FunctionType ct = constructorType.toMaybeFunctionType();\n        if (ct == null && constructorType instanceof FunctionType) {\n          // If constructorType is a NoObjectType, then toMaybeFunctionType will\n          // return null. But NoObjectType implements the FunctionType\n          // interface, precisely because it can validly construct objects.\n          ct = (FunctionType) constructorType;\n        }\n        if (ct != null && ct.isConstructor()) {\n          type = ct.getInstanceType();\n        }\n        if (type != null) { // fix to set the JSType to object type\n          type = getRegistry().createAnonymousObjectType(type);\n        }\n      }\n    }\n    n.setJSType(type);\n    for (Node arg = constructor.getNext(); arg != null; arg = arg.getNext()) {\n      scope = traverse(arg, scope);\n    }\n    return scope;\n  }\n```\nExplanation: The code did not correctly set the `JSType` of the `Node` `n`. The fix is to create an anonymous object type and set it as the `JSType`.",
+                    "role": "assistant"
+                }
+            },
+            {
+                "finish_reason": "stop",
+                "index": 8,
+                "message": {
+                    "content": "The following function should fix the bug:\n```java\nprivate FlowScope traverseNew(Node n, FlowScope scope) {\n    Node constructor = n.getFirstChild();\n    scope = traverse(constructor, scope);\n    JSType constructorType = constructor.getJSType();\n    JSType type = null;\n    if (constructorType != null) {\n      constructorType = constructorType.autobox().restrictByNotNullOrUndefined();\n      if (constructorType.isUnknownType()) {\n        type = getNativeType(UNKNOWN_TYPE);\n      } else {\n        FunctionType ct = constructorType.toMaybeFunctionType();\n        if (ct == null && constructorType.isFunctionType()) {\n          // If constructorType is a NoObjectType, then toMaybeFunctionType will\n          // return null. But NoObjectType implements the FunctionType\n          // interface, precisely because it can validly construct objects.\n          ct = (FunctionType) constructorType;\n        }\n        if (ct != null && ct.isConstructor()) {\n          type = ct.getInstanceType();\n        }\n      }\n    }\n    n.setJSType(type);\n    for (Node arg = constructor.getNext(); arg != null; arg = arg.getNext()) {\n      scope = traverse(arg, scope);\n    }\n    return scope;\n  }\n```",
+                    "role": "assistant"
+                }
+            }
+        ],
+        "created": 1691714536,
+        "id": "chatcmpl-7mAWGkxbAG3pKwSpkxk3rAjGkNB9m",
+        "model": "gpt-3.5-turbo-0301",
+        "object": "chat.completion",
+        "usage": {
+            "completion_tokens": 2712,
+            "prompt_tokens": 549,
+            "total_tokens": 3261
+        }
+    }
+}
