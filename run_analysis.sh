@@ -26,23 +26,15 @@ for group in "${pool[@]}"; do
 done
 
 
-# Run each bug in parallel
-for j in {1..3}
-do
-    parallel --jobs $num_of_parallel_jobs --bar --joblog parallel.log --results parallel_results/ --resume --resume-failed $(pwd)/venv/bin/python3 $(pwd)/main.py -apr $apr -fr $framework -p {1} -bs {2} ::: "${params_projects[@]}" :::+ "${params_bug_ids[@]}"
-    rm -rf parallel_results/
-    rm parallel.log
-done
-
-
 # Function to run a single project, in case of crash, restart
-run_project() {
+run_project_bug() {
     project=$1
-    until $(pwd)/venv/bin/python3 "$(pwd)/main.py" -apr $apr -fr $framework -p $project; do 
-        echo "CAPR crashed with exit code $?. Restaring in a second..."
+    bug=$2
+    until $(pwd)/venv/bin/python3 "$(pwd)/main.py" -apr $apr -fr $framework -p $project -bs $bug; do 
+        echo "CAPR crashed with exit code $?. Restaring in a minute..."
         sleep 60
     done
 }
-export -f run_project
-# Run one job for each project in parallel, restart each job if it crashes
-parallel --jobs $num_of_parallel_jobs --bar --joblog parallel.log --results parallel_results/ --resume --resume-failed run_project {} ::: "${pool[@]}"
+export -f run_project_bug
+# Run each bug in parallel
+parallel --jobs $num_of_parallel_jobs --bar --joblog parallel.log --results parallel_results/ --resume --resume-failed run_project_bug {1} {2} ::: "${params_projects[@]}" :::+ "${params_bug_ids[@]}"

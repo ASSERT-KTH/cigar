@@ -22,9 +22,10 @@ class Analysis:
             summary_file_path = Path(__file__).parent.parent / 'output' / f'{self.framework.name}_{self.apr.name}' / f'{project}_summary.csv'
 
             fieldnames = self._get_fieldnames()
-            with open(summary_file_path, 'w', newline='') as csvfile:
-                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-                writer.writeheader()
+            if not summary_file_path.exists():
+                with open(summary_file_path, 'w', newline='') as csvfile:
+                    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                    writer.writeheader()
 
             for bug_id in ids:
                 logging.info(f" ---------- Reproducing {project}-{bug_id} ----------")
