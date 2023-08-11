@@ -1,0 +1,84 @@
+diff --git a/src/main/java/org/apache/commons/lang3/text/translate/NumericEntityUnescaper.java b/src/main/java/org/apache/commons/lang3/text/translate/NumericEntityUnescaper.java
+index 68891ace..d7561e60 100644
+--- a/src/main/java/org/apache/commons/lang3/text/translate/NumericEntityUnescaper.java
++++ b/src/main/java/org/apache/commons/lang3/text/translate/NumericEntityUnescaper.java
+@@ -34,41 +34,44 @@ public class NumericEntityUnescaper extends CharSequenceTranslator {
+      * {@inheritDoc}
+      */
+     @Override
+-    public int translate(CharSequence input, int index, Writer out) throws IOException {
+-        int seqEnd = input.length();
+-        // Uses -2 to ensure there is something after the &#
+-        if(input.charAt(index) == '&' && index < seqEnd - 1 && input.charAt(index + 1) == '#') {
+-            int start = index + 2;
+-            boolean isHex = false;
++public int translate(CharSequence input, int index, Writer out) throws IOException {
++    int seqEnd = input.length();
+ 
++    if (index <= seqEnd - 2 && input.charAt(index) == '&' && input.charAt(index + 1) == '#') {
++        int start = index + 2;
++        boolean isHex = false;
++
++        if (start <= seqEnd - 1) {
+             char firstChar = input.charAt(start);
+-            if(firstChar == 'x' || firstChar == 'X') {
++            if (firstChar == 'x' || firstChar == 'X') {
+                 start++;
+                 isHex = true;
+-
+-                // Check there's more than just an x after the &#
+             }
+ 
+             int end = start;
+-            // Note that this supports character codes without a ; on the end
+-            while(input.charAt(end) != ';') 
+-            {
++            while (end < seqEnd && !Character.isWhitespace(input.charAt(end)) && input.charAt(end) != ';') {
++                if ((isHex && !Character.isDigit(input.charAt(end)) && (Character.toUpperCase(input.charAt(end)) < 'A' || Character.toUpperCase(input.charAt(end)) > 'F')) || (!isHex && !Character.isDigit(input.charAt(end))))
++                    return 0; // invalid hex or decimal code
+                 end++;
+             }
+ 
+-            int entityValue;
++            if (end == start || (end == seqEnd - 1 && input.charAt(end) != ';')) { // unfinished or empty entity
++                return 0;
++            }
++
++            int entityValue = 0;
+             try {
+-                if(isHex) {
++                if (isHex) {
+                     entityValue = Integer.parseInt(input.subSequence(start, end).toString(), 16);
+                 } else {
+                     entityValue = Integer.parseInt(input.subSequence(start, end).toString(), 10);
+                 }
+-            } catch(NumberFormatException nfe) {
+-            System.err.println("FAIL: " + input.subSequence(start, end) + "[" + start +"]["+ end +"]");
++            } catch (NumberFormatException nfe) {
++                System.err.println("FAIL: " + input.subSequence(start, end) + "[" + start + "][" + end + "]");
+                 return 0;
+             }
+ 
+-            if(entityValue > 0xFFFF) {
++            if (entityValue > 0xFFFF) {
+                 char[] chrs = Character.toChars(entityValue);
+                 out.write(chrs[0]);
+                 out.write(chrs[1]);
+@@ -76,9 +79,14 @@ public class NumericEntityUnescaper extends CharSequenceTranslator {
+                 out.write(entityValue);
+             }
+ 
+-
+-            return 2 + (end - start) + (isHex ? 1 : 0) + 1;
++            if (end < seqEnd && input.charAt(end) == ';') {
++                return end - index + 1;
++            } else {
++                return end - index;
++            }
+         }
+-        return 0;
+     }
++
++    return 0;
++}
+ }
