@@ -1,6 +1,7 @@
 export num_of_parallel_jobs=8
-export apr="rapidcapr"
+export apr="RapidCapr"
 export framework="defects4j"
+export output_dir="output/${framework}_${apr}"
 
 declare -a pool=("Math")
 declare -a Chart=(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26)
@@ -28,8 +29,8 @@ done
 
 # For each project, keep only the first line of the csv file
 for project in "${pool[@]}"; do
-    head -n 1 "results/${project}_summary.csv" > "results/${project}_summary.csv.tmp"
-    mv "results/${project}_summary.csv.tmp" "results/${project}_summary.csv"
+    head -n 1 "${output_dir}/${project}_summary.csv" > "${output_dir}/${project}_summary.csv.tmp"
+    mv "${output_dir}/${project}_summary.csv.tmp" "${output_dir}/${project}_summary.csv"
 done
 
 
@@ -37,6 +38,8 @@ done
 run_project_bug() {
     project=$1
     bug=$2
+    # make apr all lower case
+    apr=$(echo "$apr" | tr '[:upper:]' '[:lower:]')
     until $(pwd)/venv/bin/python3 "$(pwd)/main.py" -apr $apr -fr $framework -p $project -bs $bug; do 
         echo "CAPR crashed with exit code $?. Restaring in a minute..."
         sleep 60
@@ -49,12 +52,12 @@ parallel --jobs $num_of_parallel_jobs --bar --joblog parallel.log --results para
 
 # For each project order the summary file by bug id
 for project in "${pool[@]}"; do
-    sort -t, -k2,2n "results/${project}_summary.csv" > "results/${project}_summary.csv.tmp"
-    mv "results/${project}_summary.csv.tmp" "results/${project}_summary.csv"
+    sort -t, -k2,2n "${output_dir}/${project}_summary.csv" > "${output_dir}/${project}_summary.csv.tmp"
+    mv "${output_dir}/${project}_summary.csv.tmp" "${output_dir}/${project}_summary.csv"
 done
 
 # Merge all summary files into one, first line is the header
-head -n 1 "results/${pool[0]}_summary.csv" > "results/summary.csv"
+head -n 1 "${output_dir}/${pool[0]}_summary.csv" > "${output_dir}/summary.csv"
 for project in "${pool[@]}"; do
-    tail -n +2 "results/${project}_summary.csv" >> "results/summary.csv"
+    tail -n +2 "${output_dir}/${project}_summary.csv" >> "${output_dir}/summary.csv"
 done
