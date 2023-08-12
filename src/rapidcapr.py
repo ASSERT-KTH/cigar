@@ -23,6 +23,7 @@ class RapidCapr(object):
         first_plausible_patch_try = None
         plausible_patches, plausible_patch_diffs = [], []
         test_failure_count, test_error_count, total_length = 0, 0, 0
+        max_mpps_try_per_mode = max_mpps_try_per_mode if not prog_params.stop_on_first_plausible_patch else 0
 
         for round in range(1, max_rounds + 1):
         

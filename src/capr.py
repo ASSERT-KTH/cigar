@@ -72,7 +72,7 @@ class Capr(object):
                 prompt.append({"role": "assistant", "content": f"""{response}"""})
                 prompt.append(feedback)
         
-        if len(plausible_patches) != 0:
+        if len(plausible_patches) != 0 and not prog_params.stop_on_first_plausible_patch:
             while (current_tries < max_tries):
                 current_tries += 1
 
