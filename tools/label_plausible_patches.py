@@ -7,11 +7,11 @@ from subprocess import PIPE, run
 def main():
     bug_details_cache_folder = Path(__file__).parent.parent / "cache" / "bug_details_cache"
 
-    output_folder = Path(__file__).parent.parent / "output" / "defects4j_Capr"
+    output_folder = Path(__file__).parent.parent / "output" / "defects4j_RapidCapr"
     plausible_patch_folder = output_folder / "plausible_patches"
     fixed_patch_folder = output_folder / "fixed_patches"
 
-    ground_truth_fixed_patch_folder = Path(__file__).parent.parent / "output" / "defects4j_RapidCapr" / "fixed_patches"
+    ground_truth_fixed_patch_folder = Path(__file__).parent.parent / "output" / "defects4j_Capr" / "fixed_patches"
 
     plausible_patch_files = list(plausible_patch_folder.glob("*.diff"))
     plausible_bugs = sorted(list(set([f"{f.stem.split('_')[0]}_{f.stem.split('_')[1]}"  for f in plausible_patch_files])), key=lambda x: (x.split('_')[0], int(x.split('_')[1])))
