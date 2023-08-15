@@ -33,11 +33,24 @@ def main():
                 ground_truth_exists = True
                 break
 
+            # Check if ground truth solution is in the diff file
+            patch_lines = diff.split("\n")
+            patch_additions = [line for line in patch_lines if line.startswith("+")][1:]
+            patch_removes = [line for line in patch_lines if line.startswith("-")][1:]
+            if len(patch_additions) == 1 and len(patch_removes) == len(bug_details["buggy_lines"].split("\n")):
+                patch_addition = patch_additions[0].strip("+").strip()
+                if patch_addition in bug_details["fixed_lines"]:
+                    run(["cp", file, f"{fixed_patch_folder}/"])
+                    ground_truth_exists = True
+                    break
+
         if not ground_truth_exists:
-            label_bug(bug_details=bug_details, plausible_patch_diffs_of_bug=plausible_patch_diffs_of_bug, fixed_patch_folder=fixed_patch_folder)
+            command = label_bug(bug_details=bug_details, plausible_patch_diffs_of_bug=plausible_patch_diffs_of_bug, fixed_patch_folder=fixed_patch_folder)
+            if command == "skip all bugs":
+                break
 
     fixed_patch_files = list(fixed_patch_folder.glob("*.diff"))
-    update_summaries(output_folder, fixed_patch_files)
+    save_fixed_patch_summary(output_folder, fixed_patch_files)
 
 def label_bug(bug_details, plausible_patch_diffs_of_bug, fixed_patch_folder):
     plausible_patch_diffs_of_bug = [(f, d) for f, d in plausible_patch_diffs_of_bug]
@@ -47,6 +60,7 @@ def label_bug(bug_details, plausible_patch_diffs_of_bug, fixed_patch_folder):
     MARK_FIXED = "mark fixed"
     NEXT_PATCH = "next patch"
     PREVIOUS_PATCH = "previous patch"
+    PRINT_RESOLVED_DIFF = "print resolved diff"
     GET_BUGGY_LINES = "get buggy lines"
     GET_FIXED_LINES = "get fixed lines"
     GET_CODE = "get code"
@@ -55,7 +69,8 @@ def label_bug(bug_details, plausible_patch_diffs_of_bug, fixed_patch_folder):
     GET_PATCH_NAME = "get patch name"
     HELP = "help"
     SKIP_BUG = "skip bug"
-    commands = [MARK_FIXED, NEXT_PATCH, PREVIOUS_PATCH, GET_BUGGY_LINES, GET_FIXED_LINES, GET_CODE, GET_FIXED_CODE, GET_MASKED_CODE, GET_PATCH_NAME, HELP, SKIP_BUG]
+    SKIP_ALL_BUGS = "skip all bugs"
+    commands = [MARK_FIXED, NEXT_PATCH, PREVIOUS_PATCH, PRINT_RESOLVED_DIFF, GET_BUGGY_LINES, GET_FIXED_LINES, GET_CODE, GET_FIXED_CODE, GET_MASKED_CODE, GET_PATCH_NAME, HELP, SKIP_BUG, SKIP_ALL_BUGS]
 
     i = 0
     print("".join([f"\n" for _ in range(50)]))
@@ -84,6 +99,10 @@ def label_bug(bug_details, plausible_patch_diffs_of_bug, fixed_patch_folder):
             i = (i - 1) % len(plausible_patch_diffs_of_bug)
             print(f"\033[93m" + f"\nAnother proposed diff ({i+1}/{len(plausible_patch_diffs_of_bug)}) is for {bug_details['project']}-{bug_details['bug_id']} ({bug_details['bug_type']}):\n" + "\033[0m")
             print(f"{ordered_plausible_patch_diffs_of_bug[i][1]}")
+        elif command == PRINT_RESOLVED_DIFF:
+            print(f"\033[93m" + "\nThe resolved diff is:\n" + "\033[0m")
+            patch_diff = ordered_plausible_patch_diffs_of_bug[i][1]
+            print("\n".join([line[1:] if line.startswith("+") else line for line in patch_diff.split("\n") if not line.startswith("-")]))
         elif command == GET_BUGGY_LINES:
             print(f"\033[93m" + "\nThe buggy lines are:\n" + "\033[0m")
             print(f"\033[91m" + bug_details["buggy_lines"] + "\033[0m\n")
@@ -107,22 +126,26 @@ def label_bug(bug_details, plausible_patch_diffs_of_bug, fixed_patch_folder):
             print(f"{ordered_plausible_patch_diffs_of_bug[i][0]}")
         elif command == SKIP_BUG:
             break
+        elif command == SKIP_ALL_BUGS:
+            return SKIP_ALL_BUGS
 
 def similarity(a: str, b: str):
     return SequenceMatcher(None, a, b).ratio()
 
-def update_summaries(output_folder, fixed_patch_files):
-    for fixed_patch_file in fixed_patch_files:
-        project = fixed_patch_file.stem.split("_")[0]
-        bug_id = fixed_patch_file.stem.split("_")[1]
+def save_fixed_patch_summary(output_folder, fixed_patch_files):
+    fixed_patch_files = sorted(fixed_patch_files, key=lambda x: (x.stem.split("_")[0], int(x.stem.split("_")[1])))
 
-        summary_csv = output_folder / f"{project}_summary.csv"
-        
-        if summary_csv.exists():
-            summary = pd.read_csv(summary_csv, dtype=object)
-            if summary.loc[(summary["project"] == project) & (summary["bug_id"] == bug_id), "comment"].values[0] != "Fixed Patch":
-                summary.loc[(summary["project"] == project) & (summary["bug_id"] == bug_id), "comment"] = "Fixed Patch"
-            summary.to_csv(summary_csv, index=False)
+    summary_csv_file = output_folder / f"fixed_patch_summary.csv"
+
+    # open summary_csv_file in writing mode and write header
+    with open(summary_csv_file, "w") as summary_csv:
+        summary_csv.write("project,bug_id,filename\n")
+
+        for fixed_patch_file in fixed_patch_files:
+            project = fixed_patch_file.stem.split("_")[0]
+            bug_id = fixed_patch_file.stem.split("_")[1]
+
+            summary_csv.write(f"{project},{bug_id},{fixed_patch_file.stem}\n")
 
 if __name__ == "__main__":
     main()
