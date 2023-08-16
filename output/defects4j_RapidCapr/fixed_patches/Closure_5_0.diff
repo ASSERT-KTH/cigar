@@ -1,0 +1,43 @@
+diff --git a/src/com/google/javascript/jscomp/InlineObjectLiterals.java b/src/com/google/javascript/jscomp/InlineObjectLiterals.java
+index 2b85d84f..a6ba0fb8 100644
+--- a/src/com/google/javascript/jscomp/InlineObjectLiterals.java
++++ b/src/com/google/javascript/jscomp/InlineObjectLiterals.java
+@@ -173,6 +173,38 @@ class InlineObjectLiterals implements CompilerPass {
+ 
+           // Deleting a property has different semantics from deleting
+           // a variable, so deleted properties should not be inlined.
++          if (parent.isGetProp()) {
++            Preconditions.checkState(parent.getFirstChild() == name);
++            // A call target may be using the object as a 'this' value.
++            if (gramps.isCall()
++                && gramps.getFirstChild() == parent) {
++              return false;
++            }
++
++            // Deleting a property has different semantics from deleting
++            // a variable, so deleted properties should not be inlined.
++            if (parent.getParent().isDelProp()) {
++              return false;
++            }
++
++            // NOTE(nicksantos): This pass's object-splitting algorithm has
++            // a blind spot. It assumes that if a property isn't defined on an
++            // object, then the value is undefined. This is not true, because
++            // Object.prototype can have arbitrary properties on it.
++            //
++            // We short-circuit this problem by bailing out if we see a reference
++            // to a property that isn't defined on the object literal. This
++            // isn't a perfect algorithm, but it should catch most cases.
++            String propName = parent.getLastChild().getString();
++            if (!validProperties.contains(propName)) {
++              if (NodeUtil.isVarOrSimpleAssignLhs(parent, gramps)) {
++                validProperties.add(propName);
++              } else {
++                return false;
++              }
++            }
++            continue;
++          }
+ 
+           // NOTE(nicksantos): This pass's object-splitting algorithm has
+           // a blind spot. It assumes that if a property isn't defined on an
