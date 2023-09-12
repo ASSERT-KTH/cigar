@@ -23,7 +23,7 @@ class ProgParams:
     gpt35_cache_folder=Path(__file__).parent / 'cache' / 'chatgpt_cache'
 
     ### Algorithm Related
-    stop_on_first_plausible_patch = True
+    stop_on_first_plausible_patch = False
     # CAPR related
     capr_SL_SH_max_tries = 200
     capr_SF_max_tries = 100
