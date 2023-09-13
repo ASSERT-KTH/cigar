@@ -1,4 +1,3 @@
-import pandas as pd
 from difflib import SequenceMatcher
 import json
 from pathlib import Path
