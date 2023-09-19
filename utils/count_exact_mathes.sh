@@ -12,6 +12,8 @@ declare -a Math=(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 
 declare -a Mockito=(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38)
 declare -a Time=(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 22 23 24 25 26 27)
 
+# Go to root dir
+cd ..
 
 # Prepare run params
 n=0
@@ -41,15 +43,15 @@ count_exact_match() {
     project=$1
     bug=$2
 
-    OUTPUT_FOLDER="/Users/davidhidvegi/Desktop/capr/${output_dir}/"
+    OUTPUT_FOLDER="$(pwd)/${output_dir}/"
     PLAUSIBLE_PATCH_FOLDER="${OUTPUT_FOLDER}/plausible_patches"
     EXACT_MATCH_FOLDER="${OUTPUT_FOLDER}/exact_match_patches"
-    D4JSH="/Users/davidhidvegi/Desktop/capr/frameworks/defects4j.sh"
-    D4J_PATH="/Users/davidhidvegi/Desktop/defects4j/framework/bin"
-    JAVA_HOME="/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home"
-    TMP_DIR=/tmp/defects4j/${project}_${bug}
+    D4JSH="$(pwd)/frameworks/defects4j.sh"
+    D4J_PATH=$(grep D4J_PATH user_params.py | grep -o '".*"' | sed 's/"//g')
+    JAVA_HOME=$(grep JAVA_HOME user_params.py | grep -o '".*"' | sed 's/"//g')
+    TMP_DIR=$(grep TMP_DIR user_params.py | grep -o '".*"' | sed 's/"//g')/${project}_${bug}
     COMPARISON_FOLDER=/tmp/comparison/${project}_${bug}
-    GUMTREE_DIFF_PATH="/Users/davidhidvegi/Desktop/gumtree-spoon-ast-diff-1.67-jar-with-dependencies.jar"
+    GUMTREE_DIFF_PATH="$(pwd)/gumtree-spoon-ast-diff.jar"
 
     # Check if plausible_patch_folder contains any file that name contains "${project}_${bug}"
     if [ -z "$(ls -A $PLAUSIBLE_PATCH_FOLDER | grep "${project}_${bug}_")" ]; then

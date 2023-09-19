@@ -118,9 +118,7 @@ Reference: Tange, O. (2023, May 22). GNU Parallel 20230522 ('Charles'). Zenodo. 
       title        = {GNU Parallel 20230522 ('Charles')},
       month        = May,
       year         = 2023,
-      note         = {{GNU Parallel is a general parallelizer to run
-                       multiple serial command line programs in parallel
-                       without changing them.}},
+      note         = {{GNU Parallel is a general parallelizer to run multiple serial command line programs in parallel without changing them.}},
       publisher    = {Zenodo},
       doi          = {10.5281/zenodo.7958356},
       url          = {https://doi.org/10.5281/zenodo.7958356}
