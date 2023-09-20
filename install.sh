@@ -1,29 +1,49 @@
+### Check requirements
+if ! type "virtualenv" > /dev/null; then
+    echo "virtualenv not installed"
+    exit 1
+    # To install run: pip3 install virtualenv
+fi
+if ! type "svn" > /dev/null; then
+    echo "subversion (svn) not installed"
+    exit 1
+    # To install run: 
+    # linux: sudo apt install subversion
+    # mac: brew install svn
+fi
+if ! type "java" > /dev/null; then
+    echo "java not installed"
+    exit 1
+    # To install run: 
+    # linux: sudo apt install openjdk-8-jdk -y
+    # mac: install openjdk@8
+fi
+# Get java 8 home path
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    java_home=$(readlink -f /usr/bin/java | sed "s:bin/java::")
+elif [[ "$OSTYPE" == "darwin"* ]]; then
+    java_home=$(/usr/libexec/java_home -version 1.8)
+else
+    echo "OS not supported"
+    exit 1
+fi
+# Check if java_home is set
+if [ -z "$java_home" ]; then
+    echo "java_home not set"
+    exit 1
+fi
+
 ### Install python requirements
-# Create virtualenv for the repo
-pip3 install virtualenv
 virtualenv venv
 source venv/bin/activate
 # Install requirements
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 
 ### Download tools & dependencies
 # To count diff lines download gumtree-spoon-ast-diff.jar from https://github.com/SpoonLabs/gumtree-spoon-ast-diff
 wget https://search.maven.org/remote_content\?g\=fr.inria.gforge.spoon.labs\&a\=gumtree-spoon-ast-diff\&v\=LATEST\&c\=jar-with-dependencies -O gumtree-spoon-ast-diff.jar
 # Download Defects4J
 git clone https://github.com/rjust/defects4j.git
-# Install subversion and java 8
-if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    echo "Linux detected"
-    sudo apt install subversion
-    sudo apt install openjdk-8-jdk -y
-elif [[ "$OSTYPE" == "darwin"* ]]; then
-    echo "Mac detected"
-    brew install svn
-    brew install openjdk@8
-else
-    echo "OS not supported"
-    exit 1
-fi
 
 ### Set parameters
 rm user_params.py
@@ -34,9 +54,7 @@ user_params=${user_params//patch_to_tmp_dir/\/tmp\/defects4j}
 # set D4J_PATH to "$(pwd)/defects4j/framework/bin"
 user_params=${user_params//path_to_d4j_bin/$(pwd)\/defects4j\/framework\/bin}
 # set JAVA_HOME to $(/usr/libexec/java_home -version 1.8)
-java_home=$(/usr/libexec/java_home -version 1.8)
 user_params=${user_params//path_to_java_home/$java_home}
-
 # write to file
 echo "$user_params" > user_params.py
 
