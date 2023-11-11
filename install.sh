@@ -41,7 +41,7 @@ pip3 install -r requirements.txt
 
 ### Download tools & dependencies
 # To count diff lines download gumtree-spoon-ast-diff.jar from https://github.com/SpoonLabs/gumtree-spoon-ast-diff
-wget https://search.maven.org/remote_content\?g\=fr.inria.gforge.spoon.labs\&a\=gumtree-spoon-ast-diff\&v\=LATEST\&c\=jar-with-dependencies -O gumtree-spoon-ast-diff.jar
+wget https://repo1.maven.org/maven2/fr/inria/gforge/spoon/labs/gumtree-spoon-ast-diff/1.67/gumtree-spoon-ast-diff-1.67-jar-with-dependencies.jar -O gumtree-spoon-ast-diff.jar
 # Download Defects4J
 git clone https://github.com/rjust/defects4j.git
 

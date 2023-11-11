@@ -74,3 +74,9 @@ class ChatGPT(object):
             "call": call_params,
             "response": response
         }
+
+    def record_patch_hashes(self, prompt, num_of_samples=1, prefix=None, patch_hashes=None):
+        cache_file_path = self.get_cache_file_path(prompt, num_of_samples, f'{"" if prefix is None else (prefix + "_")}patch_hashes')
+        with open(cache_file_path, "w") as file:
+            json_to_save = {"patch_hashes": patch_hashes}
+            file.write(json.dumps(json_to_save, indent=4, sort_keys=True))

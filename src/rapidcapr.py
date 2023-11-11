@@ -1,4 +1,5 @@
 import openai
+import hashlib
 from prog_params import ProgParams as prog_params
 from src.chatgpt import ChatGPT
 from src.framework import Framework
@@ -51,14 +52,20 @@ class RapidCapr(object):
                             total_cost += prog_params.gpt35_model_token_limit # Exceeded Token limit
                             continue
 
+                        patch_hashes = []
+
                         for response in responses:
                             patches = extract_patches_from_response(bug=bug, response=response, response_mode=mode, similarity_threshold=similarity_threshold)
                             for patch, patch_mode in patches:
                                 test_result, result_reason, patch_diff = self.framework.validate_patch(bug=bug, proposed_patch=patch, mode=patch_mode)
+                                patch_hashes.append(hashlib.md5(str(patch).encode('utf-8')).hexdigest())
                                 proposed_patches.add(response=response, test_result=test_result, result_reason=result_reason, mode=patch_mode, 
                                                     patch=patch, patch_diff=patch_diff)
                                 if first_plausible_patch_try is None and test_result == 'PASS':
                                     first_plausible_patch_try = total_call_tries
+                        
+                        self.chatgpt.record_patch_hashes(prompt, num_of_samples=max(1, min(max_sample_count,num_of_samples)), prefix=f"{prefix}_R{round}_{total_call_tries}",
+                                                         patch_hashes=patch_hashes)
             
                 if proposed_patches.contains_plausible_patch(mode=mode) == True:
                     break
