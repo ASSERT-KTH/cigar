@@ -6,22 +6,73 @@ from prog_params import ProgParams as prog_params
 ROUND_INFO_FILE = f'output/defects4j_RapidCapr/rounds_info.json'
 
 def main():
-    compute_round_exact_matches()
+    plot_round_distinct_hashes()
 
 def plot_round_distinct_hashes():
-    rounds_info = list(json.load(open(ROUND_INFO_FILE, 'r')).values())
-    rounds_info.sort(key=lambda x:(x['round'], x['trycount']))
-    tokens = [sum([r['cost'] for r in rounds_info[:i+1]]) for i in range(len(rounds_info))]
+    fig, mplot = plt.subplots(2, 2)
+
+    rounds_info, tokens, distinct_hashes, round_end_points = get_cost_and_distinct_hashes(['first_plausible'])
     distinct_hashes = [sum([r['distinct_hashes'] for r in rounds_info[:i+1]]) for i in range(len(rounds_info))]
-    distinct_plausible_hashes = [sum([r['distinct_plausible_hashes'] for r in rounds_info[:i+1]]) for i in range(len(rounds_info))]
-    plt.plot(tokens, distinct_hashes, label='#Distinct Hashes')
-    plt.plot(tokens, distinct_plausible_hashes, label='#Distinct Plausible Hashes')
-    plt.xlabel('Token_Cost')
-    plt.ylabel('Distinct Hashes')
-    plt.legend()
+    mplot[0][0].plot(tokens, distinct_hashes, label='First_Plausible')
+    for round_end_point in round_end_points:
+        mplot[0][0].plot([round_end_point[0]], [round_end_point[1]], "o", markersize=2, color="black")
+    mplot[0][0].set(xlabel='Token_Cost', ylabel='#Distinct_Patches')
+    mplot[0][0].set_title("Plausible_Search")
+
+    rounds_info, tokens, distinct_hashes, round_end_points = get_cost_and_distinct_hashes(['amplification'])
+    rounds_info, tokens, distinct_hashes = rounds_info[:5], tokens[:5], distinct_hashes[:5]
+    mplot[0][1].plot(tokens, distinct_hashes, label='Amplification')
+    for i in range(len(tokens)):
+        mplot[0][1].plot([tokens[i]], [distinct_hashes[i]], "o", markersize=2, color="green")
+    mplot[0][1].set(xlabel='Token_Cost', ylabel='#Distinct_Patches')
+    mplot[0][1].set_title("Amplification")
+
+    rounds_info, tokens, distinct_hashes, round_end_points = get_cost_and_distinct_hashes(['min_try_bug', 'amplification'])
+    mplot[1][0].plot(tokens, distinct_hashes, label='Min_Try_Bug')
+    for i in range(len(tokens)):
+        mplot[1][0].plot([tokens[i]], [distinct_hashes[i]], "o", markersize=2, color="green")
+    rounds_info, tokens, distinct_hashes, round_end_points = get_cost_and_distinct_hashes(['max_try_bug', 'amplification'])
+    mplot[1][0].plot(tokens, distinct_hashes, label='Max_Try_Bug')
+    for i in range(len(tokens)):
+        mplot[1][0].plot([tokens[i]], [distinct_hashes[i]], "o", markersize=2, color="green")
+    mplot[1][0].set(xlabel='Token_Cost', ylabel='#Distinct_Patches')
+    mplot[1][0].set_title("Select_Amplification")
+    mplot[1][0].legend()
+
+    rounds_info, tokens, distinct_hashes, round_end_points = get_cost_and_distinct_hashes(['max_try_bug', 'first_plausible'])
+    mplot[1][1].plot(tokens, distinct_hashes, label='Max_Try_Bug')
+    for round_end_point in round_end_points:
+        mplot[1][1].plot([round_end_point[0]], [round_end_point[1]], "o", markersize=2, color="black")
+    rounds_info, tokens, distinct_hashes, round_end_points = get_cost_and_distinct_hashes(['no_plausible_bug', 'first_plausible'])
+    mplot[1][1].plot(tokens, distinct_hashes, label='No_Plausible_Bug')
+    for round_end_point in round_end_points:
+        mplot[1][1].plot([round_end_point[0]], [round_end_point[1]], "o", markersize=2, color="black")
+    mplot[1][1].set(xlabel='Token_Cost', ylabel='#Distinct_Patches')
+    mplot[1][1].set_title("Select_Plausible_Search")
+    mplot[1][1].legend()
+
+    for ax in mplot.flat:
+        ax.set(xlabel='Token_Cost', ylabel='#Distinct_Patches')
+    for ax in mplot.flat:
+        ax.label_outer()
+
+    plt.savefig(f'output/defects4j_RapidCapr/round_info_plot.pdf')
     plt.show()
 
-def compute_round_distinct_hashes():
+def get_cost_and_distinct_hashes(info_types):
+    info_object = json.load(open(ROUND_INFO_FILE, 'r'))
+    for info_type in info_types:
+        info_object = info_object[info_type]
+    
+    rounds_info = list(info_object.values())
+    tokens = [sum([r['cost'] for r in rounds_info[:i+1]]) for i in range(len(rounds_info))]
+    distinct_hashes = [sum([r['distinct_hashes'] for r in rounds_info[:i+1]]) for i in range(len(rounds_info))]
+    round_end_points = [(tokens[i], distinct_hashes[i]) for i in range(len(rounds_info)) if i == len(rounds_info) - 1 
+                        or rounds_info[i]['round'] != rounds_info[i+1]['round']]
+
+    return rounds_info, tokens, distinct_hashes, round_end_points
+
+def compute_rounds_info():
     patch_hash_to_test_res = get_patch_hash_to_test_result()
 
     considered_bugs = set()
@@ -65,7 +116,8 @@ def compute_round_distinct_hashes():
         
         considered_bugs.add(proj_bug_id)
         
-        if round < first_plausible_try_info[proj_bug_id]['round'] or (round == first_plausible_try_info[proj_bug_id]['round'] and trycnt < first_plausible_try_info[proj_bug_id]['trycount']):
+        if (not proj_bug_id in first_plausible_try_info or round < first_plausible_try_info[proj_bug_id]['round'] 
+            or (round == first_plausible_try_info[proj_bug_id]['round'] and trycnt < first_plausible_try_info[proj_bug_id]['trycount'])):
             if any(patch_hash_to_test_res[(proj, bug_id, h)] == 'PASS' for h in current_hashes):
                 first_plausible_try_info[proj_bug_id] = {'round': round, 'trycount': trycnt}
         
@@ -76,30 +128,37 @@ def compute_round_distinct_hashes():
     rounds_info['amplification'] = {}
 
 
-    first_plausible_try_info_items = first_plausible_try_info.items.sort(key=lambda x:(x[1]['round'], x[1]['trycount']))
+    first_plausible_try_info_items = list(first_plausible_try_info.items())
+    first_plausible_try_info_items.sort(key=lambda x:(x[1]['round'], x[1]['trycount']))    
     min_try_bug = first_plausible_try_info_items[0][0]
     max_try_bug = first_plausible_try_info_items[-1][0]
     median_try_bug = first_plausible_try_info_items[len(first_plausible_try_info_items)//2][0]
-    no_plausible_bug = considered_bugs.difference(set(first_plausible_try_info.keys()))[0]
-    print(f'min_try: {min_try_bug}, max_try: {max_try_bug}, median_try: {median_try_bug}')
+    no_plausible_bug = list(considered_bugs.difference(set(first_plausible_try_info.keys())))[0]
+    print(f'min_try: {min_try_bug}, max_try: {max_try_bug}, median_try: {median_try_bug}, no_plausible_bug: {no_plausible_bug}')
 
 
 
-    for item in rounds_info.values():
+    round_info_items = list(rounds_info.values())
+    for item in round_info_items:
+        if not 'proj' in item or not 'bug_id' in item:
+            continue
+
         proj_bug_id = f'{item["proj"]}_{item["bug_id"]}'
 
-        if compare_try(item, first_plausible_try_info[proj_bug_id]) <= 0:
+        if (not proj_bug_id in first_plausible_try_info 
+            or compare_try(item, first_plausible_try_info[proj_bug_id]) <= 0):
             try_type = 'first_plausible'
-            try_id = f"r{item['round']:02d}_t{item['trycnt']:02d}"
+            try_id = f"r{item['round']:02d}_t{item['trycount']:02d}"
         else:
             try_type = 'amplification'
-            try_id = f"r{item['try'] - first_plausible_try_info[proj_bug_id]['trycnt']}"
+            try_id = f"t{item['trycount'] - first_plausible_try_info[proj_bug_id]['trycount']}"
 
         if not try_id in rounds_info[f'{try_type}']:
             rounds_info[f'{try_type}'][try_id] = {'distinct_hashes': 0, 
                                                         'distinct_plausible_hashes': 0, 
                                                         'cost': 0,
-                                                        'round': item['round'], 'trycount': item['trycnt']}
+                                                        'proj': item['proj'], 'bug_id': item['bug_id'],
+                                                        'round': item['round'], 'trycount': item['trycount']}
         rounds_info[f'{try_type}'][try_id]['distinct_hashes'] += item['distinct_hashes']
         rounds_info[f'{try_type}'][try_id]['distinct_plausible_hashes'] += item['distinct_plausible_hashes']
         rounds_info[f'{try_type}'][try_id]['cost'] += item['cost']
@@ -116,13 +175,16 @@ def compute_round_distinct_hashes():
             selected_bug_type = 'no_plausible_bug'
         
         if selected_bug_type is not None:
+            if selected_bug_type not in rounds_info:
+                rounds_info[selected_bug_type] = {}
+
             if not try_type in rounds_info[selected_bug_type]:
                 rounds_info[selected_bug_type][try_type] = {}
             if not try_id in rounds_info[selected_bug_type][try_type]:
                 rounds_info[selected_bug_type][try_type][try_id] = {'distinct_hashes': 0, 
                                                                 'distinct_plausible_hashes': 0, 
                                                                 'cost': 0,
-                                                                'round': item['round'], 'trycount': item['trycnt']}
+                                                                'round': item['round'], 'trycount': item['trycount']}
             rounds_info[selected_bug_type][try_type][try_id]['distinct_hashes'] += item['distinct_hashes']
             rounds_info[selected_bug_type][try_type][try_id]['distinct_plausible_hashes'] += item['distinct_plausible_hashes']
             rounds_info[selected_bug_type][try_type][try_id]['cost'] += item['cost']
