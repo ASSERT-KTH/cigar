@@ -2,12 +2,97 @@ import json
 import matplotlib.pyplot as plt
 from pathlib import Path
 from prog_params import ProgParams as prog_params
+from matplotlib.ticker import MaxNLocator
 
 ROUND_INFO_FILE = f'output/defects4j_RapidCapr/rounds_info.json'
 SELECTED_ROUND_INFO_FILE = f'output/defects4j_RapidCapr/selected_rounds_info.json'
+SELECTED_BUGS_FILE = f'output/defects4j_RapidCapr/selected_bugs.txt'
+FIRST_PLAUSIBLE_DATA_FILE = f'output/defects4j_RapidCapr/first_plausible_data.json'
 
 def main():
-    compute_rounds_info([('Lang', '21'), ('Math', '85'), ('Lang', '31'), ('Lang', '21')])
+    # plot_selected_round_info([('Lang', '21'), ('Math', '85'), ('Lang', '31'), ('Lang', '19')])
+    plot_selected_round_info(json.load(open(SELECTED_BUGS_FILE, 'r')))
+    # compute_selected_rounds_info()
+
+def select_bugs():
+    first_plausible_try = list(json.load(open(FIRST_PLAUSIBLE_DATA_FILE, 'r')).items())
+    sf_bug_len = sf_bug_to_len()
+    first_plausible = [(bug, info | {'len': sf_bug_len[bug]}) for (bug, info) in first_plausible_try if bug in sf_bug_len]
+    first_plausible.sort(key=lambda x:(x[1]['round'], x[1]['trycount'], x[1]['len']))
+
+    bugs_with_most_tries = []
+    for item in filter(lambda item: item[1]['round'] >= 10, first_plausible):
+        bugs_with_most_tries.append(item)
+    bugs_with_most_tries.sort(key=lambda x:(x[1]['len']))
+
+    first_try_fixed_bugs = list(filter(lambda item: item[1]['round'] == 1 and item[1]['trycount'] == 1, first_plausible))
+
+    bugs_for_amplification_illustrtion = [first_try_fixed_bugs[0], first_try_fixed_bugs[-1], bugs_with_most_tries[0], bugs_with_most_tries[-1]]
+
+    open(SELECTED_BUGS_FILE, 'w').write(
+        json.dumps(
+            {'first_plausible': {bug: info for (bug, info) in bugs_with_most_tries},
+             'amplification': {bug: info for (bug, info) in bugs_for_amplification_illustrtion},}, 
+            indent=4, sort_keys=True))
+
+def sf_bug_to_len():
+    pathlist = list(str(p) for p in Path(prog_params.bug_details_cache_folder).glob('**/*.json'))
+    bug_info = {}
+    not_sf_bugs = set()
+    for p in reversed(pathlist):
+        filename = p.split('/')[-1]
+        proj, bug_id = filename.split('.')[0].split('-')
+        info = json.load(open(p, 'r'))
+        if info['bug_type'] != 'SF':
+            continue
+        
+        bug_info[f'{proj}_{bug_id}'] = len(info['code'])
+    
+    return bug_info
+
+def plot_selected_round_info(selected_bugs): # list[(proj, bug_id)]
+    # fig, mplot = plt.subplots(2)
+
+    for bug in selected_bugs['first_plausible'].items():
+        rounds_info, tokens, distinct_hashes, round_end_points = get_cost_and_distinct_hashes([f'{bug[0]}', 'first_plausible'], 
+                                                                                              SELECTED_ROUND_INFO_FILE)
+        # distinct_hashes = [sum([r['distinct_hashes'] for r in rounds_info[:i+1]]) for i in range(len(rounds_info))]
+        # mplot[0].plot(range(1, len(distinct_hashes) + 1), distinct_hashes, label=bug[0], lw=0.5)
+        plt.plot(range(1, len(distinct_hashes) + 1), distinct_hashes, label=bug[0], lw=1)
+    plt.xlabel('#TRY', fontsize=8)
+    plt.ylabel('#TOTAL_DISTINCT_PATCHES', fontsize=8)
+    plt.legend(fontsize=6)
+    for i in range(1, 13):
+        plt.axvline(i * 10, color = 'gray', label = 'axvline - full height', lw=0.1)
+    plt.savefig(f'output/defects4j_RapidCapr/plots/total_distinct_first_plausible.pdf')
+    plt.show()
+
+    for bug in selected_bugs['amplification'].items():
+        # if bug[0] != 'Math_89' and bug[0] != 'Lang_53':
+        #     continue
+        rounds_info, tokens, distinct_hashes, round_end_points = get_cost_and_distinct_hashes([f'{bug[0]}', 'amplification'], 
+                                                                                              SELECTED_ROUND_INFO_FILE)
+        # distinct_hashes = [sum([r['distinct_hashes'] for r in rounds_info[:i+1]]) for i in range(len(rounds_info))]
+        print(distinct_hashes)
+        plt.plot(range(1, len(distinct_hashes) + 1), distinct_hashes, label=bug[0], lw=1)
+    plt.xlabel('#TRY', fontsize=8)
+    plt.ylabel('#TOTAL_DISTINCT_PATCHES', fontsize=8)
+    plt.xticks(range(1, len(distinct_hashes) + 1))
+    plt.legend(fontsize=6)
+    for i in range(1, 6):
+        plt.axvline(i, color = 'gray', label = 'axvline - full height', lw=0.1)
+    plt.savefig(f'output/defects4j_RapidCapr/plots/total_distinct_amplification.pdf')
+    plt.show()
+    
+    # mplot[0].set(xlabel='Try', ylabel='#Distinct_Patches')
+    # mplot[0].set_title("Plausible_Search")
+    # mplot[0].legend()
+    # mplot[1].set(xlabel='Try', ylabel='#Distinct_Patches')
+    # mplot[1].set_title("Amplification")
+    # mplot[1].legend()
+
+    # plt.savefig(f'output/defects4j_RapidCapr/selected_round_info_plot.pdf')
+    # plt.show()
 
 def plot_round_distinct_hashes():
     fig, mplot = plt.subplots(2, 2)
@@ -60,14 +145,16 @@ def plot_round_distinct_hashes():
     plt.savefig(f'output/defects4j_RapidCapr/round_info_plot.pdf')
     plt.show()
 
-def get_cost_and_distinct_hashes(info_types):
-    info_object = json.load(open(ROUND_INFO_FILE, 'r'))
+def get_cost_and_distinct_hashes(info_types, round_info=ROUND_INFO_FILE):
+    info_object = json.load(open(round_info, 'r'))
     for info_type in info_types:
         info_object = info_object[info_type]
     
     rounds_info = list(info_object.values())
     tokens = [sum([r['cost'] for r in rounds_info[:i+1]]) for i in range(len(rounds_info))]
     distinct_hashes = [sum([r['distinct_hashes'] for r in rounds_info[:i+1]]) for i in range(len(rounds_info))]
+    # distinct_hashes = [r['distinct_hashes'] for r in rounds_info]
+    # distinct_hashes = [r['distinct_hashes'] / float(r['current_hashes']) for r in rounds_info]
     round_end_points = [(tokens[i], distinct_hashes[i]) for i in range(len(rounds_info)) if i == len(rounds_info) - 1 
                         or rounds_info[i]['round'] != rounds_info[i+1]['round']]
 
@@ -132,6 +219,7 @@ def compute_rounds_info():
     rounds_info['first_plausible'] = {}
     rounds_info['amplification'] = {}
 
+    open(FIRST_PLAUSIBLE_DATA_FILE, 'w').write(json.dumps(first_plausible_try_info, indent=4, sort_keys=True))
 
     first_plausible_try_info_items = list(first_plausible_try_info.items())
     first_plausible_try_info_items.sort(key=lambda x:(x[1]['round'], x[1]['trycount']))    
@@ -202,13 +290,18 @@ def compute_rounds_info():
     with open(ROUND_INFO_FILE, "w") as file:
         json.dump(rounds_info, file,  indent=4, sort_keys=True)
 
-def compute_rounds_info(selected_bugs): # list[(proj, bug_id)]
+def compute_selected_rounds_info(): # list[(proj, bug_id)]
+    selected_bugs_info = json.load(open(SELECTED_BUGS_FILE, 'r'))
+    selected_bugs = [(bug.split('_')[0], bug.split('_')[1]) for bug, _ in 
+                     list(selected_bugs_info['first_plausible'].items())
+                     + list(selected_bugs_info['amplification'].items())]
+
     patch_hash_to_test_res = get_patch_hash_to_test_result()
 
     pathlist = list(str(p) for p in Path(prog_params.gpt35_cache_folder).glob('**/*.json') if '_R' in str(p))
     rounds_info = {}
     for bug in selected_bugs:
-        pathlist_for_bug = [p for p in pathlist if f'_{bug[0]}_{bug[1]}_' in p]
+        pathlist_for_bug = [p for p in pathlist if f'_{bug[0]}_{bug[1]}_' in p and int(p.split('_R')[1].split('_')[0]) < 13]
         pathlist_for_bug.sort(key=lambda x: (int(x.split('_R')[1].split('_')[0]), int(x.split('_R')[1].split('_')[1])))
 
         previous_hashes = set()
@@ -228,8 +321,8 @@ def compute_rounds_info(selected_bugs): # list[(proj, bug_id)]
 
             round = int(path.split('_R')[1].split('_')[0])
             trycnt = int(path.split('_R')[1].split('_')[1])
-            current_hashes = set(json.load(open(path, 'r'))['patch_hashes'])
-            distinct_hashes = current_hashes.difference(previous_hashes)
+            current_hashes = list(json.load(open(path, 'r'))['patch_hashes'])
+            distinct_hashes = set(current_hashes).difference(previous_hashes)
             current_cost = int(json.load(open(path.replace('_patch_hashes', ''), 'r'))['response']['usage']['total_tokens'])
             plausible_hashes = set(h for h in current_hashes if patch_hash_to_test_res[(proj, bug_id, h)] == 'PASS')
 
@@ -251,6 +344,17 @@ def compute_rounds_info(selected_bugs): # list[(proj, bug_id)]
 
             if len(plausible_hashes) > 0:
                 is_amplification = True
+
+        if proj == 'Math' and bug_id == '89':
+            with open('tmp.txt', 'a') as file:
+                patches = []
+                for hash in previous_hashes:
+                    patch = json.load(open(f'cache/validate_patch_cache/defects4j_Math_89_SF_{hash}.json', 'r'))['patch']
+                    for p in patches:
+                        if len(p) == len(patch):
+                            file.write(f'Found patch with same length for {hash} with len {len(p)},{len(patch)}: \n {p}\n###\n{patch}\n\n')
+                            break
+                    patches.append(patch)
 
     with open(SELECTED_ROUND_INFO_FILE, "w") as file:
         json.dump(rounds_info, file,  indent=4, sort_keys=True)
