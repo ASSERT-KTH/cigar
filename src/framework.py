@@ -9,7 +9,7 @@ from prog_params import ProgParams as prog_params
 class Framework(object):
     def __init__(self, name, list_of_bugs, d4j_path, java_home, tmp_dir, 
                  bug_details_cache_folder=None, validate_patch_cache_folder=None, n_shot_cache_folder=None):
-        assert name in ["defects4j", "human_eval_java"]
+        assert name in ["defects4j", "humanevaljava"]
         self.name = name
         self.list_of_bugs = list_of_bugs
         self.validate_patch_cache_folder = validate_patch_cache_folder
@@ -129,7 +129,10 @@ class Framework(object):
             self.run_bash("checkout_bug", bug.project, bug.bug_id)
 
             result = self.run_bash("validate_patch", project, bug_id, proposed_patch, mode)
+            print(result.stdout)
+            print(result.stderr)
             patch_diff = self.run_bash("get_patch_git_diff", bug.project, bug.bug_id).stdout
+            print(patch_diff)
             
             if result.returncode != 0:
                 if result.stderr.find("error: ") > 0:

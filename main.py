@@ -14,11 +14,14 @@ def main(framework=None, project=None, bug_ids=None, repair_tool=None):
                             validate_patch_cache_folder=prog_params.validate_patch_cache_folder,
                             n_shot_cache_folder=prog_params.n_shot_cache_folder,
                             bug_details_cache_folder=prog_params.bug_details_cache_folder)
-    human_eval_java = Framework(name="human_eval_java", # TODO add human eval java framework
-                                list_of_bugs=None,
-                                d4j_path=None,
-                                java_home=None,
-                                tmp_dir=None)  
+    human_eval_java = Framework(name="humanevaljava", # TODO add human eval java framework
+                                list_of_bugs=user_params.HUMANEVAL_LIST_OF_BUGS,
+                                d4j_path=user_params.HUMANEVAL_PATH,
+                                java_home=user_params.JAVA_HOME,
+                                tmp_dir=user_params.TMP_DIR,
+                                validate_patch_cache_folder=prog_params.validate_patch_cache_folder,
+                                n_shot_cache_folder=prog_params.n_shot_cache_folder,
+                                bug_details_cache_folder=prog_params.bug_details_cache_folder) 
     chatgpt = ChatGPT(model=prog_params.gpt35_model, api_key=user_params.API_KEY,
                     cache_folder=prog_params.gpt35_cache_folder,
                     load_from_cache=True, save_to_cache=True)
