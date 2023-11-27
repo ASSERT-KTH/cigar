@@ -84,7 +84,7 @@ class TestHumanEvalJavaFramework(unittest.TestCase):
         self.assertEqual(bug.masked_code.strip(), "public static int add(int x, int y) {\n>>> [ INFILL ] <<<\n    }")
 
     def test_validate_patch_ADD(self):
-        framework = Framework(name="defects4j", list_of_bugs=None,
+        framework = Framework(name="humanevaljava", list_of_bugs=None,
                               d4j_path=self.humaneval_path, java_home=self.java_home, tmp_dir=self.tmp_dir)
 
         bug = framework.get_bug_details("humaneval", "ADD")
