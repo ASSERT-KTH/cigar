@@ -89,7 +89,7 @@ class TestHumanEvalJavaFramework(unittest.TestCase):
 
         bug = framework.get_bug_details("humaneval", "ADD")
 
-        proposed_patch = "public static int add(int x, int y) {\n        return x + y;\n    }"
+        proposed_patch = "    public static int add(int x, int y) {\n        return x + y;\n    }"
 
         test_result, test_reason, patch_diff = framework.validate_patch(bug, proposed_patch, mode="SF")
         print(test_result)
