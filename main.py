@@ -14,8 +14,8 @@ def main(framework=None, project=None, bug_ids=None, repair_tool=None):
                             validate_patch_cache_folder=prog_params.validate_patch_cache_folder,
                             n_shot_cache_folder=prog_params.n_shot_cache_folder,
                             bug_details_cache_folder=prog_params.bug_details_cache_folder)
-    human_eval_java = Framework(name="humanevaljava", # TODO add human eval java framework
-                                list_of_bugs=user_params.humaneval_list_of_bugs,
+    humanevaljava = Framework(name="humanevaljava", # TODO add human eval java framework
+                                list_of_bugs=prog_params.humaneval_list_of_bugs,
                                 d4j_path=user_params.HUMANEVAL_PATH,
                                 java_home=user_params.JAVA_HOME,
                                 tmp_dir=user_params.TMP_DIR,
@@ -26,7 +26,7 @@ def main(framework=None, project=None, bug_ids=None, repair_tool=None):
                     cache_folder=prog_params.gpt35_cache_folder,
                     load_from_cache=True, save_to_cache=True)
     
-    frameworks = [defects4j, human_eval_java]
+    frameworks = [defects4j, humanevaljava]
     if framework is not None:
         frameworks = [f for f in frameworks if f.name == framework]
     
@@ -46,13 +46,13 @@ def main(framework=None, project=None, bug_ids=None, repair_tool=None):
             elif project is not None:
                 if test_framework.name == "defects4j":
                     list_of_bugs_to_fix = [(project, [ids for proj, ids in prog_params.d4j_list_of_bugs if proj == project][0])]
-                elif test_framework.name == "human_eval_java":
-                    pass # TODO add human eval java framework
+                elif test_framework.name == "humanevaljava":
+                    list_of_bugs_to_fix = [(project, [ids for proj, ids in prog_params.humaneval_list_of_bugs if proj == project][0])]
             else:
                 if test_framework.name == "defects4j":
                     list_of_bugs_to_fix = prog_params.d4j_list_of_bugs
-                elif test_framework.name == "human_eval_java":
-                    pass # TODO add human eval java framework
+                elif test_framework.name == "humanevaljava":
+                    list_of_bugs_to_fix = prog_params.humaneval_list_of_bugs
             
             analysis = Analysis(apr=apr, framework=test_framework)
             analysis.run(list_of_bugs_to_fix)
@@ -60,13 +60,13 @@ def main(framework=None, project=None, bug_ids=None, repair_tool=None):
 
 if __name__ == '__main__':
 
-    project_choices = [p for p, _ in prog_params.d4j_list_of_bugs]
+    project_choices = [p for p, _ in prog_params.d4j_list_of_bugs] + ["humaneval"]
 
     parser = argparse.ArgumentParser(description='Run CAPR on D4J Bugs')
 
-    parser.add_argument('-fr', '--framework', metavar='path', required=False, help='Framework to use', choices=['defects4j', 'human_eval_java'])
+    parser.add_argument('-fr', '--framework', metavar='path', required=False, help='Framework to use', choices=['defects4j', 'humanevaljava'])
     parser.add_argument('-p', '--proj', metavar='path', required=False, help='Project name', choices=project_choices)
-    parser.add_argument('-bs', '--bug_ids', metavar='path', required=False, help='List of bug_ids to repair', type=int, nargs='+')
+    parser.add_argument('-bs', '--bug_ids', metavar='path', required=False, help='List of bug_ids to repair', nargs='+')
     parser.add_argument('-apr', '--repair_tool', metavar='path', required=False, help='APR algorithms to use', choices=['capr', 'rapidcapr'])
     
     args = parser.parse_args()
