@@ -190,7 +190,7 @@ class ProgParams:
     stop_on_first_plausible_patch = False
     # CAPR related
     capr_SL_SH_max_tries = 200
-    capr_SF_max_tries = 2
+    capr_SF_max_tries = 10
     capr_n_shot_count = 1
     capr_max_conv_length = 3
     # RapidCapr related
