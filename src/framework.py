@@ -129,33 +129,49 @@ class Framework(object):
             self.run_bash("checkout_bug", bug.project, bug.bug_id)
 
             result = self.run_bash("validate_patch", project, bug_id, proposed_patch, mode)
-            print(result.stdout)
-            print(result.stderr)
             patch_diff = self.run_bash("get_patch_git_diff", bug.project, bug.bug_id).stdout
-            print(patch_diff)
-            
-            if result.returncode != 0:
-                if result.stderr.find("error: ") > 0:
-                    result_reason = result.stderr
-                    result_reason = result_reason[result_reason.find("error: "):]
-                    result_reason = result_reason[:result_reason.find("\n")]
-                elif "BUILD FAILED" in result.stderr:
-                    stderr_lines = result.stderr.split("\n")
-                    build_failed_line_i = next((i for i, line in enumerate(stderr_lines) if "BUILD FAILED" in line), None) # line number of line that contains "BUILD FAILED"
-                    result_reason = stderr_lines[build_failed_line_i+1]
+
+            if bug.test_framework == "humanevaljava":
+                # Compilation Error
+                if "BUILD FAILURE" in result.stdout and "COMPILATION ERROR" in result.stdout:
+                    stderr_lines = result.stdout.split("\n")
+                    build_failed_line_i = next((i for i, line in enumerate(stderr_lines) if "COMPILATION ERROR" in line), None)
+                    result_reason = stderr_lines[build_failed_line_i+2]
                     result_reason = result_reason[result_reason.find(' '):]
-                else:
-                    result_reason = "Test timed out after 600 seconds"
-
-                test_result, result_reason = "ERROR", result_reason # compilation error
-            else:
-                all_tests_passed = result.stdout.find("Failing tests: 0") != -1
-
-                if all_tests_passed:
-                    test_result, result_reason = "PASS", "all tests passed" # test pass
-                else:
+                    test_result, result_reason = "ERROR", result_reason
+                # Test failure
+                elif "BUILD FAILURE" in result.stdout:
                     test_result = "FAIL" # test fail
                     result_reason = self.run_bash("get_test_error", project, bug_id).stdout
+                # Test pass
+                elif "BUILD SUCCESS" in result.stdout:
+                    test_result, result_reason = "PASS", "all tests passed"
+                # Timeout
+                else:
+                    test_result, result_reason = "ERROR", "Test timed out after 600 seconds"
+            elif bug.test_framework == "defects4j":
+                if result.returncode != 0:
+                    if result.stderr.find("error: ") > 0:
+                        result_reason = result.stderr
+                        result_reason = result_reason[result_reason.find("error: "):]
+                        result_reason = result_reason[:result_reason.find("\n")]
+                    elif "BUILD FAILED" in result.stderr:
+                        stderr_lines = result.stderr.split("\n")
+                        build_failed_line_i = next((i for i, line in enumerate(stderr_lines) if "BUILD FAILED" in line), None) # line number of line that contains "BUILD FAILED"
+                        result_reason = stderr_lines[build_failed_line_i+1]
+                        result_reason = result_reason[result_reason.find(' '):]
+                    else:
+                        result_reason = "Test timed out after 600 seconds"
+
+                    test_result, result_reason = "ERROR", result_reason # compilation error
+                else:
+                    all_tests_passed = result.stdout.find("Failing tests: 0") != -1
+
+                    if all_tests_passed:
+                        test_result, result_reason = "PASS", "all tests passed" # test pass
+                    else:
+                        test_result = "FAIL" # test fail
+                        result_reason = self.run_bash("get_test_error", project, bug_id).stdout
 
             if self.validate_patch_cache_folder is not None:
                 with open(cache_file_path, "w") as file:
