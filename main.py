@@ -15,7 +15,7 @@ def main(framework=None, project=None, bug_ids=None, repair_tool=None):
                             n_shot_cache_folder=prog_params.n_shot_cache_folder,
                             bug_details_cache_folder=prog_params.bug_details_cache_folder)
     human_eval_java = Framework(name="humanevaljava", # TODO add human eval java framework
-                                list_of_bugs=user_params.HUMANEVAL_LIST_OF_BUGS,
+                                list_of_bugs=user_params.humaneval_list_of_bugs,
                                 d4j_path=user_params.HUMANEVAL_PATH,
                                 java_home=user_params.JAVA_HOME,
                                 tmp_dir=user_params.TMP_DIR,
