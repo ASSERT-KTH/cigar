@@ -83,7 +83,7 @@ class TestHumanEvalJavaFramework(unittest.TestCase):
 
         self.assertEqual(bug.masked_code.strip(), "public static int add(int x, int y) {\n>>> [ INFILL ] <<<\n    }")
 
-    def test_validate_patch_ADD(self):
+    def test_validate_patch_pass_ADD(self):
         framework = Framework(name="humanevaljava", list_of_bugs=None,
                               d4j_path=self.humaneval_path, java_home=self.java_home, tmp_dir=self.tmp_dir)
 
@@ -92,7 +92,53 @@ class TestHumanEvalJavaFramework(unittest.TestCase):
         proposed_patch = "    public static int add(int x, int y) {\n        return x + y;\n    }"
 
         test_result, test_reason, patch_diff = framework.validate_patch(bug, proposed_patch, mode="SF")
-        print(test_result)
-        print(test_reason)
-        print(patch_diff)
         self.assertEqual(test_result, "PASS")
+
+    def test_validate_patch_fail_ADD(self):
+        framework = Framework(name="humanevaljava", list_of_bugs=None,
+                              d4j_path=self.humaneval_path, java_home=self.java_home, tmp_dir=self.tmp_dir)
+
+        bug = framework.get_bug_details("humaneval", "ADD")
+
+        proposed_patch = "    public static int add(int x, int y) {\n        return x - y;\n    }"
+
+        test_result, test_reason, patch_diff = framework.validate_patch(bug, proposed_patch, mode="SF")
+        self.assertEqual(test_result, "FAIL")
+
+    def test_validate_patch_error_ADD(self):
+        framework = Framework(name="humanevaljava", list_of_bugs=None,
+                              d4j_path=self.humaneval_path, java_home=self.java_home, tmp_dir=self.tmp_dir)
+
+        bug = framework.get_bug_details("humaneval", "ADD")
+
+        proposed_patch = "    public static int add(int x, int y) {\n        return x ; y;\n    }"
+
+        test_result, test_reason, patch_diff = framework.validate_patch(bug, proposed_patch, mode="SF")
+        self.assertEqual(test_result, "ERROR")
+        self.assertTrue("not a statement" in test_reason)
+
+    def test_n_shot_examples(self):
+        framework = Framework(name="humanevaljava", list_of_bugs=[("humaneval", ["ADD", "X_OR_Y"])],
+                              d4j_path=self.humaneval_path, java_home=self.java_home, tmp_dir=self.tmp_dir)
+        
+        bug = framework.get_bug_details("humaneval", "ADD")
+
+        expected_n_shot_bug_ids = ["X_OR_Y"]
+
+        n_shot_bugs = framework.get_n_shot_bugs(n=1, bug=bug, mode="SF")
+        n_shot_bug_ids = [bug.bug_id for bug in n_shot_bugs]
+
+        self.assertEqual(n_shot_bug_ids, expected_n_shot_bug_ids)
+
+    def test_n_shot_examples_excludes_target_bug(self):
+        framework = Framework(name="humanevaljava", list_of_bugs=[("humaneval", ["ADD", "X_OR_Y"])],
+                              d4j_path=self.humaneval_path, java_home=self.java_home, tmp_dir=self.tmp_dir)
+        
+        bug = framework.get_bug_details("humaneval", "X_OR_Y")
+
+        expected_n_shot_bug_ids = ["ADD"]
+
+        n_shot_bugs = framework.get_n_shot_bugs(n=1, bug=bug, mode="SF")
+        n_shot_bug_ids = [bug.bug_id for bug in n_shot_bugs]
+
+        self.assertEqual(n_shot_bug_ids, expected_n_shot_bug_ids)
