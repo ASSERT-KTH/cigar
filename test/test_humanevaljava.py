@@ -17,7 +17,15 @@ class TestHumanEvalJavaFramework(unittest.TestCase):
 
         bug = framework.get_bug_details("humaneval", "ADD")
         
-        self.assertEqual(bug.bug_type, "SF")
+        self.assertEqual(bug.bug_type, "SL SH SF")
+
+    def test_get_bug_type_ADD_ELEMENTS(self):
+        framework = Framework(name="humanevaljava", list_of_bugs=None,
+                              d4j_path=self.humaneval_path, java_home=self.java_home, tmp_dir=self.tmp_dir)
+
+        bug = framework.get_bug_details("humaneval", "ADD_ELEMENTS")
+
+        self.assertEqual(bug.bug_type, "SH SF")
 
     def test_get_buggy_lines_ADD(self):
         framework = Framework(name="humanevaljava", list_of_bugs=None,
