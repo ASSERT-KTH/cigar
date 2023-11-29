@@ -23,7 +23,88 @@ function compile_and_run_tests {
 }
 
 function get_bug_type {
-    echo "SF"
+    bug_id=$2
+    work_dir=$3
+    cd $work_dir
+
+    # Bug Types
+    SINGLE_LINE="SL SH SF"
+    SINGLE_HUNK="SH SF"
+    SINGLE_FUNCTION="SF"
+    OTHER="OT"
+
+    IFS='∫' # preserve white spaces in code
+
+    # Get git details
+    sed -i 's/package humaneval\.correct/package humaneval\.buggy/g' src/main/java/humaneval/correct/$bug_id.java
+    git_show="$(diff -U500 src/main/java/humaneval/correct/$bug_id.java src/main/java/humaneval/buggy/$bug_id.java)"
+    file_change_count=1
+    line_change_count=$(diff -y --suppress-common-lines src/main/java/humaneval/correct/$bug_id.java src/main/java/humaneval/buggy/$bug_id.java | wc -l)
+    sed -i 's/package humaneval\.buggy/package humaneval\.correct/g' src/main/java/humaneval/correct/$bug_id.java
+
+    if [ $file_change_count -gt 2 ]; then
+        bug_type=$OTHER # if file_change_count > 2, then it is OT
+    elif [ $line_change_count -lt 2 ]; then
+        bug_type=$SINGLE_LINE # else if line_change_count < 2, then it is SL
+    else
+        continuous=1
+        same_function=1
+        addition_count=0
+        removal_count=0
+
+        code_block_start_line_count=$(echo "$git_show" | grep -n -E '^@@' | sed '2d' ) # get a list of numbered lines that start with @@
+        code_block_start_line_count=$(echo "$code_block_start_line_count" | sed 's/:.*//') # remove everything after the : character
+        code_block=$(echo "$git_show" | sed -n "$code_block_start_line_count,\$p")
+
+        # Count Changes            
+        additions_in_block=$(echo "$code_block" | grep -c -E '^\+') # get the number of lines that start with +
+        removals_in_block=$(echo "$code_block" | grep -c -E '^-') # get the number of lines that start with -
+
+        addition_count=$(($addition_count + $additions_in_block)) # add the number of additions in the block to the total addition count
+        removal_count=$(($removal_count + $removals_in_block)) # add the number of removals in the block to the total removal count
+
+        # Check if block is continuous
+        numbered_changes_in_block=$(echo "$code_block" | grep -n -E '^\+|^-') # get a numbered list of lines that start with + and - 
+        change_line_counts_in_block=$(echo "$numbered_changes_in_block" | awk -F: '{print $1}') # remove everything after the : character with awk
+        is_block_continuous=$(is_list_continuous "$change_line_counts_in_block")
+
+        if [ $is_block_continuous -eq 0 ]; then
+            continuous=0
+        fi
+
+        # Check if changes were made in the same function
+        change_line_counts_in_block_len=$(echo "$change_line_counts_in_block" | wc -l | sed 's/^[ \t]*//;s/[ \t]*$//') # Get the lentgh of change_line_counts_in_block
+
+        first_change_line_count=$(echo ${change_line_counts_in_block} | head -n 1 | tail -n 1)
+        function_name=$(get_function_line_from_line_in_code_block ${first_change_line_count})
+
+        for ((line_i=2;line_i<=$change_line_counts_in_block_len;line_i++)); do
+            change_line_i=$(echo ${change_line_counts_in_block} | head -n ${line_i} | tail -n 1)
+
+            corresponding_function_name=$(get_function_line_from_line_in_code_block ${change_line_i})
+
+            if [ "$function_name" != "$corresponding_function_name" ]; then
+                same_function=0
+                break
+            fi
+        done
+
+        if [ $same_function -eq 1 ]; then
+            if [ $continuous -eq 1 ]; then
+                if [[ $addition_count -lt 2 ]] && [[ $removal_count -lt 2 ]]; then
+                    bug_type=$SINGLE_LINE
+                else
+                    bug_type=$SINGLE_HUNK
+                fi
+            else
+                bug_type=$SINGLE_FUNCTION
+            fi
+        else
+            bug_type=$OTHER
+        fi
+    fi
+
+    echo $bug_type
 }
 
 function get_test_error {
