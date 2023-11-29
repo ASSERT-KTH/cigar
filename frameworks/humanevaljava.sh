@@ -19,7 +19,7 @@ function compile_and_run_tests {
     
     export JAVA_HOME=$java_home
     timeout_seconds=600
-    custom_timeout $timeout_seconds "mvn test -Dtest=TEST_$bug_id"
+    custom_timeout $timeout_seconds "mvn test -B -Dtest=TEST_$bug_id"
 }
 
 function get_bug_type {
@@ -116,7 +116,7 @@ function get_test_error {
     timeout_seconds=600
 
     # Extract test error
-    test_error=$(timeout $timeout_seconds mvn test -Dtest=TEST_$bug_id | sed -n '/\[ERROR\] Failures:/{n;p}' | sed 's/\[ERROR\]//')
+    test_error=$(timeout $timeout_seconds mvn test -B -Dtest=TEST_$bug_id | sed -n '/\[ERROR\] Failures:/{n;p}' | sed 's/\[ERROR\]//')
 
     #Output extracted data
     echo "$test_error"
@@ -169,7 +169,7 @@ function get_test_name {
     timeout_seconds=600
 
     # Extract test error
-    test_error=$(timeout $timeout_seconds mvn test -Dtest=TEST_$bug_id | sed -n '/\[ERROR\] Failures:/{n;p}' | sed 's/\[ERROR\]//')
+    test_error=$(timeout $timeout_seconds mvn test -B -Dtest=TEST_$bug_id | sed -n '/\[ERROR\] Failures:/{n;p}' | sed 's/\[ERROR\]//')
 
     # Extract test name
     test_name="${test_error%%:*}" # Test name is the part of test_error before :
@@ -188,7 +188,7 @@ function get_test_suite {
     timeout_seconds=600
 
     # Extract test error
-    test_error="$(timeout $timeout_seconds mvn test -Dtest=TEST_$bug_id | sed -n '/\[ERROR\] Failures:/{n;p}' | sed 's/\[ERROR\]//')"
+    test_error="$(timeout $timeout_seconds mvn test -B -Dtest=TEST_$bug_id | sed -n '/\[ERROR\] Failures:/{n;p}' | sed 's/\[ERROR\]//')"
 
     # Extract test name
     test_name="${test_error%%.*}" # Test name is the part of test_error before :
@@ -207,7 +207,7 @@ function get_test_line {
     timeout_seconds=600
 
     # Extract test error
-    test_error="$(timeout $timeout_seconds mvn test -Dtest=TEST_$bug_id | sed -n '/\[ERROR\] Tests run:/{n;p;n;p;n;p}')"
+    test_error="$(timeout $timeout_seconds mvn test -B -Dtest=TEST_$bug_id | sed -n '/\[ERROR\] Tests run:/{n;p;n;p;n;p}')"
 
     # Extract portion with file name and number
     test_error="${test_error##*at}" # take everything after "at"
