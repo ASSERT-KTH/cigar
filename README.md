@@ -1,6 +1,6 @@
 # Conversational Automated Program Repair
 
-RapidCapr is an APR tool based on the idea of 
+CigaR is an APR tool based on the idea of 
 [ChatRepair](https://arxiv.org/abs/2304.00385). The current repository was created as part of a [Master Thesis](https://www.overleaf.com/read/jqdghfrwhhkc) and contains the implementation and benchmark results of ChatRepair and RapidCapr on 6 projects of the Defects4J dataset.
 
 
