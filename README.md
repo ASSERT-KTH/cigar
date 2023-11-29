@@ -5,11 +5,11 @@ CigaR is an APR tool based on the idea of
 
 
 
-### Install RapidCapr dependencies
+### Install CigaR dependencies
 
 Use the install.sh script to install the dependencies:
 ```
-git clone git@github.com:ASSERT-KTH/RapidCapr.git
+git clone git@github.com:ASSERT-KTH/cigar.git
 cd RapidCapr
 bash install.sh
 ```
