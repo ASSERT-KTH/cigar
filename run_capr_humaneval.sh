@@ -1,5 +1,7 @@
+#!/bin/bash
+
 export num_of_parallel_jobs=8
-export apr="capr"
+export apr="Capr"
 export framework="humanevaljava"
 export output_dir="output/${framework}_${apr}"
 
