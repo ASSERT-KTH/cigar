@@ -1,7 +1,6 @@
 # Conversational Automated Program Repair
 
-CigaR is an APR tool based on the idea of 
-[ChatRepair](https://arxiv.org/abs/2304.00385). The current repository was created as part of a [Master Thesis](https://www.overleaf.com/read/jqdghfrwhhkc) and contains the implementation and benchmark results of ChatRepair and RapidCapr on 6 projects of the Defects4J dataset.
+CigaR is an LLM-based APR tool that focuses on token cost minimization.
 
 
 
