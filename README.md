@@ -1,4 +1,4 @@
-# Conversational Automated Program Repair
+# CigaR: Cost-efficient Program Repair with LLMs
 
 CigaR is an LLM-based APR tool that focuses on token cost minimization.
 
