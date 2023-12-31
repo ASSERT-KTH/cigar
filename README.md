@@ -18,7 +18,7 @@ This also sets the user_params.py which defines the paths to the dependencies.
 The prog_params.py contains the default parameters for the analysis.
 
 
-### Reproduce RapidCapr Analysis on Defects4J
+### Reproduce CigaR Analysis on Defects4J
 
 To reproduce the results of the analysis run the following command:
 
