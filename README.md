@@ -9,7 +9,7 @@ CigaR is an LLM-based APR tool that focuses on token cost minimization.
 Use the install.sh script to install the dependencies:
 ```
 git clone git@github.com:ASSERT-KTH/cigar.git
-cd RapidCapr
+cd cigar
 bash install.sh
 ```
 
