@@ -449,7 +449,7 @@ function get_git_show_function_code {
 
     git_show=$(git show --no-prefix -U150)
     git_diff_code=${git_show##*@@} # take the code from the last @@ sign until the end of file using
-    code_block=$(echo $git_diff_code)
+    code_block=$(echo "$git_diff_code")
 
     # get first line that starts with + or -
     code_change_line_count=$(echo "$code_block" | grep -n -m 1 "^[+-]" | cut -d: -f1)
