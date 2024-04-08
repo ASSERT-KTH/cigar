@@ -5,7 +5,7 @@ CigaR is an LLM-based APR tool that focuses on token cost minimization. See [Cig
 The paper to cite is 
 
 ```bibtex
-@techreport{2402.06598,
+@techreport{cigar2402.06598,
  title = {CigaR: Cost-efficient Program Repair with LLMs},
  year = {2024},
  author = {Dávid Hidvégi and Khashayar Etemadi and Sofia Bobadilla and Martin Monperrus},
