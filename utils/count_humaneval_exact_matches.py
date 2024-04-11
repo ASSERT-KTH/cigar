@@ -1,6 +1,7 @@
 from pathlib import Path
 import os
 import json
+import subprocess
 
 ROOT = '/home/khashayar/projs/cigar/cigar'
 PLAUSIBLE_PATCH_PATH = f'{ROOT}/output/humanevaljava_RapidCapr/plausible_patches'
@@ -13,9 +14,9 @@ def check_plausible_patches():
     print(PLAUSIBLE_PATCH_PATH)
     for path in pathlist:
         filename = path.name
-        bug = '_'.join(filename.replace('humaneval_', '').replace('.diff', '').split('_')[:-1])
-        if bug in matched_bugs:
-            continue
+        bug = '_'.join(filename.replace('humaneval_', '').replace('.diff', '').split('_')[:-2])
+        # if bug in matched_bugs:
+        #     continue
         correct_code_path = str(Path(HUMAN_EVAL_PATH) / 'src/main/java/humaneval/correct/' / f'{bug}.java')
         buggy_code_path = correct_code_path.replace('/correct/', '/buggy/')
         ast_diff_path = f'{path.with_suffix(".ast")}'
@@ -27,12 +28,27 @@ def check_plausible_patches():
         os.system('git apply --reject --whitespace=fix patch.diff')
         os.chdir(ROOT)
         os.system(f'java -jar {GUMTREE_JAR} {buggy_code_path} {correct_code_path} > {ast_diff_path}')
-        #print(f'java -jar {GUMTREE_JAR} {buggy_code_path} {correct_code_path} > {ast_diff_path}')
+
         with open(ast_diff_path, 'r') as f:
             diff_lines = f.readlines()
             if len(diff_lines) == 1 and 'no AST change' in diff_lines[0]:
                 print(f'No diff found for {filename}')
-                matched_bugs[bug] = filename
+                patch_hash = filename.split('_')[-1].replace('.diff', '')
+                requests_with_hash = subprocess.run(['grep', '-Rnw', f'{ROOT}/cache/chatgpt_cache/', '-e', f'{patch_hash}'], stdout=subprocess.PIPE)
+                min_round, min_try_id = None, None
+
+                if bug in matched_bugs:
+                    min_round = matched_bugs[bug]['min_round']
+                    min_try_id = matched_bugs[bug]['min_try_id']
+
+                for line in requests_with_hash.stdout.decode('utf-8').split('\n'):
+                    if line:
+                        round, try_id = line.split('/')[-1].split('_patch_hashes')[0].split('_')[-2:]
+                        round, try_id = int(round[1:]), int(try_id)
+                        if min_round is None or int(round) < min_round or (round == min_round and try_id < min_try_id):
+                            min_round = round
+                            min_try_id = try_id
+                matched_bugs[bug] = {'matching_file': filename, 'min_round': min_round, 'min_try_id': min_try_id}
 
         print(len(matched_bugs.keys()))
 
