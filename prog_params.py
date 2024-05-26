@@ -196,7 +196,7 @@ class ProgParams:
     # CigaR related
     cigar_max_fpps_try_per_mode = 5
     cigar_max_mpps_try_per_mode = 5
-    cigarr_prompt_token_limit = 1500
+    cigar_prompt_token_limit = 1500
     cigar_total_token_limit_target = 3000
     cigar_max_sample_count = 100
     cigar_similarity_threshold = 0.5

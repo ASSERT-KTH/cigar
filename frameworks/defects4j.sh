@@ -4,9 +4,11 @@ function checkout_bug {
     project_id=$1
     bug_id=$2
     work_dir=$3
+    java_home=$4
     d4j_path=$5
 
     rm -rf $work_dir
+    export JAVA_HOME=$java_home
     export PATH=$PATH:$d4j_path
     defects4j checkout -p $project_id -v "${bug_id}b" -w $work_dir
 
