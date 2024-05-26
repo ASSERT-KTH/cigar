@@ -6,9 +6,6 @@ export output_dir="output/${framework}_${apr}"
 ## Creating required directories
 mkdir $output_dir
 mkdir $output_dir/plausible_patches
-mkdir cache/validate_patch_cache
-mkdir cache/bug_details_cache
-mkdir cache/n_shot_cache
 
 n=0
 declare -a params_bug_ids=("$2")
@@ -48,10 +45,4 @@ for project in "${pool[@]}"; do
     head -n 1 "${output_dir}/${project}_summary.csv" > "${output_dir}/${project}_summary.csv"
     cat "${output_dir}/${project}_summary.csv.tmp" >> "${output_dir}/${project}_summary.csv"
     rm "${output_dir}/${project}_summary.csv.tmp"
-done
-
-# Merge all summary files into one, first line is the header
-head -n 1 "${output_dir}/${pool[0]}_summary.csv" > "${output_dir}/summary.csv"
-for project in "${pool[@]}"; do
-    tail -n +2 "${output_dir}/${project}_summary.csv" >> "${output_dir}/summary.csv"
 done

@@ -50,7 +50,7 @@ rm user_params.py
 cp user_params.py.template user_params.py
 user_params=$(<user_params.py)
 # set TMP_DIR to "/tmp/defects4j"
-user_params=${user_params//patch_to_tmp_dir/\/tmp\/defects4j}
+user_params=${user_params//path_to_tmp_dir/\/tmp\/defects4j}
 # set D4J_PATH to "$(pwd)/defects4j/framework/bin"
 user_params=${user_params//path_to_d4j_bin/$(pwd)\/defects4j\/framework\/bin}
 # set JAVA_HOME to $(/usr/libexec/java_home -version 1.8)
@@ -60,4 +60,5 @@ echo "$user_params" > user_params.py
 
 # Print that user should set API_KEY
 echo
+echo "Please set your JAVA_HOME to your Java 8 home in user_params.py"
 echo "Please set your API_KEY in user_params.py"
