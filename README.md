@@ -40,6 +40,10 @@ To repair a Defects4J bug, run the following:
 ```
 ./cigar.sh {project-id} {bug-id}
 ```
+For example, you can run:
+```
+./cigar.sh Chart 1
+```
 
 The resulting plausible patches are stored in `output/defects4j_CigaR/plausible_patches/`.
 
