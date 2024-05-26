@@ -7,10 +7,10 @@ from src.prompts import Prompts as prompts
 from src.proposed_patches import ProposedPatches
 from src.utils import extract_patches_from_response
 
-class RapidCapr(object):
+class CigaR(object):
 
     def __init__(self, chatgpt: ChatGPT, framework: Framework):
-        self.name = "RapidCapr"
+        self.name = "CigaR"
         self.chatgpt = chatgpt
         self.framework = framework
     

@@ -1,6 +1,6 @@
 import argparse
 from src.capr import Capr
-from src.rapidcapr import RapidCapr
+from src.cigar import CigaR
 from src.chatgpt import ChatGPT
 from src.framework import Framework
 from src.analysis import Analysis
@@ -14,28 +14,28 @@ def main(framework=None, project=None, bug_ids=None, repair_tool=None):
                             validate_patch_cache_folder=prog_params.validate_patch_cache_folder,
                             n_shot_cache_folder=prog_params.n_shot_cache_folder,
                             bug_details_cache_folder=prog_params.bug_details_cache_folder)
-    humanevaljava = Framework(name="humanevaljava", # TODO add human eval java framework
-                                list_of_bugs=prog_params.humaneval_list_of_bugs,
-                                d4j_path=user_params.HUMANEVAL_PATH,
-                                java_home=user_params.JAVA_HOME,
-                                tmp_dir=user_params.TMP_DIR,
-                                validate_patch_cache_folder=prog_params.validate_patch_cache_folder,
-                                n_shot_cache_folder=prog_params.n_shot_cache_folder,
-                                bug_details_cache_folder=prog_params.bug_details_cache_folder) 
+    #humanevaljava = Framework(name="humanevaljava", # TODO add human eval java framework
+    #                            list_of_bugs=prog_params.humaneval_list_of_bugs,
+    #                            d4j_path=user_params.HUMANEVAL_PATH,
+    #                            java_home=user_params.JAVA_HOME,
+    #                            tmp_dir=user_params.TMP_DIR,
+    #                            validate_patch_cache_folder=prog_params.validate_patch_cache_folder,
+    #                            n_shot_cache_folder=prog_params.n_shot_cache_folder,
+    #                            bug_details_cache_folder=prog_params.bug_details_cache_folder) 
     chatgpt = ChatGPT(model=prog_params.gpt35_model, api_key=user_params.API_KEY,
                     cache_folder=prog_params.gpt35_cache_folder,
                     load_from_cache=True, save_to_cache=True)
     
-    frameworks = [defects4j, humanevaljava]
+    frameworks = [defects4j]
     if framework is not None:
         frameworks = [f for f in frameworks if f.name == framework]
     
     for test_framework in frameworks:
 
         capr = Capr(chatgpt=chatgpt, framework=test_framework)
-        rapidcapr = RapidCapr(chatgpt=chatgpt, framework=test_framework)
+        cigar = CigaR(chatgpt=chatgpt, framework=test_framework)
         
-        aprs = [capr, rapidcapr]
+        aprs = [capr, cigar]
         if repair_tool is not None:
             aprs = [apr for apr in aprs if apr.name.lower() == repair_tool]
 
@@ -64,10 +64,10 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Run CAPR on D4J Bugs')
 
-    parser.add_argument('-fr', '--framework', metavar='path', required=False, help='Framework to use', choices=['defects4j', 'humanevaljava'])
+    parser.add_argument('-fr', '--framework', metavar='path', required=False, help='Framework to use', choices=['defects4j'])
     parser.add_argument('-p', '--proj', metavar='path', required=False, help='Project name', choices=project_choices)
     parser.add_argument('-bs', '--bug_ids', metavar='path', required=False, help='List of bug_ids to repair', nargs='+')
-    parser.add_argument('-apr', '--repair_tool', metavar='path', required=False, help='APR algorithms to use', choices=['capr', 'rapidcapr'])
+    parser.add_argument('-apr', '--repair_tool', metavar='path', required=False, help='APR algorithms to use', choices=['capr', 'cigar'])
     
     args = parser.parse_args()
 
