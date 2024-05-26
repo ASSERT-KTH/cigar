@@ -1,5 +1,5 @@
 export num_of_parallel_jobs=8
-export apr="RapidCapr"
+export apr="CigaR"
 export framework="defects4j"
 export output_dir="output/${framework}_${apr}"
 
