@@ -5,6 +5,7 @@ export output_dir="output/${framework}_${apr}"
 
 ## Creating required directories
 mkdir $output_dir
+mkdir $output_dir/plausible_patches
 mkdir cache/validate_patch_cache
 mkdir cache/bug_details_cache
 mkdir cache/n_shot_cache
