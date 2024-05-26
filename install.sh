@@ -42,8 +42,9 @@ pip3 install -r requirements.txt
 ### Download tools & dependencies
 # To count diff lines download gumtree-spoon-ast-diff.jar from https://github.com/SpoonLabs/gumtree-spoon-ast-diff
 wget https://search.maven.org/remote_content\?g\=fr.inria.gforge.spoon.labs\&a\=gumtree-spoon-ast-diff\&v\=LATEST\&c\=jar-with-dependencies -O gumtree-spoon-ast-diff.jar
-# Download Defects4J
+# Download ind init Defects4J
 git clone https://github.com/rjust/defects4j.git
+defects4j/init.sh
 
 ### Set parameters
 rm user_params.py
@@ -61,4 +62,5 @@ echo "$user_params" > user_params.py
 # Print that user should set API_KEY
 echo
 echo "Please set your JAVA_HOME to your Java 8 home in user_params.py"
+echo "Please set TMP_DIR in user_params.py"
 echo "Please set your API_KEY in user_params.py"

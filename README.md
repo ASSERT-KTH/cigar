@@ -15,7 +15,9 @@ The paper to cite is
 }
 ```
 
+## Quickstart
 
+You must first install CigaR dependencies.
 
 ### Install CigaR dependencies
 
@@ -27,9 +29,18 @@ bash install.sh
 ```
 
 This also sets the user_params.py which defines the paths to the dependencies.
+You must set three params in user.params.py: `JAVA_HOME`, `TMP_DIR`, and `API_KEY`. `JAVA_HOME` should refer to the home directory of Java 8 on your machine.
 
 The prog_params.py contains the default parameters for the analysis.
 
+### Repairing a Defects4J Bug
+
+To repair a Defects4J bug, run the following:
+```
+./cigar.sh {project-id} {bug-id}
+```
+
+The resulting plausible patches are stored in `output/defects4j_CigaR/plausible_patches/`.
 
 ### Reproduce CigaR Analysis on Defects4J
 
