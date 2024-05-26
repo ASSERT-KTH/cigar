@@ -3,6 +3,12 @@ export apr="RapidCapr"
 export framework="defects4j"
 export output_dir="output/${framework}_${apr}"
 
+## Creating required directories
+mkdir $output_dir
+mkdir cache/validate_patch_cache
+mkdir cache/bug_details_cache
+mkdir cache/n_shot_cache
+
 n=0
 declare -a params_bug_ids=("$2")
 declare -a params_projects=($1)

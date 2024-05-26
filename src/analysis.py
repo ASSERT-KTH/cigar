@@ -2,13 +2,13 @@ import csv
 import logging
 from pathlib import Path
 from src.capr import Capr
-from src.rapidcapr import RapidCapr
+from src.cigar import CigaR
 from src.framework import Framework
 from prog_params import ProgParams as prog_params
 
 class Analysis:
 
-    def __init__(self, apr: Capr or RapidCapr, framework: Framework):
+    def __init__(self, apr: Capr or CigaR, framework: Framework):
         self.apr = apr
         self.framework = framework
 
@@ -52,16 +52,16 @@ class Analysis:
                                                             n_shot_count=prog_params.capr_n_shot_count,
                                                             max_tries=max_tries,
                                                             max_conv_length=prog_params.capr_max_conv_length)
-                        elif self.apr.name.lower() == "rapidcapr":
-                            max_tries = prog_params.rapidcapr_max_rounds * 2 * prog_params.rapidcapr_max_fpps_try_per_mode + prog_params.rapidcapr_max_mpps_try_per_mode
+                        elif self.apr.name.lower() == "cigar":
+                            max_tries = prog_params.cigar_max_rounds * 2 * prog_params.cigar_max_fpps_try_per_mode + prog_params.cigar_max_mpps_try_per_mode
                             repair_results = self.apr.repair(bug=bug,
-                                                             max_fpps_try_per_mode=prog_params.rapidcapr_max_fpps_try_per_mode,
-                                                             max_mpps_try_per_mode=prog_params.rapidcapr_max_mpps_try_per_mode,
-                                                             prompt_token_limit=prog_params.rapidcapr_prompt_token_limit,
-                                                             total_token_limit_target=prog_params.rapidcapr_total_token_limit_target,
-                                                             max_sample_count=prog_params.rapidcapr_max_sample_count,
-                                                             similarity_threshold=prog_params.rapidcapr_similarity_threshold,
-                                                             max_rounds=prog_params.rapidcapr_max_rounds)
+                                                             max_fpps_try_per_mode=prog_params.cigar_max_fpps_try_per_mode,
+                                                             max_mpps_try_per_mode=prog_params.cigar_max_mpps_try_per_mode,
+                                                             prompt_token_limit=prog_params.cigar_prompt_token_limit,
+                                                             total_token_limit_target=prog_params.cigar_total_token_limit_target,
+                                                             max_sample_count=prog_params.cigar_max_sample_count,
+                                                             similarity_threshold=prog_params.cigar_similarity_threshold,
+                                                             max_rounds=prog_params.cigar_max_rounds)
                         plausible_patches, plausible_patch_diffs, repair_cost, first_plausible_patch_try, first_plausible_patch_conv_len, used_tries, err_tf, err_ce, tpc = repair_results
 
                         prefix = f"{mode}_" if self.apr.name.lower() == "capr" else ""
@@ -99,7 +99,7 @@ class Analysis:
                     'SH_ppc', 'SH_rc', 'SH_fppt', 'SH_fppcl', 'SH_uts', 'SH_mts', 'SH_errtf', 'SH_errce', 'SH_tpc',
                     'SF_ppc', 'SF_rc', 'SF_fppt', 'SF_fppcl', 'SF_uts', 'SF_mts', 'SF_errtf', 'SF_errce', 'SF_tpc',
                     'max_conv_length', 'comment']
-        elif self.apr.name.lower() == "rapidcapr": # TODO
+        elif self.apr.name.lower() == "cigar": # TODO
             return ['framework', 'project', 'bug_id', 'bug_type',
                     'ppc', 'rc', 'fppt', 'uts', 'mts', 'errtf', 'errce', 'tpc',
                     'comment']

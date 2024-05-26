@@ -193,14 +193,14 @@ class ProgParams:
     capr_SF_max_tries = 100
     capr_n_shot_count = 1
     capr_max_conv_length = 3
-    # RapidCapr related
-    rapidcapr_max_fpps_try_per_mode = 5
-    rapidcapr_max_mpps_try_per_mode = 5
-    rapidcapr_prompt_token_limit = 1500
-    rapidcapr_total_token_limit_target = 3000
-    rapidcapr_max_sample_count = 100
-    rapidcapr_similarity_threshold = 0.5
-    rapidcapr_max_rounds = 13
+    # CigaR related
+    cigar_max_fpps_try_per_mode = 5
+    cigar_max_mpps_try_per_mode = 5
+    cigarr_prompt_token_limit = 1500
+    cigar_total_token_limit_target = 3000
+    cigar_max_sample_count = 100
+    cigar_similarity_threshold = 0.5
+    cigar_max_rounds = 13
 
     ### Logging Parameters ###
     logging_level=logging.INFO
