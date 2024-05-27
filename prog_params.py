@@ -198,7 +198,7 @@ class ProgParams:
     cigar_max_mpps_try_per_mode = 5
     cigar_prompt_token_limit = 1500
     cigar_total_token_limit_target = 3000
-    cigar_max_sample_count = 10
+    cigar_max_sample_count = 1
     cigar_similarity_threshold = 0.5
     cigar_max_rounds = 13
 
