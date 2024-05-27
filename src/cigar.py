@@ -1,6 +1,7 @@
 import openai
 from prog_params import ProgParams as prog_params
 from src.chatgpt import ChatGPT
+import logging
 from src.framework import Framework
 from src.bug import Bug
 from src.prompts import Prompts as prompts
@@ -71,4 +72,9 @@ class CigaR(object):
             if proposed_patches.contains_plausible_patch() == True:
                 break
         
+        logging.info("The following plausible patches are generated:")
+        for i, p in enumerate(plausible_patch_diffs):
+            print(f'\033[105mPlausible Patch {i}:\033[0m')
+            print(p)
+
         return (plausible_patches, plausible_patch_diffs, total_cost, first_plausible_patch_try, None, total_call_tries, test_failure_count, test_error_count, total_length)

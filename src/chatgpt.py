@@ -30,7 +30,18 @@ class ChatGPT(object):
 
         if response is None:
             try:
-                logging.info(f"Calling the LLM with prompt: {prompt}")
+                logging.info(f"Calling the LLM with prompt:")
+                for p in prompt:
+                    if p['role'] == 'user':
+                        print('\033[105mUSER MESSAGE:\033[0m')
+                        print(p['content'])
+                    if p['role'] == 'system':
+                        print('\033[105mSystem MESSAGE:\033[0m')
+                        print(p['content'])
+                    if p['role'] == 'assistant':
+                        print('\033[105mAssistant MESSAGE:\033[0m')
+                        print(p['content'])
+
                 response = openai.ChatCompletion.create(**call_params)
             except openai.error.InvalidRequestError as e:
                 response = {
@@ -53,6 +64,9 @@ class ChatGPT(object):
         response_token_usage = response['usage']['total_tokens']
 
         logging.info(f"Responses are fetched. Token usage: {response_token_usage}")
+        for i, r in enumerate(response_message):
+            print(f'\033[105mResponse {i}:\033[0m')
+            print(r)
 
         return (response_message, response_token_usage)
     
