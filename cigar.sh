@@ -6,8 +6,8 @@ export framework="defects4j"
 export output_dir="output/${framework}_${apr}"
 
 ## Creating required directories
-mkdir $output_dir
-mkdir $output_dir/plausible_patches
+mkdir -p $output_dir
+mkdir -p $output_dir/plausible_patches
 
 n=0
 declare -a params_bug_ids=("$2")
