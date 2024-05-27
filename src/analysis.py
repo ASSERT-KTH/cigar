@@ -30,6 +30,7 @@ class Analysis:
             for bug_id in ids:
                 logging.info(f" ---------- Reproducing {project}-{bug_id} ----------")
                 bug = self.framework.get_bug_details(project, bug_id)
+                logging.info(f"Bug details fetched. Bug type: {bug.bug_type}")
 
                 row = {key: "" for key in fieldnames}
                 row['framework'] = f"{self.framework.name}"

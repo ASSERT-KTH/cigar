@@ -176,7 +176,8 @@ class Framework(object):
             if self.validate_patch_cache_folder is not None:
                 with open(cache_file_path, "w") as file:
                     json.dump({'patch': proposed_patch, 'test_result': test_result, 'result_reason': result_reason, 'patch_diff': patch_diff}, file,  indent=4, sort_keys=True)
-            
+        
+        logging.info(f"Test result for patch with the hash {patch_hash} is: {test_result}. The reason for this result is: {result_reason}")
         return test_result, result_reason, patch_diff
     
     def run_bash(self, function, project, bug_id, extra_arg1=None, extra_arg2=None):

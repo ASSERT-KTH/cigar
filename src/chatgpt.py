@@ -1,6 +1,7 @@
 import json
 import openai
 import hashlib
+import logging
 from pathlib import Path
 from prog_params import ProgParams as prog_params
 
@@ -23,11 +24,13 @@ class ChatGPT(object):
         if self.load_from_cache and self.cache_folder is not None:
             if Path(cache_file_path).is_file():
                 with open(cache_file_path, "r") as file:
+                    logging.info(f"Loading LLM's response from cache...")
                     json_to_load = json.load(file)
                     response = json_to_load['response']
 
         if response is None:
             try:
+                logging.info(f"Calling the LLM with prompt: {prompt}")
                 response = openai.ChatCompletion.create(**call_params)
             except openai.error.InvalidRequestError as e:
                 response = {
@@ -48,6 +51,9 @@ class ChatGPT(object):
             
         response_message = [choice['message']['content'] for choice in response['choices']]
         response_token_usage = response['usage']['total_tokens']
+
+        logging.info(f"Responses are fetched. Token usage: {response_token_usage}")
+
         return (response_message, response_token_usage)
     
     def get_call_params(self, prompt, num_of_samples=1):
