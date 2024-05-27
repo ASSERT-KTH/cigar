@@ -49,7 +49,7 @@ The resulting plausible patches are stored in `output/defects4j_CigaR/plausible_
 
 ### Reproduce CigaR Analysis on Defects4J
 
-To reproduce the results of the analysis, first set the `cigar_max_sample_count=10` in prog_params.py. Then, run the following command:
+To reproduce the results of the analysis, first set the `cigar_max_sample_count=100 and cigar_max_mpps_try_per_mode=5` in prog_params.py. Then, run the following command:
 
 ```
 bash run_analysis.sh
