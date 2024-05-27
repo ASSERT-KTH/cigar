@@ -1,3 +1,5 @@
+#!/bin/bash
+
 export num_of_parallel_jobs=8
 export apr="CigaR"
 export framework="defects4j"
