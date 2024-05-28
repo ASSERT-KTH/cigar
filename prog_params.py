@@ -195,7 +195,7 @@ class ProgParams:
     capr_max_conv_length = 3
     # CigaR related
     cigar_max_fpps_try_per_mode = 5
-    cigar_max_mpps_try_per_mode = 2
+    cigar_max_mpps_try_per_mode = 1
     cigar_prompt_token_limit = 1500
     cigar_total_token_limit_target = 3000
     cigar_max_sample_count = 10

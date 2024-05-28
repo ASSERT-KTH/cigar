@@ -52,9 +52,9 @@ class CigaR(object):
                             total_cost += prog_params.gpt35_model_token_limit # Exceeded Token limit
                             continue
 
+                        total_patches += len(responses)
                         for response in responses:
                             patches = extract_patches_from_response(bug=bug, response=response, response_mode=mode, similarity_threshold=similarity_threshold)
-                            total_patches += len(patches)
                             for patch, patch_mode in patches:
                                 test_result, result_reason, patch_diff = self.framework.validate_patch(bug=bug, proposed_patch=patch, mode=patch_mode)
                                 proposed_patches.add(response=response, test_result=test_result, result_reason=result_reason, mode=patch_mode, 
