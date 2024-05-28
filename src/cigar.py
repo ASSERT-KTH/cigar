@@ -20,7 +20,7 @@ class CigaR(object):
 
         modes = [list(bug.bug_type.split())[0], "SF"]
         prefix = f"{self.framework.name}_{bug.project}_{bug.bug_id}"
-        total_call_tries, total_cost = 0, 0
+        total_call_tries, total_cost, total_patches = 0, 0, 0
         first_plausible_patch_try = None
         plausible_patches, plausible_patch_diffs = [], []
         test_failure_count, test_error_count, total_length = 0, 0, 0
@@ -54,13 +54,18 @@ class CigaR(object):
 
                         for response in responses:
                             patches = extract_patches_from_response(bug=bug, response=response, response_mode=mode, similarity_threshold=similarity_threshold)
+                            total_patches += len(patches)
                             for patch, patch_mode in patches:
                                 test_result, result_reason, patch_diff = self.framework.validate_patch(bug=bug, proposed_patch=patch, mode=patch_mode)
                                 proposed_patches.add(response=response, test_result=test_result, result_reason=result_reason, mode=patch_mode, 
                                                     patch=patch, patch_diff=patch_diff)
                                 if first_plausible_patch_try is None and test_result == 'PASS':
                                     first_plausible_patch_try = total_call_tries
-            
+
+                        logging.info(f"\033[102mLLM requests so far {total_call_tries}\033[0m")
+                        logging.info(f"\033[102mLLM tokens so far {total_cost}\033[0m")
+                        logging.info(f"\033[102mPatches tried so far {total_patches}\033[0m")
+
                 if proposed_patches.contains_plausible_patch(mode=mode) == True:
                     break
 
